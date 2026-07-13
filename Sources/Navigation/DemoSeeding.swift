@@ -17,6 +17,9 @@ enum DemoSeeding {
         "Chicago,IL": CLLocationCoordinate2D(latitude: 41.8781, longitude: -87.6298),
         "New York,NY": CLLocationCoordinate2D(latitude: 40.7128, longitude: -74.0060),
         "Springfield,IL": CLLocationCoordinate2D(latitude: 39.7817, longitude: -89.6501),
+        // Phase 6 (Rankings): hot/dry vs. Seattle's wet gives the seeded ranking score spread
+        // room to show a real order, not four cities clustered in the same band.
+        "Phoenix,AZ": CLLocationCoordinate2D(latitude: 33.4484, longitude: -112.0740),
     ]
 
     static func parse(_ raw: String) -> [(name: String, coordinate: CLLocationCoordinate2D)] {

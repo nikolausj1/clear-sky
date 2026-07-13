@@ -1,7 +1,7 @@
 import SwiftData
 import SwiftUI
 
-/// Root container for Phase 3+. Hosts the floating bottom bar (Forecast | Rankings-placeholder)
+/// Root container for Phase 3+. Hosts the floating bottom bar (Forecast | Rankings)
 /// plus a search/locations button that presents the Locations screen as a sheet, per PRD Section
 /// 6's "Navigation structure." The Forecast screen's top-right ellipsis (wired via
 /// `onOpenSettings`) presents Settings as a sheet. Also the home for this phase's sim-verify
@@ -9,6 +9,8 @@ import SwiftUI
 ///
 /// - `-showLocations` presents the Locations sheet at launch.
 /// - `-showSettings` presents the Settings sheet at launch.
+/// - `-showRankings` selects the Rankings tab at launch (mirrors `-showLocations`; `simctl`
+///   can't tap the floating bottom bar for a screenshot of the non-default tab).
 /// - `-locationDenied` forces `CurrentLocationManager` to report a denied permission status.
 /// - `-locationGranted` forces `CurrentLocationManager` to report an already-authorized status
 ///   with a canned coordinate — works around a Simulator limitation where `simctl privacy grant
@@ -27,6 +29,7 @@ struct NavigationShell: View {
 
     @State private var forecastViewModel: ForecastViewModel?
     @State private var locationsViewModel: LocationsViewModel?
+    @State private var rankingsViewModel: RankingsViewModel?
     @State private var unitsSettings = UnitsSettings()
     @State private var selectedTab: Tab = .forecast
     @State private var isPresentingLocations = false
@@ -48,7 +51,19 @@ struct NavigationShell: View {
                         ProgressView()
                     }
                 case .rankings:
-                    RankingsPlaceholderView()
+                    if let rankingsViewModel {
+                        RankingsView(
+                            viewModel: rankingsViewModel,
+                            onSelectCity: { location in
+                                if let index = forecastViewModel?.locations.firstIndex(where: { $0.id == location.id }) {
+                                    forecastViewModel?.activeIndex = index
+                                }
+                                selectedTab = .forecast
+                            }
+                        )
+                    } else {
+                        ProgressView()
+                    }
                 }
             }
             .environment(unitsSettings)
@@ -98,14 +113,20 @@ struct NavigationShell: View {
             forcedTimeOfDay: Self.forcedTimeOfDayFromLaunchArgs()
         )
 
+        let rankingsVM = RankingsViewModel(
+            store: weatherStore,
+            forcedDate: Self.forcedDateFromLaunchArgs()
+        )
+
         let locationsVM = LocationsViewModel(
             store: locationsStore,
             weatherStore: weatherStore,
             locationManager: locationManager,
             searchService: LocationSearchService(),
             networkMonitor: networkMonitor,
-            onLocationsChanged: { [weak vm] locations, preferredActiveId in
+            onLocationsChanged: { [weak vm, weak rankingsVM] locations, preferredActiveId in
                 vm?.applyLocations(locations, preferredActiveId: preferredActiveId)
+                rankingsVM?.applyLocations(locations)
             }
         )
 
@@ -115,15 +136,20 @@ struct NavigationShell: View {
             // pager, so this reaches a non-default page directly for a screenshot.
             vm.activeIndex = index
         }
+        rankingsVM.applyLocations(locationsStore.fetchAll())
 
         forecastViewModel = vm
         locationsViewModel = locationsVM
+        rankingsViewModel = rankingsVM
 
         if Self.launchArgsContain("-showLocations") {
             isPresentingLocations = true
         }
         if Self.launchArgsContain("-showSettings") {
             isPresentingSettings = true
+        }
+        if Self.launchArgsContain("-showRankings") {
+            selectedTab = .rankings
         }
     }
 
