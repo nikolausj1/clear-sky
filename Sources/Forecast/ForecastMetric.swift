@@ -56,26 +56,24 @@ enum ForecastMetric: String, CaseIterable, Identifiable {
         }
     }
 
-    func displayString(for hour: HourlyEntry) -> String {
+    /// `unit` drives the Settings F/C toggle (PRD Screen D) for the two temperature-based
+    /// metrics; the other metrics don't have a units preference to route through.
+    func displayString(for hour: HourlyEntry, unit: TemperatureUnit) -> String {
         switch self {
         case .temp:
-            return Self.formattedTemp(hour.temperature)
+            return TemperatureFormatting.string(hour.temperature, unit: unit)
         case .precipChance:
             return "\(Int((hour.precipChance * 100).rounded()))%"
         case .precipAmount:
             return hour.precipAmount.converted(to: .inches)
                 .formatted(.measurement(width: .narrow, numberFormatStyle: .number.precision(.fractionLength(2))))
         case .feelsLike:
-            return Self.formattedTemp(hour.feelsLike)
+            return TemperatureFormatting.string(hour.feelsLike, unit: unit)
         case .wind:
             return hour.windSpeed.converted(to: .milesPerHour)
                 .formatted(.measurement(width: .narrow, numberFormatStyle: .number.precision(.fractionLength(0))))
         case .uv:
             return "\(hour.uvIndexValue)"
         }
-    }
-
-    static func formattedTemp(_ measurement: Measurement<UnitTemperature>) -> String {
-        measurement.formatted(.measurement(width: .narrow, numberFormatStyle: .number.precision(.fractionLength(0))))
     }
 }

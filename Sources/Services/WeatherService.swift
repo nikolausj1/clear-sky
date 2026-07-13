@@ -60,6 +60,19 @@ final class WeatherService {
         )
     }
 
+    /// Standalone attribution fetch, independent of any location — used by the Settings screen
+    /// (PRD Screen D: "Attribution and legal ... restated here in addition to the Forecast
+    /// screen") so Settings doesn't need to depend on the Forecast screen's active-location
+    /// payload just to show the same Apple-required attribution.
+    func fetchAttribution() async throws -> WeatherAttributionInfo {
+        do {
+            let attribution = try await underlying.attribution
+            return Self.map(attribution: attribution)
+        } catch {
+            throw WeatherFetchError.attributionFailed(underlying: error)
+        }
+    }
+
     // MARK: - Mapping (WeatherKit types -> ClearSky model structs)
 
     private static func map(current: WeatherKit.CurrentWeather) -> CurrentConditions {

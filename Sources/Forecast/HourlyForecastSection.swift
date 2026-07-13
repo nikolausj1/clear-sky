@@ -5,6 +5,7 @@ import SwiftUI
 /// Section 6, item 7 + the "Positional pill spec"). `position` is the pre-computed, clamped
 /// `[0, 1]` value from `PositionalPillTrack`.
 struct HourlyPillRow: View {
+    @Environment(UnitsSettings.self) private var unitsSettings
     let entry: HourlyEntry
     let previousConditionDescription: String?
     let metric: ForecastMetric
@@ -42,7 +43,7 @@ struct HourlyPillRow: View {
                         .frame(height: 1)
                         .frame(maxWidth: .infinity)
 
-                    Text(metric.displayString(for: entry))
+                    Text(metric.displayString(for: entry, unit: unitsSettings.unit))
                         .font(.subheadline.weight(.semibold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)

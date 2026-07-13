@@ -2,14 +2,15 @@ import SwiftUI
 
 /// PRD Section 6, item 2: "Large current temperature, feels-like temperature, condition text."
 struct CurrentConditionsView: View {
+    @Environment(UnitsSettings.self) private var unitsSettings
     let current: CurrentConditions
 
     var body: some View {
         VStack(spacing: 2) {
-            Text(ForecastMetric.formattedTemp(current.temperature))
+            Text(TemperatureFormatting.string(current.temperature, unit: unitsSettings.unit))
                 .font(.system(size: 64, weight: .thin))
                 .foregroundStyle(.primary)
-            Text("Feels like \(ForecastMetric.formattedTemp(current.feelsLike))")
+            Text("Feels like \(TemperatureFormatting.string(current.feelsLike, unit: unitsSettings.unit))")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             Text(current.conditionDescription)

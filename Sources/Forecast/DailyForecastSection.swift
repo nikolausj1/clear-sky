@@ -102,6 +102,7 @@ struct DailyExpandedDetail: View {
 /// One row of the 10-day forecast: weekday, precip %, condition icon, low/high with the range
 /// bar. Tapping expands it inline via `onTap`.
 struct DailyForecastRow: View {
+    @Environment(UnitsSettings.self) private var unitsSettings
     let day: DailyEntry
     let globalMin: Double
     let globalMax: Double
@@ -127,7 +128,7 @@ struct DailyForecastRow: View {
                         .symbolRenderingMode(.multicolor)
                         .frame(width: 22)
 
-                    Text(ForecastMetric.formattedTemp(day.low))
+                    Text(TemperatureFormatting.string(day.low, unit: unitsSettings.unit))
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .frame(width: 36, alignment: .trailing)
@@ -139,7 +140,7 @@ struct DailyForecastRow: View {
                         globalMax: globalMax
                     )
 
-                    Text(ForecastMetric.formattedTemp(day.high))
+                    Text(TemperatureFormatting.string(day.high, unit: unitsSettings.unit))
                         .font(.subheadline.weight(.semibold))
                         .frame(width: 36, alignment: .trailing)
 
