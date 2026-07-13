@@ -94,7 +94,8 @@ struct NavigationShell: View {
             forcedCondition: Self.forcedConditionFromLaunchArgs(),
             forcedTempBand: Self.forcedTempBandFromLaunchArgs(),
             forcedDate: Self.forcedDateFromLaunchArgs(),
-            forcedComparisonDelta: Self.forcedComparisonDeltaFromLaunchArgs()
+            forcedComparisonDelta: Self.forcedComparisonDeltaFromLaunchArgs(),
+            forcedTimeOfDay: Self.forcedTimeOfDayFromLaunchArgs()
         )
 
         let locationsVM = LocationsViewModel(
@@ -251,5 +252,17 @@ struct NavigationShell: View {
         let args = CommandLine.arguments
         guard let flagIndex = args.firstIndex(of: "-forceComparisonDelta"), flagIndex + 1 < args.count else { return nil }
         return Double(args[flagIndex + 1])
+    }
+
+    // MARK: - Phase 5 hooks (doodle layer system)
+
+    /// `-forceTimeOfDay dawn|day|dusk|night` — overrides `DoodleComposer`'s time-of-day
+    /// resolution for the doodle header art, independent of the real current time/isDaylight.
+    /// (`-forceCondition` is reused as-is for the doodle scene — see
+    /// `ForecastViewModel.forcedDoodleCondition`.)
+    private static func forcedTimeOfDayFromLaunchArgs() -> DoodleComposer.TimeOfDay? {
+        let args = CommandLine.arguments
+        guard let flagIndex = args.firstIndex(of: "-forceTimeOfDay"), flagIndex + 1 < args.count else { return nil }
+        return DoodleComposer.TimeOfDay(rawValue: args[flagIndex + 1])
     }
 }

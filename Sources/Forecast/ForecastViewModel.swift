@@ -80,6 +80,9 @@ final class ForecastViewModel {
     /// single "yesterday" `DailyActual` (today's high minus this delta) so `phase4-comparison
     /// .png` can show a warmer/cooler line without waiting real days.
     private let forcedComparisonDelta: Double?
+    /// Phase 5 sim-verify hook: `-forceTimeOfDay dawn|day|dusk|night` overrides
+    /// `DoodleComposer`'s time-of-day resolution for the doodle header art.
+    private let forcedTimeOfDay: DoodleComposer.TimeOfDay?
 
     init(
         store: WeatherStore,
@@ -89,7 +92,8 @@ final class ForecastViewModel {
         forcedCondition: PhraseBank.ConditionGroup? = nil,
         forcedTempBand: PhraseBank.TempBand? = nil,
         forcedDate: Date? = nil,
-        forcedComparisonDelta: Double? = nil
+        forcedComparisonDelta: Double? = nil,
+        forcedTimeOfDay: DoodleComposer.TimeOfDay? = nil
     ) {
         self.store = store
         self.forcedState = forcedState
@@ -98,9 +102,21 @@ final class ForecastViewModel {
         self.forcedTempBand = forcedTempBand
         self.forcedDate = forcedDate
         self.forcedComparisonDelta = forcedComparisonDelta
+        self.forcedTimeOfDay = forcedTimeOfDay
         if let initialMetric {
             self.selectedMetric = initialMetric
         }
+    }
+
+    /// Phase 5: the same `-forceCondition` value already used to pick the phrase-bank bucket
+    /// (above), bridged to `DoodleComposer`'s smaller condition-category vocabulary so one
+    /// launch argument forces both the copy and the doodle scene together.
+    var forcedDoodleCondition: DoodleComposer.ConditionCategory? {
+        forcedCondition.map(DoodleComposer.ConditionCategory.init(phraseBankGroup:))
+    }
+
+    var forcedDoodleTimeOfDay: DoodleComposer.TimeOfDay? {
+        forcedTimeOfDay
     }
 
     /// The date used for phrase-bank rotation (which variant of a bucket shows today) — real

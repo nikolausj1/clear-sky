@@ -1,0 +1,18 @@
+[
+  { "id": "newYearsDay", "kind": "fixed", "month": 1, "day": 1, "label": "New Year's Day", "tier": "overlay" },
+  { "id": "groundhogDay", "kind": "fixed", "month": 2, "day": 2, "label": "Groundhog Day", "tier": "overlay" },
+  { "id": "valentinesDay", "kind": "fixed", "month": 2, "day": 14, "label": "Valentine's Day", "tier": "overlay" },
+  { "id": "stPatricksDay", "kind": "fixed", "month": 3, "day": 17, "label": "St. Patrick's Day", "tier": "overlay" },
+  { "id": "earthDay", "kind": "fixed", "month": 4, "day": 22, "label": "Earth Day", "tier": "overlay" },
+  { "id": "juneteenth", "kind": "fixed", "month": 6, "day": 19, "label": "Juneteenth", "tier": "overlay" },
+  { "id": "julyFourth", "kind": "fixed", "month": 7, "day": 4, "label": "Independence Day", "tier": "overlay" },
+  { "id": "halloween", "kind": "fixed", "month": 10, "day": 31, "label": "Halloween", "tier": "overlay" },
+  { "id": "thanksgiving", "kind": "nthWeekdayOfMonth", "month": 11, "weekday": 5, "n": 4, "label": "Thanksgiving", "tier": "overlay" },
+  { "id": "christmas", "kind": "fixed", "month": 12, "day": 25, "label": "Christmas", "tier": "overlay" },
+  { "id": "newYearsEve", "kind": "fixed", "month": 12, "day": 31, "label": "New Year's Eve", "tier": "overlay" },
+  { "id": "springEquinox", "kind": "fixedApprox", "month": 3, "day": 20, "label": "Spring Equinox", "tier": "overlay" },
+  { "id": "summerSolstice", "kind": "fixedApprox", "month": 6, "day": 21, "label": "Summer Solstice", "tier": "overlay" },
+  { "id": "fallEquinox", "kind": "fixedApprox", "month": 9, "day": 22, "label": "Fall Equinox", "tier": "overlay" },
+  { "id": "winterSolstice", "kind": "fixedApprox", "month": 12, "day": 21, "label": "Winter Solstice", "tier": "overlay" },
+  { "id": "fullMoon", "kind": "fullMoon", "label": "Full Moon", "tier": "overlay" }
+]

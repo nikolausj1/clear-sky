@@ -107,7 +107,12 @@ struct ForecastPageView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     DoodleHeaderView(
                         current: payload.currentConditions,
-                        caption: viewModel.doodleCaptionLine(location: location, payload: payload, unit: unitsSettings.unit)
+                        caption: viewModel.doodleCaptionLine(location: location, payload: payload, unit: unitsSettings.unit),
+                        date: viewModel.phraseBankDate,
+                        sunrise: payload.daily.first?.sunrise,
+                        sunset: payload.daily.first?.sunset,
+                        forcedCondition: viewModel.forcedDoodleCondition,
+                        forcedTimeOfDay: viewModel.forcedDoodleTimeOfDay
                     )
 
                     if page.cacheState == .stale {
