@@ -18,10 +18,15 @@ targets:
         CODE_SIGN_ENTITLEMENTS: ClearSky.entitlements
         TARGETED_DEVICE_FAMILY: "1"
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
     info:
       path: Info.plist
       properties:
         CFBundleDisplayName: Clear Sky
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         ITSAppUsesNonExemptEncryption: false
         NSLocationWhenInUseUsageDescription: "Clear Sky uses your location to show the weather where you are. Nothing is stored or shared."
         UILaunchScreen: {}

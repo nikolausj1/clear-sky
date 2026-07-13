@@ -47,18 +47,24 @@ struct DoodleHeaderView: View {
         ZStack(alignment: .bottom) {
             DoodleSceneView(scene: scene)
 
+            if caption != nil {
+                // Full-width bottom-up scrim, sized independently of the caption text so it
+                // spans the entire header edge-to-edge — a hard-edged box around just the text
+                // (the previous behavior, when the gradient was a `.background()` on the Text
+                // itself) is exactly the visible-box artifact this is fixing.
+                captionScrim
+                    .frame(height: Self.scrimHeight)
+                    .allowsHitTesting(false)
+            }
+
             if let caption {
-                VStack {
-                    Spacer()
-                    Text(caption)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                        .padding(.top, 28)
-                        .padding(.bottom, 14)
-                        .background(captionScrim)
-                }
+                Text(caption)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 14)
+                    .frame(maxWidth: .infinity)
             }
         }
         .frame(height: Self.height)
@@ -66,12 +72,17 @@ struct DoodleHeaderView: View {
         .clipped()
     }
 
-    /// A bottom-anchored dark gradient so the caption stays legible over every season/weather/
-    /// time-of-day combination — including light scenes like a snowy winter day or a pale dawn
-    /// sky, where plain white text alone would wash out.
+    private static let scrimHeight: CGFloat = 96
+
+    /// A full-width, bottom-anchored dark gradient so the caption stays legible over every
+    /// season/weather/time-of-day combination — including bright scenes like a snowy winter day
+    /// or a pale summer sky, and dark ones like a night scene, where a flat single-opacity
+    /// scrim would either wash out or look muddy. Clear at the top edge (no visible seam against
+    /// the scene above it), building to a subtle dark base so white text reads reliably without
+    /// a boxed-in look.
     private var captionScrim: some View {
         LinearGradient(
-            colors: [.black.opacity(0), .black.opacity(0.38)],
+            colors: [.black.opacity(0), .black.opacity(0.16), .black.opacity(0.48)],
             startPoint: .top,
             endPoint: .bottom
         )

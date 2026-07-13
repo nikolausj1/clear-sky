@@ -11,6 +11,11 @@ struct ForecastPageView: View {
     /// Sim-verify only: scrolls the hourly list to a given hour index on load (only meaningful
     /// for the page that's active at launch — `simctl` can't scroll/swipe either).
     var scrollTargetHourIndex: Int? = nil
+    /// Sim-verify only (Phase 7): `-scrollToAttribution` — scrolls straight to the
+    /// `AttributionFooter` at the bottom of the scroll content, so a screenshot can confirm the
+    /// required Apple Weather attribution renders on the Forecast screen without needing a real
+    /// scroll gesture (`simctl` can't scroll).
+    var scrollToAttribution: Bool = false
     @Bindable var viewModel: ForecastViewModel
     var onRetry: () -> Void
     var onRefresh: () async -> Void
@@ -149,6 +154,7 @@ struct ForecastPageView: View {
                     .padding(.horizontal)
 
                     AttributionFooter(attribution: payload.attribution)
+                        .id(Self.attributionFooterId)
                 }
                 // Extra clearance so the last content (attribution) isn't flush against the
                 // floating bottom bar (`NavigationShell.floatingBar`), which overlays this screen.
@@ -169,8 +175,18 @@ struct ForecastPageView: View {
         }
     }
 
+    private static let attributionFooterId = "attributionFooter"
+
     private func scrollToTargetIfNeeded(_ payload: CachedWeather, proxy: ScrollViewProxy) {
         guard !hasScrolledToTarget else { return }
+
+        if scrollToAttribution {
+            hasScrolledToTarget = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                proxy.scrollTo(Self.attributionFooterId, anchor: .bottom)
+            }
+            return
+        }
 
         if let index = scrollTargetHourIndex, payload.hourly.indices.contains(index) {
             hasScrolledToTarget = true

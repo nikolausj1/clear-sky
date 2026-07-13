@@ -45,25 +45,33 @@ struct SettingsView: View {
                     }
                 }
 
-                Section("About") {
+                Section {
                     if let attribution {
-                        Text(attribution.legalAttributionText)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                        Link("Weather Data & Legal", destination: attribution.legalPageURL)
+                        Link(destination: attribution.legalPageURL) {
+                            HStack {
+                                Text("Weather data provided by \(attribution.serviceName)")
+                                Spacer()
+                                Image(systemName: "chevron.forward")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
                     } else if attributionError {
-                        Text("Weather data provided by Apple Weather.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+                        Text("Weather data provided by Weather.")
                     } else {
                         HStack {
-                            Text("Weather data provided by Apple Weather.")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
+                            Text("Weather data provided by Weather.")
                             Spacer()
                             ProgressView()
                         }
                     }
+                } header: {
+                    Text("About")
+                } footer: {
+                    // App Store-minimum attribution: the service name plus a single link to
+                    // Apple's hosted legal/agency page (`legalPageURL`) — the full per-agency
+                    // data-source list belongs behind that link, not dumped inline here.
+                    Text("Full data source and legal attribution is available at the link above.")
                 }
 
                 Section("App") {

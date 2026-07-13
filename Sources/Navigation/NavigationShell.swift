@@ -19,6 +19,8 @@ import SwiftUI
 /// - `-seedLocations "City,ST;City,ST"` seeds saved locations before the first load.
 /// - `-activeLocationIndex <n>` starts the Forecast pager on the nth seeded location instead of
 ///   the first — `simctl` can't swipe the pager for a screenshot of a non-default page.
+/// - `-scrollToAttribution` (Phase 7) scrolls the active Forecast page straight to the
+///   `AttributionFooter` for a sim-verify screenshot — `simctl` can't scroll.
 struct NavigationShell: View {
     private enum Tab {
         case forecast
@@ -44,6 +46,7 @@ struct NavigationShell: View {
                         ForecastView(
                             viewModel: forecastViewModel,
                             scrollTargetHourIndex: Self.scrollToHourFromLaunchArgs(),
+                            scrollToAttribution: Self.launchArgsContain("-scrollToAttribution"),
                             onOpenSettings: { isPresentingSettings = true },
                             onOpenLocations: { isPresentingLocations = true }
                         )

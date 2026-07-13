@@ -244,8 +244,14 @@ private struct RankedRowView: View {
         }
     }
 
+    /// One decimal place, always — not just when two scores would otherwise collide at the
+    /// integer level. Two distinct scores (e.g. 84.6 and 85.3) can both round to a shared
+    /// integer while still sitting in different, correctly-ordered ranks; showing the integer
+    /// only sometimes would itself look inconsistent row to row. A fixed one-decimal format is
+    /// the simplest fix that removes the "looks like a broken tie-break" ambiguity everywhere,
+    /// not just in the specific cases that happen to collide today.
     private func scoreBadge(_ score: Double) -> some View {
-        Text("\(Int(score.rounded()))")
+        Text(score, format: .number.precision(.fractionLength(1)))
             .font(.title3.weight(.semibold))
             .monospacedDigit()
     }

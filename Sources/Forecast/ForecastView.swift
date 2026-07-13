@@ -9,6 +9,8 @@ struct ForecastView: View {
     /// Sim-verify only: scrolls the hourly list to a given hour index on load so a screenshot
     /// can show a specific part of the list without needing a tap (`simctl` can't tap/swipe).
     var scrollTargetHourIndex: Int? = nil
+    /// Sim-verify only (Phase 7): `-scrollToAttribution` — see `ForecastPageView`'s doc comment.
+    var scrollToAttribution: Bool = false
     var onOpenSettings: () -> Void = {}
     var onOpenLocations: () -> Void = {}
 
@@ -49,6 +51,7 @@ struct ForecastView: View {
                         location: location,
                         page: viewModel.state(for: location),
                         scrollTargetHourIndex: index == viewModel.activeIndex ? scrollTargetHourIndex : nil,
+                        scrollToAttribution: index == viewModel.activeIndex && scrollToAttribution,
                         viewModel: viewModel,
                         onRetry: { Task { await viewModel.load(location: location, forceRefresh: false) } },
                         onRefresh: { await viewModel.load(location: location, forceRefresh: true) }
