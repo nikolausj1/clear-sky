@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.vercel
+.venv
+__pycache__
+out
+build
+dist
+coverage
+*.pyc
+.DS_Store
+DerivedData

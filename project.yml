@@ -1,0 +1,25 @@
+name: ClearSky
+options:
+  bundleIdPrefix: com.levelup
+
+targets:
+  ClearSky:
+    type: application
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - Sources
+    settings:
+      base:
+        DEVELOPMENT_TEAM: 6A4J2GTB6F
+        PRODUCT_BUNDLE_IDENTIFIER: com.levelup.clearsky
+        CODE_SIGN_ENTITLEMENTS: ClearSky.entitlements
+        TARGETED_DEVICE_FAMILY: "1"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: Clear Sky
+        ITSAppUsesNonExemptEncryption: false
+        NSLocationWhenInUseUsageDescription: "Clear Sky uses your location to show the weather where you are. Nothing is stored or shared."
+        UILaunchScreen: {}

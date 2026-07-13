@@ -1,0 +1,19 @@
+# Build Guide / PRD workflow (kept in Dropbox, not in git)
+Project Build Guide.md
+PRD Template.md
+_inbox/
+_review/
+design inspiration/
+
+# Tooling
+.claude/
+.DS_Store
+
+# Xcode / XcodeGen
+*.xcodeproj
+DerivedData/
+build/
+
+# Misc
+/tmp/
+.env
