@@ -8,7 +8,9 @@ targets:
     platform: iOS
     deploymentTarget: "18.0"
     sources:
-      - Sources
+      - path: Sources
+        excludes:
+          - "**/*.md"
     settings:
       base:
         DEVELOPMENT_TEAM: 6A4J2GTB6F

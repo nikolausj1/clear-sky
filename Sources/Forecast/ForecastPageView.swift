@@ -15,6 +15,7 @@ struct ForecastPageView: View {
     var onRetry: () -> Void
     var onRefresh: () async -> Void
 
+    @Environment(UnitsSettings.self) private var unitsSettings
     @State private var isPresentingAlertDetail = false
     @State private var hasScrolledToTarget = false
 
@@ -58,8 +59,11 @@ struct ForecastPageView: View {
                 Image(systemName: "exclamationmark.icloud")
                     .font(.system(size: 40))
                     .foregroundStyle(.secondary)
-                Text("The sky isn't answering.")
+                // PRD Section 6 "WeatherKit error" state: "dry-wit error line, retry action."
+                Text(PhraseBank.errorState(.weatherFetchFailed, date: viewModel.phraseBankDate, locationId: location.id))
                     .font(.headline)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
                 Text(message)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -85,6 +89,9 @@ struct ForecastPageView: View {
                     .foregroundStyle(.secondary)
                 Text("No forecast yet.")
                     .font(.headline)
+                Text(PhraseBank.errorState(.generic, date: viewModel.phraseBankDate, locationId: location.id))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
             Spacer()
             Spacer()
@@ -98,7 +105,10 @@ struct ForecastPageView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    DoodleHeaderView(current: payload.currentConditions, caption: nil)
+                    DoodleHeaderView(
+                        current: payload.currentConditions,
+                        caption: viewModel.doodleCaptionLine(location: location, payload: payload, unit: unitsSettings.unit)
+                    )
 
                     if page.cacheState == .stale {
                         staleBanner(payload.fetchedAt)
@@ -113,8 +123,11 @@ struct ForecastPageView: View {
                             .padding(.horizontal)
                     }
 
-                    PlaceholderCopyLines()
-                        .padding(.horizontal)
+                    CopyLinesView(
+                        summary: viewModel.summaryLine(location: location, payload: payload, unit: unitsSettings.unit),
+                        comparison: viewModel.comparisonLine(location: location, payload: payload, unit: unitsSettings.unit)
+                    )
+                    .padding(.horizontal)
 
                     MetricChipsRow(selected: $viewModel.selectedMetric)
                         .padding(.horizontal)

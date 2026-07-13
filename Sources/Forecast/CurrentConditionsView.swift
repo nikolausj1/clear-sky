@@ -21,15 +21,21 @@ struct CurrentConditionsView: View {
     }
 }
 
-/// PRD Section 6, items 4-5: the dry-wit summary and comparison lines are Phase 4 (phrase
-/// bank) content. This phase renders neutral placeholder slots only — no invented copy.
-struct PlaceholderCopyLines: View {
+/// PRD Section 6, items 4-5: the dry-wit summary line and the yesterday-comparison line,
+/// both filled from the Phase 4 phrase bank (`PhraseBank.swift`). `comparison` is `nil`
+/// whenever `ForecastViewModel.comparisonLine` has no yesterday reference point yet (first
+/// day of use) — PRD: "the line is omitted rather than faked," so this view renders only the
+/// summary line in that case rather than an empty second line.
+struct CopyLinesView: View {
+    let summary: String
+    let comparison: String?
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            // Phase 4: phrase bank fills the summary line here.
-            Text("\u{2014}")
-            // Phase 4: phrase bank fills the comparison line here.
-            Text("\u{2014}")
+            Text(summary)
+            if let comparison {
+                Text(comparison)
+            }
         }
         .font(.subheadline)
         .foregroundStyle(.secondary)

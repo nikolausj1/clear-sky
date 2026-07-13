@@ -90,7 +90,11 @@ struct NavigationShell: View {
             store: weatherStore,
             forcedState: Self.forcedStateFromLaunchArgs(),
             initialExpandDayIndex: Self.expandDayIndexFromLaunchArgs(),
-            initialMetric: Self.forcedMetricFromLaunchArgs()
+            initialMetric: Self.forcedMetricFromLaunchArgs(),
+            forcedCondition: Self.forcedConditionFromLaunchArgs(),
+            forcedTempBand: Self.forcedTempBandFromLaunchArgs(),
+            forcedDate: Self.forcedDateFromLaunchArgs(),
+            forcedComparisonDelta: Self.forcedComparisonDeltaFromLaunchArgs()
         )
 
         let locationsVM = LocationsViewModel(
@@ -207,5 +211,45 @@ struct NavigationShell: View {
         let args = CommandLine.arguments
         guard let flagIndex = args.firstIndex(of: "-activeLocationIndex"), flagIndex + 1 < args.count else { return nil }
         return Int(args[flagIndex + 1])
+    }
+
+    // MARK: - Phase 4 hooks (phrase bank)
+
+    /// `-forceCondition clear|cloudy|rain|snow|fog|wind|storm` — overrides which condition
+    /// bucket the phrase bank queries for the summary/caption lines, without touching the
+    /// actual fetched temperature/condition shown elsewhere on screen (see
+    /// `ForecastViewModel.forcedCondition`'s doc comment).
+    private static func forcedConditionFromLaunchArgs() -> PhraseBank.ConditionGroup? {
+        let args = CommandLine.arguments
+        guard let flagIndex = args.firstIndex(of: "-forceCondition"), flagIndex + 1 < args.count else { return nil }
+        return PhraseBank.ConditionGroup(rawValue: args[flagIndex + 1])
+    }
+
+    /// `-forceTempBand cold|mild|hot` — overrides which tempBand bucket the phrase bank
+    /// queries, independent of the real fetched temperature.
+    private static func forcedTempBandFromLaunchArgs() -> PhraseBank.TempBand? {
+        let args = CommandLine.arguments
+        guard let flagIndex = args.firstIndex(of: "-forceTempBand"), flagIndex + 1 < args.count else { return nil }
+        return PhraseBank.TempBand(rawValue: args[flagIndex + 1])
+    }
+
+    /// `-forceDate YYYY-MM-DD` — overrides the date fed into the phrase bank's deterministic
+    /// rotation, so a sim-verify screenshot can show a different day's variant on demand.
+    private static func forcedDateFromLaunchArgs() -> Date? {
+        let args = CommandLine.arguments
+        guard let flagIndex = args.firstIndex(of: "-forceDate"), flagIndex + 1 < args.count else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = Calendar.current.timeZone
+        return formatter.date(from: args[flagIndex + 1])
+    }
+
+    /// `-forceComparisonDelta <signed integer>` — synthesizes a "yesterday" `dailyActuals`
+    /// entry so the comparison line can be screenshotted without real multi-day history.
+    private static func forcedComparisonDeltaFromLaunchArgs() -> Double? {
+        let args = CommandLine.arguments
+        guard let flagIndex = args.firstIndex(of: "-forceComparisonDelta"), flagIndex + 1 < args.count else { return nil }
+        return Double(args[flagIndex + 1])
     }
 }

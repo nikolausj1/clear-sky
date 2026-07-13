@@ -63,18 +63,53 @@ final class ForecastViewModel {
     private var hasAppliedInitialExpand = false
     private static let activeLocationIdDefaultsKey = "clearSky.activeLocationId"
 
+    /// Phase 4 sim-verify hooks (Project Build Guide's autostart-hook pattern): `-forceCondition
+    /// clear|cloudy|rain|snow|fog|wind|storm` and `-forceTempBand cold|mild|hot` override which
+    /// phrase-bank bucket `summaryLine`/`doodleCaptionLine` query, without touching the actual
+    /// fetched numbers on screen — `simctl` can't force real distinct WeatherKit conditions on
+    /// demand, so this is how a screenshot shows the rain/snow/hot/cold copy specifically.
+    /// `-forceDate YYYY-MM-DD` overrides the date fed into the phrase bank's rotation (which
+    /// variant of a bucket shows), for verifying rotation without waiting real days.
+    private let forcedCondition: PhraseBank.ConditionGroup?
+    private let forcedTempBand: PhraseBank.TempBand?
+    private let forcedDate: Date?
+    /// `-forceComparisonDelta <signed integer>` — sim-verify only. Real `dailyActuals` history
+    /// only exists after the app has genuinely been used on a prior calendar day (Phase 3's
+    /// `WeatherStore` builds it from real fetches), so a fresh sim install has no yesterday to
+    /// compare against and `comparisonLine` correctly returns `nil`. This hook synthesizes a
+    /// single "yesterday" `DailyActual` (today's high minus this delta) so `phase4-comparison
+    /// .png` can show a warmer/cooler line without waiting real days.
+    private let forcedComparisonDelta: Double?
+
     init(
         store: WeatherStore,
         forcedState: ForcedState? = nil,
         initialExpandDayIndex: Int? = nil,
-        initialMetric: ForecastMetric? = nil
+        initialMetric: ForecastMetric? = nil,
+        forcedCondition: PhraseBank.ConditionGroup? = nil,
+        forcedTempBand: PhraseBank.TempBand? = nil,
+        forcedDate: Date? = nil,
+        forcedComparisonDelta: Double? = nil
     ) {
         self.store = store
         self.forcedState = forcedState
         self.initialExpandDayIndex = initialExpandDayIndex
+        self.forcedCondition = forcedCondition
+        self.forcedTempBand = forcedTempBand
+        self.forcedDate = forcedDate
+        self.forcedComparisonDelta = forcedComparisonDelta
         if let initialMetric {
             self.selectedMetric = initialMetric
         }
+    }
+
+    /// The date used for phrase-bank rotation (which variant of a bucket shows today) — real
+    /// "now" unless overridden by `-forceDate` for sim-verify. Deliberately separate from the
+    /// *data* dates in `payload.daily`/`payload.dailyActuals` (those always reflect whatever
+    /// WeatherKit/the cache actually returned) — this only controls which pre-written line
+    /// rotation lands on, not which day's forecast is being described.
+    var phraseBankDate: Date {
+        forcedDate ?? Date()
     }
 
     // MARK: - Active-page convenience passthroughs (most of ForecastView reads these)
@@ -227,6 +262,22 @@ final class ForecastViewModel {
                 result.fetchedAt = Date().addingTimeInterval(-2 * 60 * 60)
                 effectiveCacheState = .stale
             }
+            if let forcedComparisonDelta, let today = result.daily.first {
+                let calendar = Calendar.current
+                let yesterday = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: today.date)) ?? today.date
+                let todayHighF = today.high.converted(to: .fahrenheit).value
+                let yesterdayHighF = todayHighF - forcedComparisonDelta
+                result.dailyActuals.removeAll { calendar.isDate($0.date, inSameDayAs: yesterday) }
+                result.dailyActuals.append(
+                    DailyActual(
+                        date: yesterday,
+                        observedHigh: Measurement(value: yesterdayHighF, unit: .fahrenheit),
+                        observedLow: Measurement(value: yesterdayHighF - 15, unit: .fahrenheit),
+                        dominantConditionCode: today.conditionCode,
+                        dominantConditionDescription: today.conditionDescription
+                    )
+                )
+            }
 
             page.payload = result
             page.cacheState = effectiveCacheState
@@ -268,4 +319,128 @@ final class ForecastViewModel {
             detailsURL: URL(string: "https://www.weather.gov")!
         )
     }
+}
+
+// MARK: - Phrase bank (Phase 4)
+//
+// PRD Section 6, items 1/4/5: the doodle caption, dry-wit summary line, and comparison line.
+// These are pure functions of (location, payload, unit) plus the forced-state hooks above —
+// no stored phrase-bank state lives on the view model itself, so paging between locations
+// never needs to invalidate/recompute anything eagerly; `ForecastPageView` just calls these
+// on render.
+extension ForecastViewModel {
+    /// PRD Section 6, item 4: "Dry-wit summary line - plain-language read on the day's
+    /// conditions from the phrase bank."
+    func summaryLine(location: SavedLocation, payload: CachedWeather, unit: TemperatureUnit) -> String {
+        PhraseBank.summary(
+            condition: effectiveConditionGroup(for: payload),
+            tempBand: effectiveTempBand(for: payload),
+            date: phraseBankDate,
+            locationId: location.id,
+            tokens: phraseTokens(location: location, payload: payload, unit: unit)
+        )
+    }
+
+    /// PRD Section 6, item 1: the doodle header's "one-line dry-wit caption keyed to date +
+    /// current conditions."
+    func doodleCaptionLine(location: SavedLocation, payload: CachedWeather, unit: TemperatureUnit) -> String {
+        PhraseBank.doodleCaption(
+            condition: effectiveConditionGroup(for: payload),
+            tempBand: effectiveTempBand(for: payload),
+            date: phraseBankDate,
+            locationId: location.id,
+            tokens: phraseTokens(location: location, payload: payload, unit: unit)
+        )
+    }
+
+    /// PRD Section 6, item 5: "Data source: WeatherKit's historical/daily comparison data
+    /// where available, with yesterday's cached actuals (`CachedWeather.dailyActuals`) as the
+    /// fallback; if neither exists yet (first day of use), the line is omitted rather than
+    /// faked." WeatherKit's native framework has no simple "yesterday's observed weather" API
+    /// distinct from the forward-looking daily forecast, so in practice this app has only ever
+    /// had the `dailyActuals` fallback to implement (Phase 3's `WeatherStore` already builds
+    /// that rolling history from each day's fetch) — there is no separate "historical
+    /// comparison" primary source to wire up. Returns `nil` (render nothing) whenever
+    /// yesterday's actual isn't in the rolling window yet.
+    func comparisonLine(location: SavedLocation, payload: CachedWeather, unit: TemperatureUnit) -> String? {
+        guard let today = payload.daily.first else { return nil }
+        let calendar = Calendar.current
+        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: today.date)) else { return nil }
+        guard let yesterdayActual = payload.dailyActuals.first(where: { calendar.isDate($0.date, inSameDayAs: yesterday) }) else {
+            return nil
+        }
+
+        let todayHighF = today.high.converted(to: .fahrenheit).value
+        let yesterdayHighF = yesterdayActual.observedHigh.converted(to: .fahrenheit).value
+        let deltaF = (todayHighF - yesterdayHighF).rounded()
+
+        let direction: PhraseBank.ComparisonDirection = deltaF > 0 ? .warmer : (deltaF < 0 ? .cooler : .same)
+        let magnitude: PhraseBank.ComparisonMagnitude? = direction == .same ? nil : .forDelta(abs(deltaF))
+
+        var tokens = phraseTokens(location: location, payload: payload, unit: unit)
+        tokens["delta"] = TemperatureFormatting.deltaString(fahrenheitDelta: abs(deltaF), unit: unit)
+
+        return PhraseBank.comparison(
+            direction: direction,
+            magnitude: magnitude,
+            date: phraseBankDate,
+            locationId: location.id,
+            tokens: tokens
+        )
+    }
+
+    // MARK: - Forced-hook resolution
+
+    private func effectiveConditionGroup(for payload: CachedWeather) -> PhraseBank.ConditionGroup {
+        forcedCondition ?? PhraseBank.conditionGroup(forRawCode: payload.currentConditions.conditionCode)
+    }
+
+    private func effectiveTempBand(for payload: CachedWeather) -> PhraseBank.TempBand {
+        forcedTempBand ?? PhraseBank.TempBand.forMeasurement(payload.currentConditions.temperature)
+    }
+
+    // MARK: - Token gathering (see `Sources/PhraseBank/README.md` for the full token table)
+
+    private func phraseTokens(location: SavedLocation, payload: CachedWeather, unit: TemperatureUnit) -> [String: String] {
+        var tokens: [String: String] = [
+            "temp": TemperatureFormatting.string(payload.currentConditions.temperature, unit: unit),
+            "feelsLike": TemperatureFormatting.string(payload.currentConditions.feelsLike, unit: unit),
+            "condition": payload.currentConditions.conditionDescription,
+            "city": location.name,
+            "time": Self.peakPrecipHourToken(payload: payload),
+        ]
+        if let today = payload.daily.first {
+            tokens["high"] = TemperatureFormatting.string(today.high, unit: unit)
+            tokens["low"] = TemperatureFormatting.string(today.low, unit: unit)
+            tokens["chance"] = Self.percentToken(today.precipChance)
+        }
+        return tokens
+    }
+
+    private static func percentToken(_ fraction: Double) -> String {
+        "\(Int((fraction * 100).rounded()))%"
+    }
+
+    /// `{time}` — the friendly hour of today's most notable upcoming precipitation chance
+    /// (used by a handful of rain/snow lines, e.g. "Rain moving in around {time}."). Always
+    /// resolvable: falls back to the literal word "later" if nothing in the remaining hourly
+    /// list clears a 40% precipitation-chance threshold and nothing has any chance at all, so
+    /// a line using `{time}` never renders a raw unfilled token.
+    private static func peakPrecipHourToken(payload: CachedWeather) -> String {
+        let now = Date()
+        let upcoming = payload.hourly.filter { $0.date >= now }
+        if let onset = upcoming.first(where: { $0.precipChance >= 0.4 }) {
+            return hourFormatter.string(from: onset.date)
+        }
+        if let peak = upcoming.max(by: { $0.precipChance < $1.precipChance }), peak.precipChance > 0 {
+            return hourFormatter.string(from: peak.date)
+        }
+        return "later"
+    }
+
+    private static let hourFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h a"
+        return formatter
+    }()
 }
