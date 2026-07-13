@@ -14,31 +14,70 @@ struct ClearSkyApp: App {
             if CommandLine.arguments.contains("-smoketest") {
                 SmokeTestView()
             } else {
-                ContentView()
+                ForecastScreen()
             }
         }
         .modelContainer(modelContainer)
     }
 }
 
-struct ContentView: View {
-    var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [Color(red: 0.40, green: 0.68, blue: 0.95), Color.white],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+/// Root container for Phase 2. Builds `WeatherStore` and `ForecastViewModel` once a real
+/// SwiftData `ModelContext` is available from the environment, then hands off to
+/// `ForecastView`. Also the home for the `-forceState` / `-expandDay` sim-verify launch-arg
+/// hooks (Project Build Guide's autostart-hook pattern — simctl can't tap through a UI to
+/// reach every state, so each is reachable directly via a launch argument):
+///
+/// - `-forceState loading|error|stale|alert|normal`
+/// - `-expandDay <index>` auto-expands the given daily row for screenshot capture.
+/// - `-forceMetric temp|precipChance|precipAmount|feelsLike|wind|uv` presets the selected
+///   metric chip — `simctl` can't tap the chip row either, so this is the same kind of hook.
+struct ForecastScreen: View {
+    @Environment(\.modelContext) private var modelContext
+    @State private var viewModel: ForecastViewModel?
 
-            VStack(spacing: 8) {
-                Text("Clear Sky")
-                    .font(.system(size: 40, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.primary)
-                Text("Phase 0")
-                    .font(.system(size: 20, weight: .regular, design: .rounded))
-                    .foregroundStyle(.secondary)
+    var body: some View {
+        Group {
+            if let viewModel {
+                ForecastView(viewModel: viewModel, scrollTargetHourIndex: Self.scrollToHourFromLaunchArgs())
+            } else {
+                ProgressView()
             }
         }
+        .task {
+            guard viewModel == nil else { return }
+            let store = WeatherStore(modelContext: modelContext)
+            let vm = ForecastViewModel(
+                store: store,
+                forcedState: Self.forcedStateFromLaunchArgs(),
+                initialExpandDayIndex: Self.expandDayIndexFromLaunchArgs(),
+                initialMetric: Self.forcedMetricFromLaunchArgs()
+            )
+            viewModel = vm
+            await vm.load()
+        }
+    }
+
+    private static func forcedStateFromLaunchArgs() -> ForecastViewModel.ForcedState? {
+        let args = CommandLine.arguments
+        guard let flagIndex = args.firstIndex(of: "-forceState"), flagIndex + 1 < args.count else { return nil }
+        return ForecastViewModel.ForcedState(rawValue: args[flagIndex + 1])
+    }
+
+    private static func expandDayIndexFromLaunchArgs() -> Int? {
+        let args = CommandLine.arguments
+        guard let flagIndex = args.firstIndex(of: "-expandDay"), flagIndex + 1 < args.count else { return nil }
+        return Int(args[flagIndex + 1])
+    }
+
+    private static func forcedMetricFromLaunchArgs() -> ForecastMetric? {
+        let args = CommandLine.arguments
+        guard let flagIndex = args.firstIndex(of: "-forceMetric"), flagIndex + 1 < args.count else { return nil }
+        return ForecastMetric(rawValue: args[flagIndex + 1])
+    }
+
+    private static func scrollToHourFromLaunchArgs() -> Int? {
+        let args = CommandLine.arguments
+        guard let flagIndex = args.firstIndex(of: "-scrollToHour"), flagIndex + 1 < args.count else { return nil }
+        return Int(args[flagIndex + 1])
     }
 }
