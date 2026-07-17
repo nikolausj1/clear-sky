@@ -150,7 +150,11 @@ struct DailyExpandedDetail: View {
         }
         .padding(.leading, 8)
         .padding(.top, 4)
-        .transition(.opacity.combined(with: .move(edge: .top)))
+        // Fade only: a `.move(edge: .top)` here inserts the detail displaced ABOVE its final
+        // frame, so during the expand animation it visibly slides over the day rows above
+        // (user-reported defect). The clean unfold comes from the row's animated height +
+        // `.clipped()` in `DailyForecastRow` — the detail just fades in beneath the row.
+        .transition(.opacity)
     }
 }
 
@@ -219,6 +223,9 @@ struct DailyForecastRow: View {
                 DailyExpandedDetail(day: day, hours: hourlyForDay, metric: metric)
             }
         }
+        // Masks the expanding detail to the cell's animated bounds so the reveal unfolds in
+        // place under the weekday row instead of painting over neighboring rows mid-animation.
+        .clipped()
     }
 }
 
