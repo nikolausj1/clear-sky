@@ -170,34 +170,35 @@ struct CelestialBody: View {
     }
 
     private func diameter(in size: CGSize) -> CGFloat {
-        isNight ? 30 : min(90, size.width * 0.22)
+        isNight ? 30 : min(72, size.width * 0.18)
     }
 
+    /// Hero-chrome avoidance (UX redesign, lead fix): in the full-bleed hero the top band is
+    /// crowded chrome — status bar/Dynamic Island across the top, the centered city title, and
+    /// the ellipsis button pinned top-RIGHT — and the temperature group owns the horizontal
+    /// center. Clamping the y position alone can't clear the ellipsis because the day sun's
+    /// disc + glow is ~86pt wide; any top-right placement collides. So the day sun lives in
+    /// the upper-LEFT quadrant (the one quiet region), the night moon sits right-of-center but
+    /// below the chrome band, and dawn/dusk stay low on the horizon as before. The y floor is
+    /// a safety net so no future raw position can wander back into the chrome band.
     private var xFraction: CGFloat {
         switch timeOfDay {
         case .dawn: return 0.20
-        case .day: return 0.74
+        case .day: return 0.18
         case .dusk: return 0.78
         case .night: return 0.72
         }
     }
 
-    /// UX redesign part 2 (lead QC defect): the chrome zone — status bar / Dynamic Island +
-    /// the ellipsis button — occupies roughly the top 18% of the hero scene. `.day`'s (0.16)
-    /// and `.night`'s (0.18) raw positions land inside or right at that line, so the sun/moon
-    /// collided with the chrome. Clamping every position to this floor keeps the celestial
-    /// body's CENTER clear of that zone (with a small margin past the literal 18% line) without
-    /// disturbing `.dawn`/`.dusk`, whose low-on-the-horizon positions (0.62/0.58) are already
-    /// well below it.
-    private static let topInsetFraction: CGFloat = 0.20
+    private static let topInsetFraction: CGFloat = 0.26
 
     private var yFraction: CGFloat {
         let raw: CGFloat
         switch timeOfDay {
         case .dawn: raw = 0.62
-        case .day: raw = 0.16
+        case .day: raw = 0.34
         case .dusk: raw = 0.58
-        case .night: raw = 0.18
+        case .night: raw = 0.26
         }
         return max(raw, Self.topInsetFraction)
     }
