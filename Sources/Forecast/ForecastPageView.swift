@@ -24,6 +24,13 @@ struct ForecastPageView: View {
     /// required Apple Weather attribution renders on the Forecast screen without needing a real
     /// scroll gesture (`simctl` can't scroll).
     var scrollToAttribution: Bool = false
+    /// UX redesign part 2 (lead QC defect: scroll-aware top bar): reports this page's scroll
+    /// content offset (`0` at rest, growing as the user scrolls down) up to `ForecastView`,
+    /// which only listens for the currently-active page (see `ForecastView.pagerView`) and uses
+    /// it to decide when to swap the transparent/white nav bar for a material one. A closure
+    /// rather than a `Binding` because every page in the `TabView` mounts one of these, and only
+    /// one page's offset should ever drive the shared bar state.
+    var onScrollOffsetChange: (CGFloat) -> Void = { _ in }
     @Bindable var viewModel: ForecastViewModel
     var onRetry: () -> Void
     var onRefresh: () async -> Void
@@ -87,6 +94,7 @@ struct ForecastPageView: View {
             }
         }
         .ignoresSafeArea(edges: .top)
+        .trackingHeroScrollOffset(onScrollOffsetChange)
     }
 
     // MARK: - Error
@@ -117,6 +125,7 @@ struct ForecastPageView: View {
             }
         }
         .ignoresSafeArea(edges: .top)
+        .trackingHeroScrollOffset(onScrollOffsetChange)
     }
 
     // MARK: - Empty (defensive — a location with a `.loaded` state but no payload)
@@ -140,6 +149,7 @@ struct ForecastPageView: View {
             }
         }
         .ignoresSafeArea(edges: .top)
+        .trackingHeroScrollOffset(onScrollOffsetChange)
     }
 
     /// Shared vertical centering for the loading/error/empty sheets: a flexible spacer on each
@@ -216,6 +226,7 @@ struct ForecastPageView: View {
             // otherwise shows as a white band above the hero, exactly the height of the status
             // bar). Both are needed — verified each in isolation during sim-verify.
             .ignoresSafeArea(edges: .top)
+            .trackingHeroScrollOffset(onScrollOffsetChange)
             .refreshable {
                 await onRefresh()
             }
@@ -244,7 +255,12 @@ struct ForecastPageView: View {
             return
         }
 
-        if let index = scrollTargetHourIndex, payload.hourly.indices.contains(index) {
+        // UX redesign part 2: the hourly list now only renders every other hour, so
+        // `-scrollToHour N` is reinterpreted as the Nth DISPLAYED row (see
+        // `HourlyForecastSection.hourlyIndex(forDisplayedRow:hours:)`) rather than a raw index
+        // into the full-resolution `payload.hourly` array.
+        if let displayedRow = scrollTargetHourIndex,
+           let index = HourlyForecastSection.hourlyIndex(forDisplayedRow: displayedRow, hours: payload.hourly) {
             hasScrolledToTarget = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 proxy.scrollTo(HourlyForecastSection.rowId(for: payload.hourly[index]), anchor: .top)
@@ -325,5 +341,21 @@ private struct ForecastSheetCard<Content: View>: View {
         }
         .padding(16)
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
+private extension View {
+    /// UX redesign part 2 (lead QC defect: scroll-aware top bar). Reports each `ScrollView`'s
+    /// content offset via the iOS 18 `onScrollGeometryChange` API (available — this target's
+    /// deployment target is 18.0) rather than a manual `GeometryReader`/`PreferenceKey` probe,
+    /// which is fragile against SwiftUI's internal scroll-content layout passes. `contentOffset.y`
+    /// is ~0 at rest (these scroll views bleed under the top safe area, so there's no positive
+    /// inset baked into "resting") and grows positively as the user scrolls down.
+    func trackingHeroScrollOffset(_ onChange: @escaping (CGFloat) -> Void) -> some View {
+        onScrollGeometryChange(for: CGFloat.self) { geometry in
+            geometry.contentOffset.y
+        } action: { _, newValue in
+            onChange(newValue)
+        }
     }
 }

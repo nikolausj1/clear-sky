@@ -41,15 +41,43 @@ struct DailyRangeBar: View {
 
 /// The inline expansion shown when a daily row is tapped (PRD Section 6, item 8): that day's
 /// hourly breakdown, total precipitation, daylight sunrise/sunset, and moon phase.
+///
+/// UX redesign part 2 (density pass): renders 2-hour steps anchored to midnight — 12AM, 2AM, …
+/// 10PM (see `IMG_1176.png`) — rather than every hour. The grid is anchored to the clock hour
+/// (`hour-of-day % stepHours == 0`), not to "first entry in `hours`," so it lands on the same
+/// 12/2/4/…-o'clock slots for every day INCLUDING today: today's `hours` (passed in by
+/// `DailyForecastSection`) only contains entries from the current hour onward (WeatherKit's
+/// hourly forecast starts at "now," not midnight — see `WeatherService.fetchWeather`), so early
+/// slots before the current hour simply have no matching entry and are skipped; the grid itself
+/// never shifts to a "from now" basis the way the main hourly list's does.
 struct DailyExpandedDetail: View {
     let day: DailyEntry
+    /// The FULL day's hourly entries (every hour WeatherKit returned for this calendar day, not
+    /// just the displayed 2-hour subset) — needed as-is for the rain total below and for
+    /// `positions`' per-day min/max.
     let hours: [HourlyEntry]
     let metric: ForecastMetric
 
+    private static let stepHours = HourlyForecastSection.stepHours
+    private static let displayedRowCount = HourlyForecastSection.displayedRowCount
+
+    /// The subset actually rendered: entries whose hour-of-day is a multiple of `stepHours`
+    /// (12AM, 2AM, 4AM, …), capped at `displayedRowCount` rows.
+    private var displayedHours: [HourlyEntry] {
+        Array(
+            hours
+                .filter { Calendar.current.component(.hour, from: $0.date) % Self.stepHours == 0 }
+                .prefix(Self.displayedRowCount)
+        )
+    }
+
+    /// Pill positions come from the FULL-resolution `hours` (every hour of the day), same
+    /// honesty rule as the main hourly list — see `HourlyForecastSection.positions`.
     private var positions: [Date: Double] {
         PositionalPillTrack.positions(for: hours, metric: metric)
     }
 
+    /// Unaffected by the 2-hour display subsetting: always the FULL day's hourly precip total.
     private var totalPrecip: Measurement<UnitLength> {
         hours.reduce(Measurement(value: 0, unit: UnitLength.inches)) { total, hour in
             total + hour.precipAmount.converted(to: .inches)
@@ -64,11 +92,14 @@ struct DailyExpandedDetail: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            let rows = Array(hours.enumerated())
+            let rows = Array(displayedHours.enumerated())
             ForEach(rows, id: \.element.id) { index, hour in
                 HourlyPillRow(
                     entry: hour,
-                    previousConditionDescription: index > 0 ? hours[index - 1].conditionDescription : nil,
+                    // Same displayed-subset condition-label rule as the main hourly list: the
+                    // first displayed row is the anchor (always shows its condition); later rows
+                    // only when different from the previous DISPLAYED row.
+                    previousConditionDescription: index > 0 ? rows[index - 1].element.conditionDescription : nil,
                     metric: metric,
                     position: positions[hour.date] ?? 0.5
                 )

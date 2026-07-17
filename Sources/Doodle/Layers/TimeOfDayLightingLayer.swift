@@ -182,13 +182,24 @@ struct CelestialBody: View {
         }
     }
 
+    /// UX redesign part 2 (lead QC defect): the chrome zone — status bar / Dynamic Island +
+    /// the ellipsis button — occupies roughly the top 18% of the hero scene. `.day`'s (0.16)
+    /// and `.night`'s (0.18) raw positions land inside or right at that line, so the sun/moon
+    /// collided with the chrome. Clamping every position to this floor keeps the celestial
+    /// body's CENTER clear of that zone (with a small margin past the literal 18% line) without
+    /// disturbing `.dawn`/`.dusk`, whose low-on-the-horizon positions (0.62/0.58) are already
+    /// well below it.
+    private static let topInsetFraction: CGFloat = 0.20
+
     private var yFraction: CGFloat {
+        let raw: CGFloat
         switch timeOfDay {
-        case .dawn: return 0.62
-        case .day: return 0.16
-        case .dusk: return 0.58
-        case .night: return 0.18
+        case .dawn: raw = 0.62
+        case .day: raw = 0.16
+        case .dusk: raw = 0.58
+        case .night: raw = 0.18
         }
+        return max(raw, Self.topInsetFraction)
     }
 
     /// Obscured (but not erased) under cloud-bearing conditions — a sun/moon still peeking

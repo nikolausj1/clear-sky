@@ -14,6 +14,21 @@ struct ForecastView: View {
     var onOpenSettings: () -> Void = {}
     var onOpenLocations: () -> Void = {}
 
+    /// UX redesign part 2 (lead QC defect: scroll-aware top bar). `true` once the active page has
+    /// scrolled far enough that the hero is mostly off-screen; drives the nav bar's transparent
+    /// vs. material treatment. Only the active page's `ForecastPageView` reports its offset (see
+    /// `pagerView`), so swiping to a different page re-syncs this to whatever that page's own
+    /// scroll position is.
+    @State private var isHeroScrolledAway = false
+
+    /// Thresholds (fractions of the hero's height) with hysteresis, so a scroll position
+    /// hovering right at one boundary doesn't flicker the bar back and forth: scrolling DOWN
+    /// past `showThreshold` switches to the material bar; scrolling back UP past `hideThreshold`
+    /// (a smaller fraction, i.e. requiring more upward scroll before reverting) switches back to
+    /// transparent. "Hero mostly off-screen" is interpreted as ~65% of it scrolled past.
+    private static let showThresholdFraction: CGFloat = 0.65
+    private static let hideThresholdFraction: CGFloat = 0.45
+
     var body: some View {
         NavigationStack {
             Group {
@@ -30,31 +45,59 @@ struct ForecastView: View {
             // than on an opaque bar. `.navigationTitle` is kept empty (rather than removed) so
             // `.navigationBarTitleDisplayMode(.inline)` still has a title to lay out around; the
             // actual visible title is the white `Text` in the `.principal` toolbar item below.
+            //
+            // UX redesign part 2 (lead QC defect): that transparent-white treatment left the
+            // title unreadable once list content scrolled underneath it. Past
+            // `isHeroScrolledAway`, the bar gets a real material background and the title/button
+            // switch to `.primary`/legible-on-material colors; below that threshold it's back to
+            // the original transparent-on-scene look. Both states are driven by the same
+            // `isHeroScrolledAway` flag so they never disagree, and the switch is animated.
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+            .toolbarBackground(isHeroScrolledAway ? .visible : .hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text(viewModel.locationName)
                         .font(.headline)
-                        .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.35), radius: 3, y: 1)
+                        .foregroundStyle(isHeroScrolledAway ? Color.primary : Color.white)
+                        .shadow(color: .black.opacity(isHeroScrolledAway ? 0 : 0.35), radius: 3, y: 1)
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button(action: onOpenSettings) {
                         Image(systemName: "ellipsis.circle")
                             .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(isHeroScrolledAway ? Color.primary : Color.white)
                             .padding(6)
                             .background(.thinMaterial, in: Circle())
                     }
                 }
             }
+            .animation(.easeInOut(duration: 0.2), value: isHeroScrolledAway)
         }
         .task {
             if viewModel.locations.isEmpty {
                 await viewModel.loadAllPages()
             }
+        }
+        // Swiping to a different location page doesn't guarantee a fresh
+        // `onScrollGeometryChange` firing for the newly-active page (it only fires on an actual
+        // geometry change, and `TabView(.page)` keeps every page mounted) — reset eagerly so the
+        // bar doesn't stay stuck in whatever state the previous page left it in.
+        .onChange(of: viewModel.activeIndex) {
+            isHeroScrolledAway = false
+        }
+    }
+
+    /// Applies the show/hide thresholds (with hysteresis) to a raw scroll offset reported by the
+    /// active page. A no-op if the offset doesn't cross whichever boundary is relevant to the
+    /// current state, so a single stray reading can't cause a flicker.
+    private func updateHeroScrolledAway(forOffset offset: CGFloat) {
+        let heroHeight = DoodleHeaderView.heroHeight
+        if !isHeroScrolledAway && offset > heroHeight * Self.showThresholdFraction {
+            isHeroScrolledAway = true
+        } else if isHeroScrolledAway && offset < heroHeight * Self.hideThresholdFraction {
+            isHeroScrolledAway = false
         }
     }
 
@@ -69,6 +112,11 @@ struct ForecastView: View {
                         page: viewModel.state(for: location),
                         scrollTargetHourIndex: index == viewModel.activeIndex ? scrollTargetHourIndex : nil,
                         scrollToAttribution: index == viewModel.activeIndex && scrollToAttribution,
+                        // Only the active page's scroll offset should drive the shared bar
+                        // state — an inactive page's `ScrollView` can report stale/irrelevant
+                        // offsets (e.g. from before a swipe) that would otherwise fight the
+                        // active page's own readings.
+                        onScrollOffsetChange: index == viewModel.activeIndex ? { updateHeroScrolledAway(forOffset: $0) } : { _ in },
                         viewModel: viewModel,
                         onRetry: { Task { await viewModel.load(location: location, forceRefresh: false) } },
                         onRefresh: { await viewModel.load(location: location, forceRefresh: true) }
