@@ -178,7 +178,7 @@ struct LocationsView: View {
                 .padding(.vertical, 12)
             }
         } else {
-            Section("Saved") {
+            Section {
                 ForEach(viewModel.manualLocations) { location in
                     LocationRow(
                         name: location.name,
@@ -192,6 +192,10 @@ struct LocationsView: View {
                 }
                 .onDelete(perform: viewModel.delete)
                 .onMove(perform: viewModel.move)
+            } header: {
+                // UX polish package ("Cross-screen consistency"): same header tracking as the
+                // Forecast screen's card headers.
+                Text("Saved").tracking(0.8)
             }
         }
     }
@@ -233,6 +237,7 @@ private struct LocationRow: View {
                     .symbolRenderingMode(.multicolor)
                 Text(TemperatureFormatting.string(payload.currentConditions.temperature, unit: unit))
                     .font(.subheadline.weight(.medium))
+                    .monospacedDigit()
             }
         case .failed:
             HStack(spacing: 8) {

@@ -21,17 +21,22 @@ struct MetricChipsRow: View {
         return Button {
             selected = metric
         } label: {
-            Text(metric.title)
-                .font(.subheadline.weight(.medium))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule().fill(isSelected ? Color.accentColor : Color.clear)
-                )
-                .overlay(
-                    Capsule().stroke(Color.accentColor, lineWidth: isSelected ? 0 : 1.25)
-                )
-                .foregroundStyle(isSelected ? Color.white : Color.accentColor)
+            HStack(spacing: 4) {
+                Image(systemName: metric.symbolName)
+                    .font(.caption2)
+                Text(metric.title)
+                    .font(.subheadline.weight(.medium))
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            // UX polish package ("Data-mark discipline"): unselected chips drop the outline
+            // stroke entirely in favor of a flat `tertiarySystemFill` background — cleaner than
+            // the previous bordered-capsule look, and consistent with the hourly pills' neutral
+            // fill treatment.
+            .background(
+                Capsule().fill(isSelected ? Color.clearSkyAccent : Color(.tertiarySystemFill))
+            )
+            .foregroundStyle(isSelected ? Color.white : Color.primary)
         }
         .buttonStyle(.plain)
     }

@@ -8,6 +8,10 @@ struct DailyRangeBar: View {
     let high: Double
     let globalMin: Double
     let globalMax: Double
+    /// Non-nil only for TODAY's row: the current temperature (Fahrenheit) within `[low, high]`,
+    /// rendered as a small white "current temp" dot on the bar (UX polish package, "data-mark
+    /// discipline").
+    var currentTemperatureF: Double? = nil
 
     var body: some View {
         GeometryReader { proxy in
@@ -19,19 +23,39 @@ struct DailyRangeBar: View {
 
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color(.systemGray5))
+                    .fill(Color(.quaternarySystemFill))
                     .frame(height: 6)
 
+                // UX polish package ("Data-mark discipline"): one consistent perceptual
+                // temperature ramp (`TemperatureRamp`) mapped to this day's ACTUAL low/high
+                // values, replacing the old fixed blue->orange gradient every bar used
+                // regardless of its real temperatures — a cool day's segment now genuinely
+                // reads cool, not just "the left side of every bar."
                 Capsule()
                     .fill(
                         LinearGradient(
-                            colors: [.blue.opacity(0.55), .orange.opacity(0.75)],
+                            colors: [TemperatureRamp.color(forFahrenheit: low), TemperatureRamp.color(forFahrenheit: high)],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
                     .frame(width: segmentWidth, height: 6)
                     .offset(x: startX)
+
+                if let currentTemperatureF {
+                    let clamped = min(max(currentTemperatureF, low), high)
+                    let currentX = ((clamped - globalMin) / range) * width
+                    ZStack {
+                        Circle()
+                            .stroke(Color.white, lineWidth: 2)
+                            .frame(width: 10, height: 10)
+                        Circle()
+                            .fill(Color.white)
+                            .frame(width: 6, height: 6)
+                    }
+                    .shadow(color: .black.opacity(0.25), radius: 1, y: 0.5)
+                    .offset(x: currentX - 5)
+                }
             }
             .frame(maxHeight: .infinity, alignment: .center)
         }
@@ -140,6 +164,8 @@ struct DailyForecastRow: View {
     let isExpanded: Bool
     let hourlyForDay: [HourlyEntry]
     let metric: ForecastMetric
+    /// Non-nil only for TODAY's row — see `DailyRangeBar.currentTemperatureF`.
+    var currentTemperatureF: Double? = nil
     let onTap: () -> Void
 
     var body: some View {
@@ -152,7 +178,8 @@ struct DailyForecastRow: View {
 
                     Text(day.precipChance > 0.01 ? "\(Int((day.precipChance * 100).rounded()))%" : "")
                         .font(.caption)
-                        .foregroundStyle(.blue)
+                        .monospacedDigit()
+                        .foregroundStyle(Color.clearSkyAccent)
                         .frame(width: 32, alignment: .leading)
 
                     Image(systemName: day.symbolName)
@@ -161,6 +188,7 @@ struct DailyForecastRow: View {
 
                     Text(TemperatureFormatting.string(day.low, unit: unitsSettings.unit))
                         .font(.subheadline)
+                        .monospacedDigit()
                         .foregroundStyle(.secondary)
                         .frame(width: 36, alignment: .trailing)
 
@@ -168,11 +196,13 @@ struct DailyForecastRow: View {
                         low: day.low.converted(to: .fahrenheit).value,
                         high: day.high.converted(to: .fahrenheit).value,
                         globalMin: globalMin,
-                        globalMax: globalMax
+                        globalMax: globalMax,
+                        currentTemperatureF: currentTemperatureF
                     )
 
                     Text(TemperatureFormatting.string(day.high, unit: unitsSettings.unit))
                         .font(.subheadline.weight(.semibold))
+                        .monospacedDigit()
                         .frame(width: 36, alignment: .trailing)
 
                     Image(systemName: "chevron.down")
@@ -183,7 +213,7 @@ struct DailyForecastRow: View {
                 .padding(.vertical, 8)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressableRowStyle())
 
             if isExpanded {
                 DailyExpandedDetail(day: day, hours: hourlyForDay, metric: metric)
@@ -198,6 +228,10 @@ struct DailyForecastSection: View {
     let hourly: [HourlyEntry]
     let metric: ForecastMetric
     @Binding var expandedDayId: Date?
+    /// Today's actual current temperature (`CachedWeather.currentConditions.temperature`) —
+    /// threaded through so `DailyRangeBar` can plot a "current temp" dot on TODAY's row only.
+    /// Optional/defaulted so existing callers/previews that don't have it keep compiling.
+    var currentTemperature: Measurement<UnitTemperature>? = nil
 
     private static let dayLimit = 10
 
@@ -226,8 +260,13 @@ struct DailyForecastSection: View {
                     isExpanded: expandedDayId == day.date,
                     hourlyForDay: hourly.filter { Calendar.current.isDate($0.date, inSameDayAs: day.date) },
                     metric: metric,
+                    currentTemperatureF: Calendar.current.isDateInToday(day.date)
+                        ? currentTemperature?.converted(to: .fahrenheit).value
+                        : nil,
                     onTap: {
-                        withAnimation {
+                        // UX polish package ("Depth & motion"): a spring replaces the default
+                        // implicit animation for the expand/collapse transition.
+                        withAnimation(.spring(duration: 0.35)) {
                             expandedDayId = (expandedDayId == day.date) ? nil : day.date
                         }
                     }

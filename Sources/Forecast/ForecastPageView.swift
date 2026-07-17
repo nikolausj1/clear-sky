@@ -38,6 +38,11 @@ struct ForecastPageView: View {
     @Environment(UnitsSettings.self) private var unitsSettings
     @State private var isPresentingAlertDetail = false
     @State private var hasScrolledToTarget = false
+    /// UX polish package ("Depth & motion" — hero parallax): the same content-scroll offset the
+    /// scroll-aware top bar already tracks (`onScrollOffsetChange`), mirrored into local state so
+    /// `heroHeader` can apply a parallax offset/overscroll scale to the hero without needing a
+    /// second scroll probe.
+    @State private var scrollOffset: CGFloat = 0
 
     /// Approximate remaining viewport height below the hero, so the loading/error/empty sheets
     /// fill the screen and center their content the same way the hero+sheet shell will once real
@@ -77,6 +82,15 @@ struct ForecastPageView: View {
     private func heroHeader(topInset: CGFloat) -> some View {
         DoodleHeaderView(current: nil, caption: nil)
             .padding(.top, -topInset)
+            .parallax(scrollOffset: scrollOffset)
+    }
+
+    /// Forwards a scroll offset reading both up to `onScrollOffsetChange` (the scroll-aware top
+    /// bar's existing consumer) and into local `scrollOffset` state (the hero parallax's
+    /// consumer) — one probe, two readers.
+    private func reportScrollOffset(_ offset: CGFloat) {
+        onScrollOffsetChange(offset)
+        scrollOffset = offset
     }
 
     // MARK: - Loading
@@ -94,7 +108,7 @@ struct ForecastPageView: View {
             }
         }
         .ignoresSafeArea(edges: .top)
-        .trackingHeroScrollOffset(onScrollOffsetChange)
+        .trackingHeroScrollOffset(reportScrollOffset)
     }
 
     // MARK: - Error
@@ -125,7 +139,7 @@ struct ForecastPageView: View {
             }
         }
         .ignoresSafeArea(edges: .top)
-        .trackingHeroScrollOffset(onScrollOffsetChange)
+        .trackingHeroScrollOffset(reportScrollOffset)
     }
 
     // MARK: - Empty (defensive — a location with a `.loaded` state but no payload)
@@ -149,7 +163,7 @@ struct ForecastPageView: View {
             }
         }
         .ignoresSafeArea(edges: .top)
-        .trackingHeroScrollOffset(onScrollOffsetChange)
+        .trackingHeroScrollOffset(reportScrollOffset)
     }
 
     /// Shared vertical centering for the loading/error/empty sheets: a flexible spacer on each
@@ -183,6 +197,7 @@ struct ForecastPageView: View {
                     // See `body`'s comment: pulls the hero up over the status-bar inset that
                     // the TabView container reintroduces to this scroll content.
                     .padding(.top, -topInset)
+                    .parallax(scrollOffset: scrollOffset)
 
                     sheetSurface {
                         VStack(alignment: .leading, spacing: 20) {
@@ -201,16 +216,17 @@ struct ForecastPageView: View {
 
                             MetricChipsRow(selected: $viewModel.selectedMetric)
 
-                            ForecastSheetCard(title: "HOURLY FORECAST") {
+                            SheetCard(title: "HOURLY FORECAST") {
                                 HourlyForecastSection(hours: payload.hourly, metric: viewModel.selectedMetric)
                             }
 
-                            ForecastSheetCard(title: "DAILY FORECAST") {
+                            SheetCard(title: "DAILY FORECAST") {
                                 DailyForecastSection(
                                     daily: payload.daily,
                                     hourly: payload.hourly,
                                     metric: viewModel.selectedMetric,
-                                    expandedDayId: $viewModel.expandedDayId
+                                    expandedDayId: $viewModel.expandedDayId,
+                                    currentTemperature: payload.currentConditions.temperature
                                 )
                             }
 
@@ -226,7 +242,7 @@ struct ForecastPageView: View {
             // otherwise shows as a white band above the hero, exactly the height of the status
             // bar). Both are needed — verified each in isolation during sim-verify.
             .ignoresSafeArea(edges: .top)
-            .trackingHeroScrollOffset(onScrollOffsetChange)
+            .trackingHeroScrollOffset(reportScrollOffset)
             .refreshable {
                 await onRefresh()
             }
@@ -324,26 +340,6 @@ struct ForecastPageView: View {
     }
 }
 
-/// A white (`.secondarySystemGroupedBackground`, so dark mode inverts correctly) rounded card on
-/// the content sheet's gray surface, with a small uppercase header and a hairline divider — the
-/// chrome for the hourly/daily cards per the redesign spec (see reference `IMG_1173.png`).
-private struct ForecastSheetCard<Content: View>: View {
-    let title: String
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.secondary)
-            Divider()
-            content
-        }
-        .padding(16)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
-}
-
 private extension View {
     /// UX redesign part 2 (lead QC defect: scroll-aware top bar). Reports each `ScrollView`'s
     /// content offset via the iOS 18 `onScrollGeometryChange` API (available — this target's
@@ -357,5 +353,32 @@ private extension View {
         } action: { _, newValue in
             onChange(newValue)
         }
+    }
+
+    /// UX polish package ("Depth & motion" — hero parallax). Applied to the hero while it's
+    /// still a normal in-flow child of the scrolling `VStack` (not pulled out into a separate
+    /// background layer — "cheap, no continuous timers" per the design spec), so it needs care
+    /// to avoid revealing a blank gap above the hero as it's pushed down.
+    ///
+    /// **On downward scroll** (`scrollOffset > 0`): offsetting the hero down by `0.6 * offset`
+    /// makes its remaining visible height shrink at only `1 - 0.6 = 0.4x` the normal 1x rate —
+    /// i.e. the *net* apparent scroll rate the design spec asks for ("translates at ~0.4x scroll
+    /// rate") — while the sheet below it, which gets no offset, keeps scrolling normally. (The
+    /// literal spec snippet was `offset(y: offset * 0.4)`; applied directly that only yields a
+    /// 0.6x apparent rate for an in-flow view, so the complementary 0.6 coefficient is what's
+    /// needed to actually hit 0.4x — verified against `polish-parallax.png`.) This never uncovers
+    /// blank space: the region that would be exposed at the very top of the hero is always
+    /// already scrolled above the visible viewport (0.6·offset < offset for any offset > 0).
+    ///
+    /// **On upward overscroll / pull-down-past-top** (`scrollOffset < 0`, e.g. rubber-banding at
+    /// rest): no offset; instead a top-anchored `scaleEffect` stretches the hero to fill the
+    /// gap the pull reveals, the classic "stretchy header" rubber-band look.
+    func parallax(scrollOffset: CGFloat) -> some View {
+        let downwardOffset = max(scrollOffset, 0) * 0.6
+        let overscroll = max(-scrollOffset, 0)
+        let scale = 1 + overscroll / DoodleHeaderView.heroHeight
+        return self
+            .offset(y: downwardOffset)
+            .scaleEffect(scale, anchor: .top)
     }
 }

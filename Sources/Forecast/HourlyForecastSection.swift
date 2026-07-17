@@ -34,6 +34,7 @@ struct HourlyPillRow: View {
         HStack(spacing: 10) {
             Text(timeLabel)
                 .font(.subheadline)
+                .monospacedDigit()
                 // Widened from 52->58 (redesign part 2): "12 AM"/"Now" at 2-hour-step density
                 // sit alongside each other more than the old 1-hour list did, and 52pt clipped
                 // "12 AM" at some Dynamic Type sizes.
@@ -50,18 +51,26 @@ struct HourlyPillRow: View {
                 let pillWidth: CGFloat = 56
                 let travel = max(proxy.size.width - pillWidth, 0)
                 ZStack(alignment: .leading) {
+                    // UX polish package ("Data-mark discipline"): recessive per mark-discipline —
+                    // thinner (0.75pt) and the low-contrast `separator` color rather than
+                    // `secondary`, so the track reads as scaffolding, not data.
                     Rectangle()
-                        .fill(Color.secondary.opacity(0.25))
-                        .frame(height: 1)
+                        .fill(Color(.separator).opacity(0.5))
+                        .frame(height: 0.75)
                         .frame(maxWidth: .infinity)
 
                     Text(metric.displayString(for: entry, unit: unitsSettings.unit))
                         .font(.subheadline.weight(.semibold))
+                        .monospacedDigit()
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                         .padding(.horizontal, 8)
                         .frame(width: pillWidth, height: 30)
-                        .background(Capsule().fill(Color(.secondarySystemFill)))
+                        // UX polish package: the "Now" row's pill gets the accent tint at 15%
+                        // opacity with accent-colored text, so the anchor row visually pops
+                        // against the otherwise-neutral list.
+                        .background(Capsule().fill(isFirstRow ? Color.clearSkyAccent.opacity(0.15) : Color(.tertiarySystemFill)))
+                        .foregroundStyle(isFirstRow ? Color.clearSkyAccent : Color.primary)
                         .offset(x: travel * position)
                 }
                 .frame(maxHeight: .infinity, alignment: .center)

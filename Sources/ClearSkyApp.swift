@@ -11,11 +11,17 @@ struct ClearSkyApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if CommandLine.arguments.contains("-smoketest") {
-                SmokeTestView()
-            } else {
-                NavigationShell()
+            Group {
+                if CommandLine.arguments.contains("-smoketest") {
+                    SmokeTestView()
+                } else {
+                    NavigationShell()
+                }
             }
+            // UX polish package ("Define the app accent once"): the single sky-blue accent used
+            // for every tint/selection/link across the app, applied at the root so it reaches
+            // every `NavigationStack`/sheet without needing a bespoke `AccentColor` asset.
+            .tint(Color.clearSkyAccent)
         }
         .modelContainer(modelContainer)
     }

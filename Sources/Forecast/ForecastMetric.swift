@@ -13,6 +13,19 @@ enum ForecastMetric: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// UX polish package ("Data-mark discipline" / chips): a tiny leading SF Symbol per metric
+    /// chip, so the chip row reads faster than text alone.
+    var symbolName: String {
+        switch self {
+        case .temp: return "thermometer"
+        case .precipChance: return "drop"
+        case .precipAmount: return "drop.fill"
+        case .feelsLike: return "thermometer.sun"
+        case .wind: return "wind"
+        case .uv: return "sun.max"
+        }
+    }
+
     var title: String {
         switch self {
         case .temp: return "Temp"

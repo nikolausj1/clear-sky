@@ -25,16 +25,20 @@ struct SettingsView: View {
         @Bindable var unitsSettings = unitsSettings
         NavigationStack {
             List {
-                Section("Units") {
+                Section {
                     Picker("Temperature", selection: $unitsSettings.unit) {
                         ForEach(TemperatureUnit.allCases) { unit in
                             Text(unit.title).tag(unit)
                         }
                     }
                     .pickerStyle(.inline)
+                } header: {
+                    // UX polish package ("Cross-screen consistency"): same header tracking as
+                    // the Forecast screen's card headers, applied here too.
+                    Text("Units").tracking(0.8)
                 }
 
-                Section("Location") {
+                Section {
                     LabeledContent("Current Location Access", value: locationPermissionLabel)
                     if locationManager.status == .denied {
                         Button("Open iOS Settings") {
@@ -43,6 +47,8 @@ struct SettingsView: View {
                             }
                         }
                     }
+                } header: {
+                    Text("Location").tracking(0.8)
                 }
 
                 Section {
@@ -66,7 +72,7 @@ struct SettingsView: View {
                         }
                     }
                 } header: {
-                    Text("About")
+                    Text("About").tracking(0.8)
                 } footer: {
                     // App Store-minimum attribution: the service name plus a single link to
                     // Apple's hosted legal/agency page (`legalPageURL`) — the full per-agency
@@ -74,8 +80,10 @@ struct SettingsView: View {
                     Text("Full data source and legal attribution is available at the link above.")
                 }
 
-                Section("App") {
+                Section {
                     LabeledContent("Version", value: appVersion)
+                } header: {
+                    Text("App").tracking(0.8)
                 }
             }
             .navigationTitle("Settings")

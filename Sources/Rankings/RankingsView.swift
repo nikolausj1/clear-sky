@@ -103,6 +103,7 @@ struct RankingsView: View {
                         .symbolRenderingMode(.multicolor)
                     Text(TemperatureFormatting.string(payload.currentConditions.temperature, unit: unitsSettings.unit))
                         .font(.subheadline.weight(.medium))
+                        .monospacedDigit()
                 }
             case .failed:
                 Text("--").foregroundStyle(.secondary)
@@ -142,27 +143,38 @@ struct RankingsView: View {
 
     // MARK: - Ranked list
 
+    /// UX polish package ("Cross-screen consistency"): the ranked rows now live inside one
+    /// grouped `SheetCard` on a `.systemGroupedBackground` scroll surface — the same chrome as
+    /// the Forecast screen's hourly/daily cards — rather than a bare `List`.
     private var rankedList: some View {
-        List {
-            ForEach(viewModel.rows(unit: unitsSettings.unit)) { row in
-                RankedRowView(
-                    row: row,
-                    unit: unitsSettings.unit,
-                    isExpanded: expandedRowId == row.id,
-                    onTapVerdictArea: {
-                        guard row.breakdown != nil else { return }
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            expandedRowId = expandedRowId == row.id ? nil : row.id
+        ScrollView {
+            let rows = viewModel.rows(unit: unitsSettings.unit)
+            SheetCard(title: "RANKINGS") {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                        RankedRowView(
+                            row: row,
+                            unit: unitsSettings.unit,
+                            isExpanded: expandedRowId == row.id,
+                            onTapVerdictArea: {
+                                guard row.breakdown != nil else { return }
+                                withAnimation(.easeInOut(duration: 0.15)) {
+                                    expandedRowId = expandedRowId == row.id ? nil : row.id
+                                }
+                            },
+                            onSelect: {
+                                onSelectCity?(row.location)
+                            }
+                        )
+                        if index < rows.count - 1 {
+                            Divider()
                         }
-                    },
-                    onSelect: {
-                        onSelectCity?(row.location)
                     }
-                )
-                .listRowSeparator(.hidden)
+                }
             }
+            .padding(16)
         }
-        .listStyle(.plain)
+        .background(Color(.systemGroupedBackground))
     }
 }
 
@@ -179,36 +191,38 @@ private struct RankedRowView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 12) {
-                rankBadge
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text(row.location.name)
-                            .font(.body.weight(.semibold))
-                        if row.hasAlert {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.caption)
-                                .foregroundStyle(.orange)
-                        }
-                    }
-                    if let payload = row.payload {
+            Button(action: onSelect) {
+                HStack(spacing: 12) {
+                    rankBadge
+                    VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 6) {
-                            Image(systemName: payload.currentConditions.symbolName)
-                                .symbolRenderingMode(.multicolor)
-                                .font(.caption)
-                            Text(TemperatureFormatting.string(payload.currentConditions.temperature, unit: unit))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            Text(row.location.name)
+                                .font(.body.weight(.semibold))
+                            if row.hasAlert {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(.orange)
+                            }
+                        }
+                        if let payload = row.payload {
+                            HStack(spacing: 6) {
+                                Image(systemName: payload.currentConditions.symbolName)
+                                    .symbolRenderingMode(.multicolor)
+                                    .font(.caption)
+                                Text(TemperatureFormatting.string(payload.currentConditions.temperature, unit: unit))
+                                    .font(.caption)
+                                    .monospacedDigit()
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
-                }
-                Spacer()
-                if let score = row.score {
-                    scoreBadge(score)
+                    Spacer()
+                    if let score = row.score {
+                        scoreBadge(score)
+                    }
                 }
             }
-            .contentShape(Rectangle())
-            .onTapGesture(perform: onSelect)
+            .buttonStyle(PressableRowStyle())
 
             if let score = row.score {
                 scoreBar(score)
@@ -232,8 +246,9 @@ private struct RankedRowView: View {
             if let rank = row.rank {
                 Text("\(rank)")
                     .font(.subheadline.weight(.bold))
+                    .monospacedDigit()
                     .frame(width: 26, height: 26)
-                    .background(Circle().fill(Color.accentColor.opacity(0.18)))
+                    .background(Circle().fill(Color.clearSkyAccent.opacity(0.18)))
             } else {
                 Image(systemName: "questionmark")
                     .font(.subheadline.weight(.bold))
@@ -256,24 +271,28 @@ private struct RankedRowView: View {
             .monospacedDigit()
     }
 
+    /// UX polish package ("Data-mark discipline"): unlike the daily range bar, a ranking score
+    /// isn't a temperature — hue must NOT vary with score (that would silently duplicate the
+    /// same red/green "good/bad" encoding the design spec explicitly avoids elsewhere). Instead
+    /// this is a single-hue sequential encoding: the app accent at an opacity that scales with
+    /// the score, so a higher score reads as a bolder fill of the same color, never a different
+    /// color. The score number itself stays `.primary` (never tinted by the bar's color).
     private func scoreBar(_ score: Double) -> some View {
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
                 Capsule().fill(Color(.secondarySystemFill))
                 Capsule()
-                    .fill(barColor(for: score))
+                    .fill(Color.clearSkyAccent.opacity(0.35 + 0.65 * (score / 100).clamped(to: 0...1)))
                     .frame(width: proxy.size.width * CGFloat(score / 100))
             }
         }
         .frame(height: 6)
     }
+}
 
-    private func barColor(for score: Double) -> Color {
-        switch PleasantnessScore.Band.forScore(score) {
-        case .great: return .green
-        case .fine: return .yellow
-        case .rough: return .red
-        }
+private extension Double {
+    func clamped(to range: ClosedRange<Double>) -> Double {
+        Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
     }
 }
 

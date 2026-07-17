@@ -174,7 +174,12 @@ struct NavigationShell: View {
             }
             .padding(.horizontal, 6)
             .padding(.vertical, 6)
-            .background(.thinMaterial, in: Capsule())
+            // UX polish package ("Cross-screen consistency"): `.ultraThinMaterial` + the same
+            // subtle shadow recipe as the scroll-aware top bar, so the floating bar and search
+            // button read as part of the same chrome system rather than a heavier `.thinMaterial`
+            // fallback.
+            .background(.ultraThinMaterial, in: Capsule())
+            .shadow(color: .black.opacity(0.06), radius: 10, y: 3)
 
             Button {
                 isPresentingLocations = true
@@ -182,7 +187,8 @@ struct NavigationShell: View {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 17, weight: .semibold))
                     .frame(width: 48, height: 48)
-                    .background(.thinMaterial, in: Circle())
+                    .background(.ultraThinMaterial, in: Circle())
+                    .shadow(color: .black.opacity(0.06), radius: 10, y: 3)
             }
             .foregroundStyle(.primary)
         }
@@ -201,8 +207,8 @@ struct NavigationShell: View {
                     .font(.caption2.weight(.medium))
             }
             .frame(width: 72, height: 46)
-            .background(isSelected ? Color.accentColor.opacity(0.18) : Color.clear, in: Capsule())
-            .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+            .background(isSelected ? Color.clearSkyAccent.opacity(0.18) : Color.clear, in: Capsule())
+            .foregroundStyle(isSelected ? Color.clearSkyAccent : Color.secondary)
         }
         .buttonStyle(.plain)
     }

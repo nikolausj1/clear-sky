@@ -104,8 +104,12 @@ struct DoodleHeaderView: View {
                 if let caption {
                     Text(caption)
                         .font(.subheadline.weight(.medium))
+                        .tracking(0.3)
                         .foregroundStyle(.white)
                         .multilineTextAlignment(.center)
+                        // UX polish package ("Typography"): prefer a single line, but wrap
+                        // gracefully to a second rather than truncating a dry-wit line mid-word.
+                        .lineLimit(2)
                         .padding(.horizontal, 24)
                         // Nudged up by `sheetOverlap` beyond its original 14pt clearance so the
                         // caption stays fully visible above the content sheet's curved top edge,
@@ -130,13 +134,22 @@ struct DoodleHeaderView: View {
         if let current {
             VStack(spacing: 6) {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    // UX polish package ("Typography"): scaled down from 44 to ~40pt at a
+                    // lighter weight so it visually balances the now-much-thinner 96pt temp
+                    // rather than reading heavier than the number beside it.
                     Image(systemName: current.symbolName)
-                        .font(.system(size: 44))
+                        .font(.system(size: 40, weight: .light))
                         .foregroundStyle(.white)
                         .shadow(color: .black.opacity(0.3), radius: 6, y: 2)
 
+                    // UX polish package ("Typography"): SF Pro thin elegance replaces the old
+                    // rounded semibold treatment. `.monospacedDigit()` keeps the digits from
+                    // jittering in width; the tight negative line spacing compensates for the
+                    // extra vertical whitespace a 96pt thin face otherwise leaves around itself.
                     Text(TemperatureFormatting.string(current.temperature, unit: unitsSettings.unit))
-                        .font(.system(size: 84, weight: .semibold, design: .rounded))
+                        .font(.system(size: 96, weight: .thin))
+                        .monospacedDigit()
+                        .lineSpacing(-6)
                         .foregroundStyle(.white)
                         .shadow(color: .black.opacity(0.3), radius: 8, y: 3)
                 }
@@ -144,7 +157,8 @@ struct DoodleHeaderView: View {
                 .minimumScaleFactor(0.7)
 
                 Text("Feels like \(TemperatureFormatting.string(current.feelsLike, unit: unitsSettings.unit))")
-                    .font(.system(size: 17))
+                    .font(.body.weight(.regular))
+                    .monospacedDigit()
                     .foregroundStyle(.white.opacity(0.85))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
