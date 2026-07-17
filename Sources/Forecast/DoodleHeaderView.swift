@@ -55,13 +55,20 @@ struct DoodleHeaderView: View {
     /// caption's bottom clearance in lockstep with this single value.
     static let sheetOverlap: CGFloat = 24
 
-    /// Fixed allowance for the status bar/Dynamic Island plus the (transparent, white-styled)
-    /// navigation bar, so the temperature group sits "in the upper-middle area of the scene,
-    /// clear of the status bar and city title" rather than butting up against them. A constant
-    /// rather than `GeometryReader.safeAreaInsets.top` because this view renders inside
-    /// ScrollViews that themselves `ignoresSafeArea(edges: .top)` — in that configuration the
-    /// proxy reports a top inset of 0, which would park the group under the Dynamic Island.
-    private static let topChromeClearance: CGFloat = 108
+    /// Fixed allowance for the status bar/Dynamic Island plus `ForecastView`'s custom top chrome
+    /// bar (the transparent, white-styled title + ellipsis overlay that replaced the system
+    /// navigation bar — see `ForecastView.topChromeBar`), so the temperature group sits "in the
+    /// upper-middle area of the scene, clear of the status bar and city title" rather than
+    /// butting up against them. A constant rather than `GeometryReader.safeAreaInsets.top`
+    /// because this view renders inside ScrollViews that themselves
+    /// `ignoresSafeArea(edges: .top)` — in that configuration the proxy reports a top inset of
+    /// 0, which would park the group under the Dynamic Island. Bumped from 108 to 150 when the
+    /// custom top chrome landed: `ForecastPageView`'s hero-bleed fix (see its `body` comment)
+    /// stopped a residual ~31pt inset the paging collection view used to silently add, which had
+    /// been quietly padding this same clearance out — verified empirically (`_review/chrome-*
+    /// .png`) that 150 clears the new bar's title with room to spare in both the tallest
+    /// (`Dynamic Island`) and shortest supported device's status-bar height.
+    private static let topChromeClearance: CGFloat = 150
 
     private var scene: DoodleComposer.Scene {
         DoodleComposer.resolve(

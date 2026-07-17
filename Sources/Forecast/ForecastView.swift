@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Screen A from PRD Section 6: the Forecast screen. Hosts one `ForecastPageView` per saved
 /// location inside a horizontally-paged `TabView` (Screen B: "The Forecast screen also supports
@@ -29,51 +30,37 @@ struct ForecastView: View {
     private static let showThresholdFraction: CGFloat = 0.65
     private static let hideThresholdFraction: CGFloat = 0.45
 
+    /// Standard inline-nav-bar content height, reused for the custom top chrome bar so it reads
+    /// as a drop-in replacement for the system bar it stands in for.
+    private static let chromeBarHeight: CGFloat = 44
+
     var body: some View {
         NavigationStack {
-            Group {
-                if viewModel.locations.isEmpty {
-                    emptyStateView
-                } else {
-                    pagerView
-                }
-            }
-            // UX redesign part 1: the hero (`DoodleHeaderView`, inside `ForecastPageView`) now
-            // bleeds up under the status bar/nav bar via `ignoresSafeArea(edges: .top)`, so the
-            // nav bar itself is made transparent here and its title/button restyled white (with
-            // a shadow on the title for legibility) so it reads as sitting on the scene rather
-            // than on an opaque bar. `.navigationTitle` is kept empty (rather than removed) so
-            // `.navigationBarTitleDisplayMode(.inline)` still has a title to lay out around; the
-            // actual visible title is the white `Text` in the `.principal` toolbar item below.
+            // The system navigation bar applies iOS 26's Liquid Glass "scroll edge effect" — a
+            // progressive blur+dim over the top ~12% of the screen — whenever content scrolls
+            // under it. This is NOT controllable via `.toolbarBackground` visibility,
+            // `.scrollEdgeEffectHidden` (any placement), or `.statusBarHidden`: all verified
+            // empirically to leave the effect in place. Hiding the bar entirely is the only fix
+            // that removes it, so the bar is replaced below with custom top chrome that
+            // reproduces its title/button/material behavior without the system's blur.
             //
-            // UX redesign part 2 (lead QC defect): that transparent-white treatment left the
-            // title unreadable once list content scrolled underneath it. Past
-            // `isHeroScrolledAway`, the bar gets a real material background and the title/button
-            // switch to `.primary`/legible-on-material colors; below that threshold it's back to
-            // the original transparent-on-scene look. Both states are driven by the same
-            // `isHeroScrolledAway` flag so they never disagree, and the switch is animated.
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
-            .toolbarBackground(isHeroScrolledAway ? .visible : .hidden, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text(viewModel.locationName)
-                        .font(.headline)
-                        .foregroundStyle(isHeroScrolledAway ? Color.primary : Color.white)
-                        .shadow(color: .black.opacity(isHeroScrolledAway ? 0 : 0.35), radius: 3, y: 1)
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button(action: onOpenSettings) {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(isHeroScrolledAway ? Color.primary : Color.white)
-                            .padding(6)
-                            .background(.thinMaterial, in: Circle())
+            // The GeometryReader wraps the content BEFORE any `ignoresSafeArea` applied deeper
+            // inside (`pagerView`/`emptyStateView`'s hero bleed), so `proxy.safeAreaInsets.top`
+            // reports the real status bar/Dynamic Island inset rather than 0 — same measurement
+            // technique `ForecastPageView.body` already uses for the hero bleed.
+            GeometryReader { proxy in
+                Group {
+                    if viewModel.locations.isEmpty {
+                        emptyStateView
+                    } else {
+                        pagerView
                     }
                 }
+                .overlay(alignment: .top) {
+                    topChromeBar(topInset: proxy.safeAreaInsets.top)
+                }
             }
-            .animation(.easeInOut(duration: 0.2), value: isHeroScrolledAway)
+            .toolbar(.hidden, for: .navigationBar)
         }
         .task {
             if viewModel.locations.isEmpty {
@@ -99,6 +86,63 @@ struct ForecastView: View {
         } else if isHeroScrolledAway && offset < heroHeight * Self.hideThresholdFraction {
             isHeroScrolledAway = false
         }
+    }
+
+    // MARK: - Custom top chrome (replaces the system navigation bar)
+
+    /// Stands in for the system navigation bar (hidden via `.toolbar(.hidden, for: .navigationBar)`
+    /// on the enclosing `NavigationStack` — see `body`'s comment for why). Salvaged from the old
+    /// `.toolbar { ToolbarItem... }` block: same centered title + trailing ellipsis button,
+    /// same two visual states driven by `isHeroScrolledAway`.
+    ///
+    /// - Over-hero (`false`): transparent background, title/icon white with a shadow so they
+    ///   read against the scene rather than a bar.
+    /// - Scrolled (`true`): `.ultraThinMaterial` background (full-width, covering the status-bar
+    ///   area down through the bar) with a bottom hairline, title/icon `.primary`, no shadow.
+    ///
+    /// `topInset` is measured by the caller (see `body`) rather than hardcoded, so this sits
+    /// correctly below the status bar/Dynamic Island on every device. The bar's own
+    /// `ignoresSafeArea` lets its background extend all the way to the true screen edge (y = 0)
+    /// while `Spacer(height: topInset)` keeps the title/button row itself below the status bar.
+    private func topChromeBar(topInset: CGFloat) -> some View {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+                .frame(height: topInset)
+
+            HStack {
+                Spacer()
+                Text(viewModel.locationName)
+                    .font(.headline)
+                    .foregroundStyle(isHeroScrolledAway ? Color.primary : Color.white)
+                    .shadow(color: .black.opacity(isHeroScrolledAway ? 0 : 0.35), radius: 3, y: 1)
+                Spacer()
+            }
+            .overlay(alignment: .trailing) {
+                Button(action: onOpenSettings) {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(isHeroScrolledAway ? Color.primary : Color.white)
+                        .padding(6)
+                        .background(.thinMaterial, in: Circle())
+                }
+            }
+            .padding(.horizontal, 16)
+            .frame(height: Self.chromeBarHeight)
+        }
+        .frame(maxWidth: .infinity)
+        .background {
+            if isHeroScrolledAway {
+                VStack(spacing: 0) {
+                    Rectangle()
+                        .fill(.ultraThinMaterial)
+                    Rectangle()
+                        .fill(Color(.separator).opacity(0.3))
+                        .frame(height: 0.5)
+                }
+            }
+        }
+        .ignoresSafeArea(edges: .top)
+        .animation(.easeInOut(duration: 0.2), value: isHeroScrolledAway)
     }
 
     // MARK: - Pager
@@ -133,6 +177,19 @@ struct ForecastView: View {
             // buried inside one page's scroll content) is what actually lets each page's hero
             // extend under the status bar/nav bar.
             .ignoresSafeArea(edges: .top)
+            // Custom top chrome fix, part 2: with the system nav bar hidden (see `body`'s
+            // comment), the paging `UICollectionView` backing this `TabView(.page)` was found
+            // (empirically, via a temporary red `.background` that made its real bounds visible)
+            // to still silently reintroduce its own top content inset to every page — a residual
+            // white strip at the very top of the screen that neither the `ignoresSafeArea` above
+            // nor `ForecastPageView`'s measured negative-padding pull-up could reach, since it's
+            // applied inside the collection view's own content layout, a layer below where
+            // SwiftUI's safe-area machinery operates. This walks up from an invisible probe view
+            // to find that collection view and disables its automatic content-inset adjustment
+            // at the source — scoped to just this one `TabView` (not a global
+            // `UIScrollView.appearance()` change, which would also affect the Rankings tab's
+            // list and other unrelated scroll views).
+            .background(PagingCollectionViewInsetFix())
 
             if viewModel.locations.count > 1 {
                 pageIndicator
@@ -180,4 +237,31 @@ struct ForecastView: View {
         // awkwardly pushed down below a transparent nav bar.
         .ignoresSafeArea(edges: .top)
     }
+}
+
+/// See the `.background(PagingCollectionViewInsetFix())` comment on `pagerView`'s `TabView`.
+/// An invisible, non-interactive probe view whose only job is to be inserted into the view
+/// hierarchy so it can walk `superview` up to find the ancestor `UICollectionView` — the one
+/// backing `TabView(.page)` — and disable its automatic content-inset adjustment. Runs once,
+/// asynchronously, after the view hierarchy has actually been installed (walking `superview`
+/// during `makeUIView` itself is too early: the probe isn't attached to anything yet).
+private struct PagingCollectionViewInsetFix: UIViewRepresentable {
+    func makeUIView(context: Context) -> UIView {
+        let probe = UIView(frame: .zero)
+        probe.isHidden = true
+        probe.isUserInteractionEnabled = false
+        DispatchQueue.main.async {
+            var view: UIView? = probe
+            while let current = view {
+                if let collectionView = current as? UICollectionView {
+                    collectionView.contentInsetAdjustmentBehavior = .never
+                    return
+                }
+                view = current.superview
+            }
+        }
+        return probe
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {}
 }

@@ -56,8 +56,22 @@ struct ForecastPageView: View {
         // Dynamic Island). The ScrollViews below all `ignoresSafeArea(edges: .top)`, but the
         // `TabView(.page)` container reintroduces that inset to their *content* regardless
         // (verified empirically — the scroll viewport reaches y=0, its content doesn't), which
-        // left a white band exactly the status bar's height above the hero. Each state passes
-        // this measured inset to `heroHeader`, which pulls the hero up by exactly that amount.
+        // left a white band above the hero. Each state passes this measured inset to
+        // `heroHeader`/`loadedView`, which pulls the hero up by exactly that amount.
+        //
+        // Custom top chrome (replacing the system nav bar so iOS 26's Liquid Glass scroll-edge
+        // effect can be hidden — see `ForecastView.body`'s comment) removed the one visible
+        // signal `geo.safeAreaInsets.top` used to track: with the nav bar gone, this reads 0,
+        // yet the paging `UICollectionView` backing `TabView(.page)` was still silently
+        // reintroducing its own top content inset regardless — a residual white strip at the
+        // very top that neither this measurement nor `ignoresSafeArea` alone could reach, since
+        // it's applied *inside* the collection view's own content layout, below where SwiftUI's
+        // safe-area/ignoresSafeArea machinery operates. Fixed at the source, once, in
+        // `ForecastView.pagerView` (`PagingCollectionViewInsetFix`), which disables that
+        // collection view's automatic content-inset adjustment entirely — after that fix,
+        // `geo.safeAreaInsets.top` here is simply 0 and this whole mechanism is a no-op, kept
+        // in place (rather than deleted) so a future device/OS combination that reintroduces a
+        // real nonzero inset is still handled automatically instead of silently regressing.
         GeometryReader { geo in
             Group {
                 switch page.screenState {
@@ -347,11 +361,23 @@ private extension View {
     /// which is fragile against SwiftUI's internal scroll-content layout passes. `contentOffset.y`
     /// is ~0 at rest (these scroll views bleed under the top safe area, so there's no positive
     /// inset baked into "resting") and grows positively as the user scrolls down.
+    /// Also disables iOS 26's automatic top scroll-edge effect: because these scroll views bleed
+    /// under the navigation bar, the system injects a dim/blur gradient over the top of the hero
+    /// scene (subtle in light mode, a heavy smoky band in dark). The scroll-aware toolbar already
+    /// provides the scrolled-state treatment explicitly, so the automatic effect is pure defect
+    /// here. Scoped to the Forecast surface only — other screens keep the system behavior.
+    @ViewBuilder
     func trackingHeroScrollOffset(_ onChange: @escaping (CGFloat) -> Void) -> some View {
-        onScrollGeometryChange(for: CGFloat.self) { geometry in
+        let tracked = onScrollGeometryChange(for: CGFloat.self) { geometry in
             geometry.contentOffset.y
         } action: { _, newValue in
             onChange(newValue)
+        }
+        if #available(iOS 26.0, *) {
+            tracked.scrollEdgeEffectHidden(true, for: .top)
+        } else {
+            // Pre-iOS 26 has no automatic scroll-edge effect to suppress.
+            tracked
         }
     }
 
