@@ -14,11 +14,11 @@ import SwiftUI
 ///
 /// 1. `TimeOfDaySkyBackground` — sky gradient + stars (time-of-day, back-most)
 /// 2. `CelestialBody` — sun/moon (time-of-day; dimmed per weather condition)
-/// 3. `WeatherClouds` — drifting clouds (weather condition; behind the hills)
-/// 4. `BaseSceneLayer` — the stable back hill ridge (base scene)
-/// 5. `SeasonSkinLayer` — the front hill ridge + trees, colored by season (season skin)
-/// 6. `WeatherPrecipitation` — rain/snow/fog in front of the hills (weather condition)
-/// 7. `SpecialDayOverlayLayer` — additive decoration (special day), only when one applies
+/// 3. `WeatherClouds` — drifting clouds (weather condition; behind the landscape)
+/// 4. `IllustratedLandscapeLayer` — the AI-illustrated season landscape (base scene + season
+///    skin combined; replaces the old programmatic `BaseSceneLayer`/`SeasonSkinLayer` hills)
+/// 5. `WeatherPrecipitation` — rain/snow/fog in front of the landscape (weather condition)
+/// 6. `SpecialDayOverlayLayer` — additive decoration (special day), only when one applies
 struct DoodleSceneView: View {
     let scene: DoodleComposer.Scene
 
@@ -27,8 +27,7 @@ struct DoodleSceneView: View {
             TimeOfDaySkyBackground(timeOfDay: scene.timeOfDay)
             CelestialBody(timeOfDay: scene.timeOfDay, condition: scene.condition, date: scene.date)
             WeatherClouds(condition: scene.condition)
-            BaseSceneLayer()
-            SeasonSkinLayer(season: scene.season)
+            IllustratedLandscapeLayer(season: scene.season, timeOfDay: scene.timeOfDay)
             WeatherPrecipitation(condition: scene.condition)
             if let specialDay = scene.specialDay {
                 SpecialDayOverlayLayer(specialDay: specialDay, timeOfDay: scene.timeOfDay)

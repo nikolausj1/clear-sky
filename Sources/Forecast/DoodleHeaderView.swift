@@ -106,6 +106,13 @@ struct DoodleHeaderView: View {
                         .font(.subheadline.weight(.medium))
                         .tracking(0.3)
                         .foregroundStyle(.white)
+                        // Legibility pass (illustrated-landscape integration): the caption now
+                        // sits directly over painted landscape (rather than a flat gradient
+                        // rectangle), and pale scenes — winter's snow strip especially — can
+                        // leave the scrim below under-darkened at the caption's exact height.
+                        // A small matching shadow to the hero temp group's own treatment is the
+                        // cheapest fix and reads consistently across every season.
+                        .shadow(color: .black.opacity(0.35), radius: 4, y: 1)
                         .multilineTextAlignment(.center)
                         // UX polish package ("Typography"): prefer a single line, but wrap
                         // gracefully to a second rather than truncating a dry-wit line mid-word.
@@ -176,8 +183,13 @@ struct DoodleHeaderView: View {
     /// the scene above it), building to a subtle dark base so white text reads reliably without
     /// a boxed-in look.
     private var captionScrim: some View {
+        // Legibility pass (illustrated-landscape integration): nudged from 0.16/0.48 to
+        // 0.22/0.58 — the caption now overlays painted landscape art (previously a flat
+        // gradient), and the palest scene (winter's snow strip) left the caption a little thin
+        // against the ground at the original strengths. Still clear at the top edge so there's
+        // no visible seam against the scene above it.
         LinearGradient(
-            colors: [.black.opacity(0), .black.opacity(0.16), .black.opacity(0.48)],
+            colors: [.black.opacity(0), .black.opacity(0.22), .black.opacity(0.58)],
             startPoint: .top,
             endPoint: .bottom
         )
