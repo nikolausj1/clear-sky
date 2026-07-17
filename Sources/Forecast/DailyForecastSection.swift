@@ -183,11 +183,10 @@ struct DailyForecastSection: View {
     }
 
     var body: some View {
+        // UX redesign part 1: the "10-Day Forecast" headline used to render here; it's now the
+        // small uppercase "DAILY FORECAST" header provided by the enclosing card chrome
+        // (`ForecastSheetCard` in `ForecastPageView`), so this view renders rows only.
         VStack(alignment: .leading, spacing: 0) {
-            Text("10-Day Forecast")
-                .font(.headline)
-                .padding(.bottom, 8)
-
             ForEach(Array(limitedDaily.enumerated()), id: \.element.id) { index, day in
                 DailyForecastRow(
                     day: day,

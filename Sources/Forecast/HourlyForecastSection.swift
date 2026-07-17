@@ -76,11 +76,10 @@ struct HourlyForecastSection: View {
     }
 
     var body: some View {
+        // UX redesign part 1: the "Hourly Forecast" headline used to render here; it's now the
+        // small uppercase header provided by the enclosing card chrome
+        // (`ForecastSheetCard` in `ForecastPageView`), so this view renders rows only.
         VStack(alignment: .leading, spacing: 0) {
-            Text("Hourly Forecast")
-                .font(.headline)
-                .padding(.bottom, 8)
-
             let rows = Array(limitedHours.enumerated())
             ForEach(rows, id: \.element.id) { index, entry in
                 HourlyPillRow(

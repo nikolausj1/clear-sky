@@ -1,10 +1,18 @@
 import SwiftUI
+import UIKit
 
 /// One page of the Forecast pager — everything `ForecastView` rendered in Phase 2 for a single
 /// location, now parameterized by an explicit `location` + `page` state instead of reading a
 /// singular `viewModel.payload`, so `ForecastView` can host one of these per saved location
 /// inside a `TabView` for horizontal swipe-paging (PRD Screen B: "The Forecast screen also
 /// supports horizontal swipe to page between saved locations").
+///
+/// UX redesign part 1 restructures every state (loading/error/empty/loaded) around the same
+/// "hero + sheet" shape: a full-bleed `DoodleHeaderView` at the top (which sizes and positions
+/// itself, including ignoring the top safe area — see that file), followed by a content sheet
+/// (`Color(.systemGroupedBackground)`, rounded top corners, pulled up to overlap the scene's
+/// bottom edge) that carries every other state's content. Sharing that shell across states means
+/// switching between them never jumps the layout.
 struct ForecastPageView: View {
     let location: SavedLocation
     let page: ForecastViewModel.PageState
@@ -24,92 +32,135 @@ struct ForecastPageView: View {
     @State private var isPresentingAlertDetail = false
     @State private var hasScrolledToTarget = false
 
+    /// Approximate remaining viewport height below the hero, so the loading/error/empty sheets
+    /// fill the screen and center their content the same way the hero+sheet shell will once real
+    /// content loads, rather than being sized to whatever their (short) content needs.
+    private var stateSheetMinHeight: CGFloat {
+        max(UIScreen.main.bounds.height - DoodleHeaderView.heroHeight, 320)
+    }
+
     var body: some View {
-        Group {
-            switch page.screenState {
-            case .loading:
-                loadingView
-            case .error(let message):
-                errorView(message)
-            case .loaded:
-                if let payload = page.payload {
-                    loadedView(payload)
-                } else {
-                    emptyStateView
+        // The GeometryReader exists to measure this page's *top safe-area inset* (status bar /
+        // Dynamic Island). The ScrollViews below all `ignoresSafeArea(edges: .top)`, but the
+        // `TabView(.page)` container reintroduces that inset to their *content* regardless
+        // (verified empirically — the scroll viewport reaches y=0, its content doesn't), which
+        // left a white band exactly the status bar's height above the hero. Each state passes
+        // this measured inset to `heroHeader`, which pulls the hero up by exactly that amount.
+        GeometryReader { geo in
+            Group {
+                switch page.screenState {
+                case .loading:
+                    loadingView(topInset: geo.safeAreaInsets.top)
+                case .error(let message):
+                    errorView(message, topInset: geo.safeAreaInsets.top)
+                case .loaded:
+                    if let payload = page.payload {
+                        loadedView(payload, topInset: geo.safeAreaInsets.top)
+                    } else {
+                        emptyStateView(topInset: geo.safeAreaInsets.top)
+                    }
                 }
             }
         }
     }
 
+    /// The full-bleed hero for a state with no payload (loading/error/empty), pulled up over
+    /// the status-bar inset — see `body`'s comment for why the pull-up is a measured negative
+    /// padding rather than `ignoresSafeArea` alone.
+    private func heroHeader(topInset: CGFloat) -> some View {
+        DoodleHeaderView(current: nil, caption: nil)
+            .padding(.top, -topInset)
+    }
+
     // MARK: - Loading
 
-    private var loadingView: some View {
-        VStack(spacing: 16) {
-            DoodleHeaderView(current: nil, caption: nil)
-            Spacer()
-            ProgressView("Consulting the sky.")
-                .tint(.secondary)
-            Spacer()
-            Spacer()
+    private func loadingView(topInset: CGFloat) -> some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                heroHeader(topInset: topInset)
+                sheetSurface(minHeight: stateSheetMinHeight) {
+                    centeredStateContent {
+                        ProgressView("Consulting the sky.")
+                            .tint(.secondary)
+                    }
+                }
+            }
         }
+        .ignoresSafeArea(edges: .top)
     }
 
     // MARK: - Error
 
-    private func errorView(_ message: String) -> some View {
-        VStack(spacing: 16) {
-            DoodleHeaderView(current: nil, caption: nil)
-            Spacer()
-            VStack(spacing: 12) {
-                Image(systemName: "exclamationmark.icloud")
-                    .font(.system(size: 40))
-                    .foregroundStyle(.secondary)
-                // PRD Section 6 "WeatherKit error" state: "dry-wit error line, retry action."
-                Text(PhraseBank.errorState(.weatherFetchFailed, date: viewModel.phraseBankDate, locationId: location.id))
-                    .font(.headline)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-                Text(message)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-                Button("Retry", action: onRetry)
-                    .buttonStyle(.borderedProminent)
+    private func errorView(_ message: String, topInset: CGFloat) -> some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                heroHeader(topInset: topInset)
+                sheetSurface(minHeight: stateSheetMinHeight) {
+                    centeredStateContent {
+                        Image(systemName: "exclamationmark.icloud")
+                            .font(.system(size: 40))
+                            .foregroundStyle(.secondary)
+                        // PRD Section 6 "WeatherKit error" state: "dry-wit error line, retry action."
+                        Text(PhraseBank.errorState(.weatherFetchFailed, date: viewModel.phraseBankDate, locationId: location.id))
+                            .font(.headline)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                        Text(message)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                        Button("Retry", action: onRetry)
+                            .buttonStyle(.borderedProminent)
+                    }
+                }
             }
-            Spacer()
-            Spacer()
         }
+        .ignoresSafeArea(edges: .top)
     }
 
     // MARK: - Empty (defensive — a location with a `.loaded` state but no payload)
 
-    private var emptyStateView: some View {
-        VStack(spacing: 16) {
-            DoodleHeaderView(current: nil, caption: nil)
-            Spacer()
-            VStack(spacing: 12) {
-                Image(systemName: "location.slash")
-                    .font(.system(size: 36))
-                    .foregroundStyle(.secondary)
-                Text("No forecast yet.")
-                    .font(.headline)
-                Text(PhraseBank.errorState(.generic, date: viewModel.phraseBankDate, locationId: location.id))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+    private func emptyStateView(topInset: CGFloat) -> some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                heroHeader(topInset: topInset)
+                sheetSurface(minHeight: stateSheetMinHeight) {
+                    centeredStateContent {
+                        Image(systemName: "location.slash")
+                            .font(.system(size: 36))
+                            .foregroundStyle(.secondary)
+                        Text("No forecast yet.")
+                            .font(.headline)
+                        Text(PhraseBank.errorState(.generic, date: viewModel.phraseBankDate, locationId: location.id))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
-            Spacer()
-            Spacer()
         }
+        .ignoresSafeArea(edges: .top)
+    }
+
+    /// Shared vertical centering for the loading/error/empty sheets: a flexible spacer on each
+    /// side of the content so it sits in the middle of the sheet's minimum height, matching
+    /// where the equivalent content used to sit when it was centered in the full-screen page.
+    private func centeredStateContent<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(spacing: 12) {
+            Spacer(minLength: 12)
+            content()
+            Spacer(minLength: 12)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Loaded
 
     @ViewBuilder
-    private func loadedView(_ payload: CachedWeather) -> some View {
+    private func loadedView(_ payload: CachedWeather, topInset: CGFloat) -> some View {
         ScrollViewReader { proxy in
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(spacing: 0) {
                     DoodleHeaderView(
                         current: payload.currentConditions,
                         caption: viewModel.doodleCaptionLine(location: location, payload: payload, unit: unitsSettings.unit),
@@ -119,47 +170,52 @@ struct ForecastPageView: View {
                         forcedCondition: viewModel.forcedDoodleCondition,
                         forcedTimeOfDay: viewModel.forcedDoodleTimeOfDay
                     )
+                    // See `body`'s comment: pulls the hero up over the status-bar inset that
+                    // the TabView container reintroduces to this scroll content.
+                    .padding(.top, -topInset)
 
-                    if page.cacheState == .stale {
-                        staleBanner(payload.fetchedAt)
-                            .padding(.horizontal)
+                    sheetSurface {
+                        VStack(alignment: .leading, spacing: 20) {
+                            if page.cacheState == .stale {
+                                staleBanner(payload.fetchedAt)
+                            }
+
+                            if !payload.activeAlerts.isEmpty {
+                                AdvisoryBanner(alerts: payload.activeAlerts, isPresentingDetail: $isPresentingAlertDetail)
+                            }
+
+                            CopyLinesView(
+                                summary: viewModel.summaryLine(location: location, payload: payload, unit: unitsSettings.unit),
+                                comparison: viewModel.comparisonLine(location: location, payload: payload, unit: unitsSettings.unit)
+                            )
+
+                            MetricChipsRow(selected: $viewModel.selectedMetric)
+
+                            ForecastSheetCard(title: "HOURLY FORECAST") {
+                                HourlyForecastSection(hours: payload.hourly, metric: viewModel.selectedMetric)
+                            }
+
+                            ForecastSheetCard(title: "DAILY FORECAST") {
+                                DailyForecastSection(
+                                    daily: payload.daily,
+                                    hourly: payload.hourly,
+                                    metric: viewModel.selectedMetric,
+                                    expandedDayId: $viewModel.expandedDayId
+                                )
+                            }
+
+                            AttributionFooter(attribution: payload.attribution)
+                                .id(Self.attributionFooterId)
+                        }
                     }
-
-                    CurrentConditionsView(current: payload.currentConditions)
-                        .padding(.horizontal)
-
-                    if !payload.activeAlerts.isEmpty {
-                        AdvisoryBanner(alerts: payload.activeAlerts, isPresentingDetail: $isPresentingAlertDetail)
-                            .padding(.horizontal)
-                    }
-
-                    CopyLinesView(
-                        summary: viewModel.summaryLine(location: location, payload: payload, unit: unitsSettings.unit),
-                        comparison: viewModel.comparisonLine(location: location, payload: payload, unit: unitsSettings.unit)
-                    )
-                    .padding(.horizontal)
-
-                    MetricChipsRow(selected: $viewModel.selectedMetric)
-                        .padding(.horizontal)
-
-                    HourlyForecastSection(hours: payload.hourly, metric: viewModel.selectedMetric)
-                        .padding(.horizontal)
-
-                    DailyForecastSection(
-                        daily: payload.daily,
-                        hourly: payload.hourly,
-                        metric: viewModel.selectedMetric,
-                        expandedDayId: $viewModel.expandedDayId
-                    )
-                    .padding(.horizontal)
-
-                    AttributionFooter(attribution: payload.attribution)
-                        .id(Self.attributionFooterId)
                 }
-                // Extra clearance so the last content (attribution) isn't flush against the
-                // floating bottom bar (`NavigationShell.floatingBar`), which overlays this screen.
-                .padding(.bottom, 70)
             }
+            // Paired with the same modifier on `ForecastView`'s `TabView`: the TabView-level
+            // one lets pages extend under the status bar at all; this ScrollView-level one
+            // stops the scroll content from being re-inset by that reclaimed safe area (which
+            // otherwise shows as a white band above the hero, exactly the height of the status
+            // bar). Both are needed — verified each in isolation during sim-verify.
+            .ignoresSafeArea(edges: .top)
             .refreshable {
                 await onRefresh()
             }
@@ -216,6 +272,58 @@ struct ForecastPageView: View {
         .font(.footnote)
         .foregroundStyle(.secondary)
         .padding(10)
-        .background(Color(.secondarySystemFill), in: RoundedRectangle(cornerRadius: 10))
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    // MARK: - Sheet chrome
+
+    private static let sheetCornerRadius: CGFloat = 28
+
+    /// The content sheet: `Color(.systemGroupedBackground)`, top corners rounded, pulled up to
+    /// overlap the hero scene's bottom edge by `DoodleHeaderView.sheetOverlap` so the scene
+    /// visibly curves behind it, per the redesign spec. `minHeight` lets the loading/error/empty
+    /// states fill the remaining viewport so they don't look like a sliver of content floating
+    /// under a mostly-empty scene.
+    private func sheetSurface<Content: View>(minHeight: CGFloat? = nil, @ViewBuilder content: () -> Content) -> some View {
+        content()
+            .padding(.horizontal, 16)
+            .padding(.top, 20)
+            // Extra clearance so the last content (attribution / centered state content) isn't
+            // flush against the floating bottom bar (`NavigationShell.floatingBar`), which
+            // overlays this screen.
+            .padding(.bottom, 70)
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: minHeight, alignment: .top)
+            .background(
+                Color(.systemGroupedBackground),
+                in: UnevenRoundedRectangle(
+                    topLeadingRadius: Self.sheetCornerRadius,
+                    bottomLeadingRadius: 0,
+                    bottomTrailingRadius: 0,
+                    topTrailingRadius: Self.sheetCornerRadius,
+                    style: .continuous
+                )
+            )
+            .padding(.top, -DoodleHeaderView.sheetOverlap)
+    }
+}
+
+/// A white (`.secondarySystemGroupedBackground`, so dark mode inverts correctly) rounded card on
+/// the content sheet's gray surface, with a small uppercase header and a hairline divider — the
+/// chrome for the hourly/daily cards per the redesign spec (see reference `IMG_1173.png`).
+private struct ForecastSheetCard<Content: View>: View {
+    let title: String
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Divider()
+            content
+        }
+        .padding(16)
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
