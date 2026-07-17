@@ -16,6 +16,8 @@ tags:
 | **Status** | v1.0 PRD - agreed 2026-07-12 |
 | **Companion docs** | `Project Build Guide.md` (accounts, stack, deployment, Apple signing, sim-verify workflow - follow it, do not restate it) |
 
+> **Revision Notes (2026-07-17).** Justin approved the "Tonight's Sky" feature (full scope) after v1.0 shipped to his device: a card at the bottom of the Forecast screen with moon phase/rise/set, naked-eye planet visibility (on-device Meeus ephemerides), a daily sky-almanac line, aurora likelihood (NOAA SWPC), and ISS visible passes (Celestrak TLE + on-device SGP4). This amends the former "zero runtime network calls other than WeatherKit" rule: two additional endpoint families are sanctioned — NOAA SWPC (aurora data) and Celestrak (ISS orbital elements) — both free, keyless, government/public services with on-disk caching and graceful offline degradation (sky rows render "—" when unreachable; on-device rows always render). No accounts, no backend, no runtime AI, no analytics — unchanged.
+
 ## 1. Overview and Vision
 
 **The problem.** Weather apps are functionally interchangeable. Everyone reads the same handful of data providers, so the numbers on screen are never the differentiator - yet checking the weather is one of the most repeated rituals on a phone, often performed even when the user already has a good guess at the answer. Apple's own app is silent utility. CARROT proved that voice can carry a weather app, but its jokes lean aggressive and can wear thin. There is room for a weather app that treats the daily check-in as a small, low-stakes moment of delight rather than either pure data retrieval or a bit that punches down.
@@ -45,7 +47,7 @@ tags:
 
 - Cold launch (app not in memory) to a fresh, populated forecast screen in under 3 seconds on a physical device.
 - The app is fully functional (forecast for a searched city, locations management, rankings, settings) with location permission denied - verified by testing with the permission explicitly off.
-- Zero runtime network calls other than to WeatherKit - verified by inspecting network traffic during normal use; no analytics, no ad calls, no other endpoints.
+- Runtime network calls limited to exactly three sanctioned endpoint families: WeatherKit, NOAA SWPC (aurora), and Celestrak (ISS TLE) - verified by inspecting network traffic during normal use; no analytics, no ad calls, no other endpoints. (Amended 2026-07-17 for Tonight's Sky; see Revision Notes.)
 - The doodle header is visibly different (different combination of season/weather/time-of-day/special-day layers) across two consecutive days under normal conditions - verified by forcing distinct dates via launch arguments.
 - The phrase bank produces no repeated line in the same slot (summary, caption, comparison, ranking verdict) across 7 consecutive simulated days for the three most common condition/season combinations for the app's primary locale.
 - Apple Weather attribution is visible on the forecast screen without any additional navigation, on every load.
@@ -268,7 +270,7 @@ WeatherService  LocationStore  PhraseBank   DoodleComposer  SpecialDayTable
 - Settings shows units toggle (defaulting from locale), attribution/legal, and app version; changing units updates Forecast, Locations, and Rankings consistently.
 - Apple Weather attribution is visible on the Forecast screen without extra navigation.
 - No phrase-bank slot repeats its previous day's line for the same location.
-- No network call is made at runtime other than to WeatherKit (verified by traffic inspection).
+- No network call is made at runtime other than to the three sanctioned endpoint families - WeatherKit, NOAA SWPC, Celestrak (verified by traffic inspection). Sky rows degrade to "—" offline; on-device sky rows (moon, planets, almanac) render regardless of connectivity.
 - Cold launch to populated forecast is under 3 seconds on a physical device.
 - App builds and sim-verifies at the end of every phase in Section 10 before proceeding to the next.
 
