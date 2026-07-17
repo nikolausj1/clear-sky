@@ -24,6 +24,9 @@ struct ForecastPageView: View {
     /// required Apple Weather attribution renders on the Forecast screen without needing a real
     /// scroll gesture (`simctl` can't scroll).
     var scrollToAttribution: Bool = false
+    /// Sim-verify only ("Tonight's Sky" work package): `-scrollToSky` — scrolls straight to
+    /// `TonightSkyCard`, mirroring `-scrollToAttribution` above.
+    var scrollToSky: Bool = false
     /// UX redesign part 2 (lead QC defect: scroll-aware top bar): reports this page's scroll
     /// content offset (`0` at rest, growing as the user scrolls down) up to `ForecastView`,
     /// which only listens for the currently-active page (see `ForecastView.pagerView`) and uses
@@ -244,6 +247,16 @@ struct ForecastPageView: View {
                                 )
                             }
 
+                            // `TonightSkyCard` applies its own `.id(TonightSkyCard.cardId)`
+                            // internally (to its `SheetCard`), which is what `-scrollToSky`
+                            // below targets — no separate id needed at the mount site.
+                            TonightSkyCard(
+                                location: location,
+                                date: viewModel.phraseBankDate,
+                                forcedOverrides: viewModel.skyForcedOverrides,
+                                initialExpandedPlanet: viewModel.initialExpandedSkyPlanet
+                            )
+
                             AttributionFooter(attribution: payload.attribution)
                                 .id(Self.attributionFooterId)
                         }
@@ -281,6 +294,14 @@ struct ForecastPageView: View {
             hasScrolledToTarget = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 proxy.scrollTo(Self.attributionFooterId, anchor: .bottom)
+            }
+            return
+        }
+
+        if scrollToSky {
+            hasScrolledToTarget = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                proxy.scrollTo(TonightSkyCard.cardId, anchor: .top)
             }
             return
         }

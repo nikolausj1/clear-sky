@@ -47,6 +47,7 @@ struct NavigationShell: View {
                             viewModel: forecastViewModel,
                             scrollTargetHourIndex: Self.scrollToHourFromLaunchArgs(),
                             scrollToAttribution: Self.launchArgsContain("-scrollToAttribution"),
+                            scrollToSky: Self.launchArgsContain("-scrollToSky"),
                             onOpenSettings: { isPresentingSettings = true },
                             onOpenLocations: { isPresentingLocations = true }
                         )
@@ -113,7 +114,12 @@ struct NavigationShell: View {
             forcedTempBand: Self.forcedTempBandFromLaunchArgs(),
             forcedDate: Self.forcedDateFromLaunchArgs(),
             forcedComparisonDelta: Self.forcedComparisonDeltaFromLaunchArgs(),
-            forcedTimeOfDay: Self.forcedTimeOfDayFromLaunchArgs()
+            forcedTimeOfDay: Self.forcedTimeOfDayFromLaunchArgs(),
+            forcedAuroraBand: Self.forcedAuroraBandFromLaunchArgs(),
+            forceISSPass: Self.launchArgsContain("-forceISSPass"),
+            forceNoISS: Self.launchArgsContain("-forceNoISS"),
+            forceSkyUnavailable: Self.launchArgsContain("-forceSkyUnavailable"),
+            initialExpandedSkyPlanet: Self.expandSkyPlanetFromLaunchArgs()
         )
 
         let rankingsVM = RankingsViewModel(
@@ -299,5 +305,24 @@ struct NavigationShell: View {
         let args = CommandLine.arguments
         guard let flagIndex = args.firstIndex(of: "-forceTimeOfDay"), flagIndex + 1 < args.count else { return nil }
         return DoodleComposer.TimeOfDay(rawValue: args[flagIndex + 1])
+    }
+
+    // MARK: - "Tonight's Sky" hooks
+
+    /// `-forceAuroraBand none|low|fair|good|strong` — synthesizes an `AuroraOutlook` at the
+    /// given band instead of fetching NOAA SWPC, so a screenshot doesn't depend on real
+    /// geomagnetic activity cooperating. Values match `AuroraBand.description`.
+    private static func forcedAuroraBandFromLaunchArgs() -> AuroraBand? {
+        let args = CommandLine.arguments
+        guard let flagIndex = args.firstIndex(of: "-forceAuroraBand"), flagIndex + 1 < args.count else { return nil }
+        return AuroraBand.allCases.first { $0.description == args[flagIndex + 1] }
+    }
+
+    /// `-expandSkyPlanet mercury|venus|mars|jupiter|saturn` — sim-verify only, pre-expands a
+    /// planet row in `TonightSkyCard` at launch (`simctl` can't tap through to an expanded row).
+    private static func expandSkyPlanetFromLaunchArgs() -> Planets.Body? {
+        let args = CommandLine.arguments
+        guard let flagIndex = args.firstIndex(of: "-expandSkyPlanet"), flagIndex + 1 < args.count else { return nil }
+        return Planets.Body(rawValue: args[flagIndex + 1])
     }
 }

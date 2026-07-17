@@ -20,13 +20,19 @@ Top-level object, one key per slot:
   "comparison": [ ... ],
   "rankingVerdict": [ ... ],
   "emptyState": [ ... ],
-  "errorState": [ ... ]
+  "errorState": [ ... ],
+  "skyPlanet": [ ... ],
+  "skyNoPlanets": [ ... ],
+  "skyAurora": [ ... ],
+  "skyISSPass": [ ... ],
+  "skyNoISS": [ ... ],
+  "skyMoon": [ ... ]
 }
 ```
 
 Each entry is `{ "tags": { ...string:string pairs... }, "text": "..." }`. `tags` is a small,
 per-slot key vocabulary (below) — the engine matches on tags, not on slot-specific Swift
-structs, so all six slots share one lookup/fallback implementation.
+structs, so all twelve slots share one lookup/fallback implementation.
 
 ### Tag vocabulary per slot
 
@@ -38,11 +44,34 @@ structs, so all six slots share one lookup/fallback implementation.
 | `rankingVerdict` | `position`, `pleasantness` | position: `top`, `middle`, `bottom`. pleasantness: `great`, `fine`, `rough` |
 | `emptyState` | `context` | `noLocations`, `rankingsNeedOneMore`, `rankingsNoCities`, `searchOffline` |
 | `errorState` | `context` | `weatherFetchFailed`, `locationRowFailed`, `rankingRowFailed`, `generic` |
+| `skyPlanet` | `planet` | `mercury`, `venus`, `mars`, `jupiter`, `saturn` (mirrors `Planets.Body.rawValue`) |
+| `skyNoPlanets` | none | untagged only — zero-visible-planets row |
+| `skyAurora` | `band` | `none`, `low`, `fair`, `good`, `strong` (mirrors `AuroraBand.description`) |
+| `skyISSPass` | none | untagged only — shown alongside a visible ISS pass |
+| `skyNoISS` | none | untagged only — no visible pass tonight |
+| `skyMoon` | `phase` | `new`, `waxing`, `full`, `waning` — coarser than the Moon row's own 8-phase name/symbol, which `TonightSkyCard` computes directly from the engine's `phaseFraction`/`illuminatedPercent` |
 
 A missing tag key on an entry (or the literal fallback entries with fewer tags — see
 "Fallback" below) means "matches anything for that key." The universal safety-net entries
 for `summary`/`doodleCaption` carry no `tags` at all so they match any condition/tempBand as
 a last resort.
+
+### "Tonight's Sky" content (PRD Revision Notes 2026-07-17)
+
+The six slots above (`skyPlanet`, `skyNoPlanets`, `skyAurora`, `skyISSPass`, `skyNoISS`,
+`skyMoon`) back the "Tonight's Sky" card (`Sources/Forecast/TonightSkyCard.swift`), fed by the
+on-device Astronomy engine plus the networked ISS/Aurora engines (`Sources/Sky/`). These lines
+are deliberately the *wit*, not the *teaching* — the planet row's inline expansion also shows a
+static, non-witty "find it" blurb (`Sources/Forecast/SkyFindItGuide.swift`) and a
+brightness-in-plain-English helper string; the phrase-bank line is the dry tail on top of both,
+same "fact first, wit as a tail" register as everything else in this file.
+
+The card's one-line nightly space fact (`Sources/PhraseBank/skyfacts.json`, 200+ entries, each
+≤140 characters) is a flat JSON array of strings rather than the tagged-entry shape above — it
+has no tag dimension to bucket on, just a single large rotation pool — so it's loaded and
+rotated by a separate small loader, `Sources/PhraseBank/SkyFacts.swift`, which reuses this
+file's `PhraseBank.pick(from:bucketKey:locationId:date:)` rotation primitive directly rather
+than reimplementing the FNV/Fisher-Yates machinery.
 
 ### Template tokens
 

@@ -3045,5 +3045,785 @@
       "tags": {},
       "text": "Something went wrong. Try again."
     }
+  ],
+  "skyPlanet": [
+    {
+      "tags": {
+        "planet": "mercury"
+      },
+      "text": "Mercury's out tonight, low and brief. It has places to be."
+    },
+    {
+      "tags": {
+        "planet": "mercury"
+      },
+      "text": "Mercury: visible for a narrow window, gone before the eyes adjust."
+    },
+    {
+      "tags": {
+        "planet": "mercury"
+      },
+      "text": "Mercury tonight, the solar system's fastest planet, in the least amount of your evening."
+    },
+    {
+      "tags": {
+        "planet": "mercury"
+      },
+      "text": "Mercury's up. It orbits the Sun in 88 days and still finds time to duck out early."
+    },
+    {
+      "tags": {
+        "planet": "mercury"
+      },
+      "text": "Mercury again, hugging the horizon. Overachiever, low commitment."
+    },
+    {
+      "tags": {
+        "planet": "mercury"
+      },
+      "text": "Mercury's showing tonight. Look now; it won't repeat itself."
+    },
+    {
+      "tags": {
+        "planet": "mercury"
+      },
+      "text": "Mercury tonight, close to the Sun as always. Familiar, not close, energy."
+    },
+    {
+      "tags": {
+        "planet": "mercury"
+      },
+      "text": "Mercury's visible briefly tonight. Consider it a courtesy appearance."
+    },
+    {
+      "tags": {
+        "planet": "venus"
+      },
+      "text": "Venus is out, doing its usual job of being the brightest thing up there."
+    },
+    {
+      "tags": {
+        "planet": "venus"
+      },
+      "text": "Venus tonight, unmissable, as it tends to be."
+    },
+    {
+      "tags": {
+        "planet": "venus"
+      },
+      "text": "Venus is up, outshining everything except the Moon, as scheduled."
+    },
+    {
+      "tags": {
+        "planet": "venus"
+      },
+      "text": "Venus tonight. If you can only find one planet, this is the one that finds you."
+    },
+    {
+      "tags": {
+        "planet": "venus"
+      },
+      "text": "Venus is visible. Second planet from the Sun, first in the sky's pecking order."
+    },
+    {
+      "tags": {
+        "planet": "venus"
+      },
+      "text": "Venus, blazing away as usual. No effort required to spot it."
+    },
+    {
+      "tags": {
+        "planet": "venus"
+      },
+      "text": "Venus tonight, the brilliant point you've probably already noticed."
+    },
+    {
+      "tags": {
+        "planet": "venus"
+      },
+      "text": "Venus is up there being conspicuous, same as every clear night it shows."
+    },
+    {
+      "tags": {
+        "planet": "mars"
+      },
+      "text": "Mars is out tonight, with its usual faint rust-colored glow."
+    },
+    {
+      "tags": {
+        "planet": "mars"
+      },
+      "text": "Mars tonight, steady, reddish, unbothered."
+    },
+    {
+      "tags": {
+        "planet": "mars"
+      },
+      "text": "Mars is visible. Not the brightest thing up there, but recognizably itself."
+    },
+    {
+      "tags": {
+        "planet": "mars"
+      },
+      "text": "Mars tonight, holding its quiet orange point without any fuss."
+    },
+    {
+      "tags": {
+        "planet": "mars"
+      },
+      "text": "Mars is up there, doing its slow lap same as always."
+    },
+    {
+      "tags": {
+        "planet": "mars"
+      },
+      "text": "Mars tonight, modest brightness, distinctive color."
+    },
+    {
+      "tags": {
+        "planet": "mars"
+      },
+      "text": "Mars is out. Look for the reddish one that isn't twinkling like a star."
+    },
+    {
+      "tags": {
+        "planet": "mars"
+      },
+      "text": "Mars tonight, unremarkable in brightness, easy to pick out anyway."
+    },
+    {
+      "tags": {
+        "planet": "jupiter"
+      },
+      "text": "Jupiter's out tonight, throwing its weight around as the brightest planet up there."
+    },
+    {
+      "tags": {
+        "planet": "jupiter"
+      },
+      "text": "Jupiter tonight, hard to miss, easy to admire."
+    },
+    {
+      "tags": {
+        "planet": "jupiter"
+      },
+      "text": "Jupiter is visible. Biggest planet in the solar system, acting like it."
+    },
+    {
+      "tags": {
+        "planet": "jupiter"
+      },
+      "text": "Jupiter's up there, steady and bright, same as it's been for 4.6 billion years."
+    },
+    {
+      "tags": {
+        "planet": "jupiter"
+      },
+      "text": "Jupiter tonight, a good pair of binoculars might even show its own moons."
+    },
+    {
+      "tags": {
+        "planet": "jupiter"
+      },
+      "text": "Jupiter is out. Confidently bright, per usual."
+    },
+    {
+      "tags": {
+        "planet": "jupiter"
+      },
+      "text": "Jupiter tonight, doing the heavy lifting for anyone's first stargazing attempt."
+    },
+    {
+      "tags": {
+        "planet": "jupiter"
+      },
+      "text": "Jupiter's visible tonight. It's not competing with Venus, but it's not trying to."
+    },
+    {
+      "tags": {
+        "planet": "saturn"
+      },
+      "text": "Saturn is out tonight. The rings won't show without a telescope, but it's there."
+    },
+    {
+      "tags": {
+        "planet": "saturn"
+      },
+      "text": "Saturn tonight, a modest gold point, quietly wearing the best accessory in the solar system."
+    },
+    {
+      "tags": {
+        "planet": "saturn"
+      },
+      "text": "Saturn is visible. No rings to the naked eye, just take the astronomers' word for it."
+    },
+    {
+      "tags": {
+        "planet": "saturn"
+      },
+      "text": "Saturn's up there tonight, understated as ever."
+    },
+    {
+      "tags": {
+        "planet": "saturn"
+      },
+      "text": "Saturn tonight, steady and pale gold, rings implied rather than seen."
+    },
+    {
+      "tags": {
+        "planet": "saturn"
+      },
+      "text": "Saturn is out. It looks like a star. It is not a star. It has better jewelry."
+    },
+    {
+      "tags": {
+        "planet": "saturn"
+      },
+      "text": "Saturn tonight, going about its 29-year orbit without comment."
+    },
+    {
+      "tags": {
+        "planet": "saturn"
+      },
+      "text": "Saturn's visible. The rings are real; you'll just have to trust the pamphlet."
+    }
+  ],
+  "skyNoPlanets": [
+    {
+      "tags": {},
+      "text": "No naked-eye planets tonight. The sky's keeping this one simple."
+    },
+    {
+      "tags": {},
+      "text": "Nothing planetary visible tonight. The stars still showed up."
+    },
+    {
+      "tags": {},
+      "text": "No planets in view tonight. Check back tomorrow; orbits keep moving."
+    },
+    {
+      "tags": {},
+      "text": "None of the five visible tonight. The Moon's still doing its job, though."
+    },
+    {
+      "tags": {},
+      "text": "No planet sightings tonight. An off night for the neighbors."
+    },
+    {
+      "tags": {},
+      "text": "Tonight's naked-eye planet count: zero. Nobody's fault, just orbital timing."
+    },
+    {
+      "tags": {},
+      "text": "No planets up tonight. The rest of the sky carries on regardless."
+    },
+    {
+      "tags": {},
+      "text": "Zero visible planets tonight. Try again tomorrow; the solar system doesn't hold grudges."
+    }
+  ],
+  "skyAurora": [
+    {
+      "tags": {
+        "band": "none"
+      },
+      "text": "Aurora: not tonight. The usual quiet sky."
+    },
+    {
+      "tags": {
+        "band": "none"
+      },
+      "text": "No aurora expected tonight. Geomagnetically uneventful."
+    },
+    {
+      "tags": {
+        "band": "none"
+      },
+      "text": "Aurora chances: essentially none tonight. Standard dark sky, nothing else."
+    },
+    {
+      "tags": {
+        "band": "none"
+      },
+      "text": "No aurora tonight. The Sun's behaving itself for now."
+    },
+    {
+      "tags": {
+        "band": "none"
+      },
+      "text": "Aurora outlook: quiet. Nothing to reschedule your evening around."
+    },
+    {
+      "tags": {
+        "band": "none"
+      },
+      "text": "No northern lights tonight. The forecast, not a verdict on you."
+    },
+    {
+      "tags": {
+        "band": "none"
+      },
+      "text": "Aurora: unlikely tonight. Same sky as most nights."
+    },
+    {
+      "tags": {
+        "band": "none"
+      },
+      "text": "Nothing auroral expected tonight. The Sun's having a calm week."
+    },
+    {
+      "tags": {
+        "band": "low"
+      },
+      "text": "Aurora: a faint outside chance tonight, low on the horizon if anything."
+    },
+    {
+      "tags": {
+        "band": "low"
+      },
+      "text": "Slight aurora possibility tonight; don't reroute plans around it."
+    },
+    {
+      "tags": {
+        "band": "low"
+      },
+      "text": "Aurora: low odds tonight. Worth a glance north, not a special trip."
+    },
+    {
+      "tags": {
+        "band": "low"
+      },
+      "text": "A modest aurora chance tonight, mostly theoretical."
+    },
+    {
+      "tags": {
+        "band": "low"
+      },
+      "text": "Aurora: unlikely but not impossible tonight. Manage expectations."
+    },
+    {
+      "tags": {
+        "band": "low"
+      },
+      "text": "Low aurora activity forecast tonight. A long shot, technically a shot."
+    },
+    {
+      "tags": {
+        "band": "low"
+      },
+      "text": "Aurora odds are thin tonight. Bring low expectations along with binoculars."
+    },
+    {
+      "tags": {
+        "band": "low"
+      },
+      "text": "Aurora: a near miss tonight, per the forecast. Emphasis on near."
+    },
+    {
+      "tags": {
+        "band": "fair"
+      },
+      "text": "Aurora: fair chance tonight, worth a look if you're already outside."
+    },
+    {
+      "tags": {
+        "band": "fair"
+      },
+      "text": "Fair aurora odds tonight. Low on the horizon, but real."
+    },
+    {
+      "tags": {
+        "band": "fair"
+      },
+      "text": "Aurora: a decent chance tonight. Find a dark spot and be patient."
+    },
+    {
+      "tags": {
+        "band": "fair"
+      },
+      "text": "Fair chance of aurora tonight, modest, but genuinely possible."
+    },
+    {
+      "tags": {
+        "band": "fair"
+      },
+      "text": "Aurora tonight: fair odds, low in the sky. Worth stepping outside for."
+    },
+    {
+      "tags": {
+        "band": "fair"
+      },
+      "text": "Fair aurora chance tonight. Not guaranteed, not nothing either."
+    },
+    {
+      "tags": {
+        "band": "fair"
+      },
+      "text": "Aurora: fair tonight. A reasonable excuse to look north for a minute."
+    },
+    {
+      "tags": {
+        "band": "fair"
+      },
+      "text": "Tonight's aurora odds: fair. Better than most nights, no promises."
+    },
+    {
+      "tags": {
+        "band": "good"
+      },
+      "text": "Aurora: good chance tonight. This one's worth stepping outside for."
+    },
+    {
+      "tags": {
+        "band": "good"
+      },
+      "text": "Good aurora odds tonight, actually worth checking the sky for."
+    },
+    {
+      "tags": {
+        "band": "good"
+      },
+      "text": "Aurora tonight: good chance, well up in the sky if it shows."
+    },
+    {
+      "tags": {
+        "band": "good"
+      },
+      "text": "Good chance of aurora tonight. Tonight's the night to actually look."
+    },
+    {
+      "tags": {
+        "band": "good"
+      },
+      "text": "Aurora: good odds tonight. Uncommon enough to be worth the walk outside."
+    },
+    {
+      "tags": {
+        "band": "good"
+      },
+      "text": "Tonight's aurora forecast: good. Don't sleep on this one, so to speak."
+    },
+    {
+      "tags": {
+        "band": "good"
+      },
+      "text": "Aurora: good chance tonight, higher up than the usual near-miss."
+    },
+    {
+      "tags": {
+        "band": "good"
+      },
+      "text": "Good aurora activity expected tonight. Worth the trip to somewhere dark."
+    },
+    {
+      "tags": {
+        "band": "strong"
+      },
+      "text": "Aurora: strong activity expected tonight. This is the good one."
+    },
+    {
+      "tags": {
+        "band": "strong"
+      },
+      "text": "Strong aurora tonight, likely overhead, not just a horizon glow."
+    },
+    {
+      "tags": {
+        "band": "strong"
+      },
+      "text": "Aurora: strong tonight. Rare enough to actually set an alarm for."
+    },
+    {
+      "tags": {
+        "band": "strong"
+      },
+      "text": "Tonight's aurora forecast: strong. Worth losing some sleep over."
+    },
+    {
+      "tags": {
+        "band": "strong"
+      },
+      "text": "Strong aurora activity tonight, the kind people drive somewhere dark for."
+    },
+    {
+      "tags": {
+        "band": "strong"
+      },
+      "text": "Aurora: strong tonight, genuinely notable. Look up, not just north."
+    },
+    {
+      "tags": {
+        "band": "strong"
+      },
+      "text": "Strong geomagnetic activity tonight; aurora odds are about as good as they get."
+    },
+    {
+      "tags": {
+        "band": "strong"
+      },
+      "text": "Aurora: strong tonight. This is the rare one worth telling people about."
+    }
+  ],
+  "skyISSPass": [
+    {
+      "tags": {},
+      "text": "The ISS passes over tonight. Six astronauts, one very punctual orbit."
+    },
+    {
+      "tags": {},
+      "text": "Station's overhead tonight, moving fast and saying nothing."
+    },
+    {
+      "tags": {},
+      "text": "The ISS is due over tonight, no sound, no blinking, just steady motion."
+    },
+    {
+      "tags": {},
+      "text": "ISS pass tonight. It's not a star, it's not a plane, it's a spacecraft with a good view."
+    },
+    {
+      "tags": {},
+      "text": "The space station crosses tonight, gone in a few minutes flat."
+    },
+    {
+      "tags": {},
+      "text": "ISS overhead tonight. 17,500 mph, and somehow still looks unhurried from here."
+    },
+    {
+      "tags": {},
+      "text": "The ISS swings by tonight, the fastest thing you can see with your own eyes."
+    },
+    {
+      "tags": {},
+      "text": "Tonight's ISS pass: brief, bright, and entirely uninterested in your schedule."
+    }
+  ],
+  "skyNoISS": [
+    {
+      "tags": {},
+      "text": "No visible ISS pass tonight. It's still up there, just not over you."
+    },
+    {
+      "tags": {},
+      "text": "The station's orbiting somewhere else tonight. Try again tomorrow."
+    },
+    {
+      "tags": {},
+      "text": "No ISS pass tonight. Its schedule, not a snub."
+    },
+    {
+      "tags": {},
+      "text": "Nothing overhead from the station tonight. The orbit just didn't line up."
+    },
+    {
+      "tags": {},
+      "text": "No ISS visibility tonight. It'll swing back around eventually."
+    },
+    {
+      "tags": {},
+      "text": "The ISS skips tonight's sky. Nothing personal, just geometry."
+    },
+    {
+      "tags": {},
+      "text": "No station pass tonight. Check back; it circles the planet every 90 minutes anyway."
+    },
+    {
+      "tags": {},
+      "text": "ISS: no pass tonight. Somewhere else is getting the view instead."
+    }
+  ],
+  "skyMoon": [
+    {
+      "tags": {
+        "phase": "new"
+      },
+      "text": "New moon tonight, mostly absent, which is its whole job this week."
+    },
+    {
+      "tags": {
+        "phase": "new"
+      },
+      "text": "New moon: the Moon's there, just not lit from here. Best dark-sky night of the month."
+    },
+    {
+      "tags": {
+        "phase": "new"
+      },
+      "text": "New moon tonight. Invisible by design, not by malfunction."
+    },
+    {
+      "tags": {
+        "phase": "new"
+      },
+      "text": "New moon: darkest sky of the cycle. The stars get top billing tonight."
+    },
+    {
+      "tags": {
+        "phase": "new"
+      },
+      "text": "New moon tonight. Nothing to see, which is the point."
+    },
+    {
+      "tags": {
+        "phase": "new"
+      },
+      "text": "New moon: the Moon's taking the night off, visually speaking."
+    },
+    {
+      "tags": {
+        "phase": "new"
+      },
+      "text": "New moon tonight, a good excuse to actually notice the stars."
+    },
+    {
+      "tags": {
+        "phase": "new"
+      },
+      "text": "New moon: barely there. The sky's darkest, least distracted version of itself."
+    },
+    {
+      "tags": {
+        "phase": "waxing"
+      },
+      "text": "Waxing moon tonight, filling in a little more than yesterday."
+    },
+    {
+      "tags": {
+        "phase": "waxing"
+      },
+      "text": "The Moon's waxing tonight, gaining ground, one night at a time."
+    },
+    {
+      "tags": {
+        "phase": "waxing"
+      },
+      "text": "Waxing moon tonight. Slow and steady, per the usual month."
+    },
+    {
+      "tags": {
+        "phase": "waxing"
+      },
+      "text": "The Moon's on its way to full tonight, incrementally as ever."
+    },
+    {
+      "tags": {
+        "phase": "waxing"
+      },
+      "text": "Waxing tonight. The Moon's build-up phase, no rush."
+    },
+    {
+      "tags": {
+        "phase": "waxing"
+      },
+      "text": "The Moon's growing tonight, the way it always does on this half of the month."
+    },
+    {
+      "tags": {
+        "phase": "waxing"
+      },
+      "text": "Waxing moon tonight, more of it than last night, less than tomorrow."
+    },
+    {
+      "tags": {
+        "phase": "waxing"
+      },
+      "text": "The Moon's filling out tonight, right on its usual schedule."
+    },
+    {
+      "tags": {
+        "phase": "full"
+      },
+      "text": "Full moon tonight, the whole disc, lit up and unmissable."
+    },
+    {
+      "tags": {
+        "phase": "full"
+      },
+      "text": "Full moon tonight. Bright enough to cast a shadow if you look for one."
+    },
+    {
+      "tags": {
+        "phase": "full"
+      },
+      "text": "Full moon tonight, the Moon's one night a month to really show off."
+    },
+    {
+      "tags": {
+        "phase": "full"
+      },
+      "text": "Full moon tonight. Fully lit, fully visible, fully on schedule."
+    },
+    {
+      "tags": {
+        "phase": "full"
+      },
+      "text": "Full moon tonight, the brightest the night sky gets without help."
+    },
+    {
+      "tags": {
+        "phase": "full"
+      },
+      "text": "Full moon tonight. The tides notice; you probably will too."
+    },
+    {
+      "tags": {
+        "phase": "full"
+      },
+      "text": "Full moon tonight, doing the one thing it does best: being seen."
+    },
+    {
+      "tags": {
+        "phase": "full"
+      },
+      "text": "Full moon tonight, round, bright, and hard to ignore."
+    },
+    {
+      "tags": {
+        "phase": "waning"
+      },
+      "text": "Waning moon tonight, giving a little back each night now."
+    },
+    {
+      "tags": {
+        "phase": "waning"
+      },
+      "text": "The Moon's waning tonight, past its peak, taking it slow."
+    },
+    {
+      "tags": {
+        "phase": "waning"
+      },
+      "text": "Waning moon tonight. Less of it than last night, on schedule."
+    },
+    {
+      "tags": {
+        "phase": "waning"
+      },
+      "text": "The Moon's shrinking tonight, the second half of its usual routine."
+    },
+    {
+      "tags": {
+        "phase": "waning"
+      },
+      "text": "Waning tonight. The Moon's quiet retreat toward new moon."
+    },
+    {
+      "tags": {
+        "phase": "waning"
+      },
+      "text": "The Moon's tapering off tonight, same as every month after full."
+    },
+    {
+      "tags": {
+        "phase": "waning"
+      },
+      "text": "Waning moon tonight, still up, just less of it each night."
+    },
+    {
+      "tags": {
+        "phase": "waning"
+      },
+      "text": "The Moon's on its way back down tonight, unhurried as always."
+    }
   ]
 }

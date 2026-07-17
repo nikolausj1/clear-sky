@@ -83,6 +83,16 @@ final class ForecastViewModel {
     /// Phase 5 sim-verify hook: `-forceTimeOfDay dawn|day|dusk|night` overrides
     /// `DoodleComposer`'s time-of-day resolution for the doodle header art.
     private let forcedTimeOfDay: DoodleComposer.TimeOfDay?
+    /// "Tonight's Sky" sim-verify hooks: `-forceAuroraBand none|low|fair|good|strong`,
+    /// `-forceISSPass`, `-forceNoISS`, `-forceSkyUnavailable` — see `skyForcedOverrides` below
+    /// and `SkyTonightService.ForcedOverrides`'s doc comment.
+    private let forcedAuroraBand: AuroraBand?
+    private let forceISSPass: Bool
+    private let forceNoISS: Bool
+    private let forceSkyUnavailable: Bool
+    /// `-expandSkyPlanet mercury|venus|mars|jupiter|saturn` — see `TonightSkyCard`'s
+    /// `initialExpandedPlanet` doc comment.
+    let initialExpandedSkyPlanet: Planets.Body?
 
     init(
         store: WeatherStore,
@@ -93,7 +103,12 @@ final class ForecastViewModel {
         forcedTempBand: PhraseBank.TempBand? = nil,
         forcedDate: Date? = nil,
         forcedComparisonDelta: Double? = nil,
-        forcedTimeOfDay: DoodleComposer.TimeOfDay? = nil
+        forcedTimeOfDay: DoodleComposer.TimeOfDay? = nil,
+        forcedAuroraBand: AuroraBand? = nil,
+        forceISSPass: Bool = false,
+        forceNoISS: Bool = false,
+        forceSkyUnavailable: Bool = false,
+        initialExpandedSkyPlanet: Planets.Body? = nil
     ) {
         self.store = store
         self.forcedState = forcedState
@@ -103,9 +118,27 @@ final class ForecastViewModel {
         self.forcedDate = forcedDate
         self.forcedComparisonDelta = forcedComparisonDelta
         self.forcedTimeOfDay = forcedTimeOfDay
+        self.forcedAuroraBand = forcedAuroraBand
+        self.forceISSPass = forceISSPass
+        self.forceNoISS = forceNoISS
+        self.forceSkyUnavailable = forceSkyUnavailable
+        self.initialExpandedSkyPlanet = initialExpandedSkyPlanet
         if let initialMetric {
             self.selectedMetric = initialMetric
         }
+    }
+
+    /// `TonightSkyCard`'s sim-verify override bundle, resolved once here so the view layer
+    /// doesn't need to know about the four separate launch-arg-driven fields above. `nil`
+    /// (real network/cache behavior) unless at least one force flag is active.
+    var skyForcedOverrides: SkyTonightService.ForcedOverrides? {
+        let overrides = SkyTonightService.ForcedOverrides(
+            auroraBand: forcedAuroraBand,
+            issPass: forceISSPass,
+            noISS: forceNoISS,
+            unavailable: forceSkyUnavailable
+        )
+        return overrides.isActive ? overrides : nil
     }
 
     /// Phase 5: the same `-forceCondition` value already used to pick the phrase-bank bucket

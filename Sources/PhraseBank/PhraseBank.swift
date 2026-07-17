@@ -48,6 +48,13 @@ enum PhraseBank {
         case rankingVerdict
         case emptyState
         case errorState
+        // "Tonight's Sky" (PRD Revision Notes 2026-07-17):
+        case skyPlanet
+        case skyNoPlanets
+        case skyAurora
+        case skyISSPass
+        case skyNoISS
+        case skyMoon
     }
 
     /// The condition groups `summary`/`doodleCaption` content is authored against. WeatherKit's
@@ -114,6 +121,16 @@ enum PhraseBank {
         case generic
     }
 
+    /// "Tonight's Sky" `skyMoon` tag values. Four quarters rather than all 8 phase names (the
+    /// Moon row's own phase name/symbol are computed separately in `TonightSkyCard` from the
+    /// exact `phaseFraction`/`illuminatedPercent`) — this coarser bucketing is just for which
+    /// wit-line pool applies. `AuroraBand` (Sources/Sky/Aurora) and `Planets.Body`
+    /// (Sources/Sky/Astronomy) are reused directly as tag sources for `skyAurora`/`skyPlanet`
+    /// rather than duplicating their vocabularies here.
+    enum MoonQuarter: String {
+        case new, waxing, full, waning
+    }
+
     // MARK: - Absolute last-resort fallbacks (used only if the JSON fails to load or a slot
     // decodes to zero entries — defensive, per PRD "never render '-' in production")
 
@@ -124,6 +141,12 @@ enum PhraseBank {
         .rankingVerdict: "Ranked today; see above for specifics.",
         .emptyState: "Nothing to show here yet.",
         .errorState: "Something went wrong. Try again.",
+        .skyPlanet: "Visible tonight, weather permitting.",
+        .skyNoPlanets: "No naked-eye planets tonight.",
+        .skyAurora: "Aurora outlook: see above.",
+        .skyISSPass: "The ISS passes over tonight.",
+        .skyNoISS: "No visible ISS pass tonight.",
+        .skyMoon: "Tonight's moon, as shown above.",
     ]
 
     // MARK: - Public API
@@ -256,6 +279,78 @@ enum PhraseBank {
     /// Forecast screen's "no saved locations at all" empty state). A fixed, well-known UUID
     /// so rotation is still deterministic rather than accidentally random.
     static let universalLocationId = UUID(uuidString: "00000000-0000-0000-0000-00000000BEEF")!
+
+    // MARK: - "Tonight's Sky" (PRD Revision Notes 2026-07-17)
+
+    /// A dry-wit line about a specific visible planet, keyed by `Planets.Body` (reused directly
+    /// from `Sources/Sky/Astronomy` rather than a duplicate tag enum). Shown inside that
+    /// planet's inline-expanded detail, alongside (not instead of) `SkyFindItGuide`'s
+    /// informational blurb — see that type's doc comment for the "teach vs. entertain" split.
+    static func skyPlanet(
+        _ body: Planets.Body,
+        date: Date,
+        locationId: UUID,
+        tokens: [String: String] = [:]
+    ) -> String {
+        render(
+            slot: .skyPlanet,
+            queries: [["planet": body.rawValue], [:]],
+            date: date,
+            locationId: locationId,
+            tokens: tokens
+        )
+    }
+
+    /// Zero-visible-planets row: a single quiet dry-wit line.
+    static func skyNoPlanets(date: Date, locationId: UUID) -> String {
+        render(slot: .skyNoPlanets, queries: [[:]], date: date, locationId: locationId, tokens: [:])
+    }
+
+    /// A dry-wit line for tonight's aurora outlook, keyed by `AuroraBand` (reused directly from
+    /// `Sources/Sky/Aurora` via its `description` — "none"/"low"/"fair"/"good"/"strong" — rather
+    /// than a duplicate tag enum).
+    static func skyAurora(
+        band: AuroraBand,
+        date: Date,
+        locationId: UUID,
+        tokens: [String: String] = [:]
+    ) -> String {
+        render(
+            slot: .skyAurora,
+            queries: [["band": band.description], [:]],
+            date: date,
+            locationId: locationId,
+            tokens: tokens
+        )
+    }
+
+    /// A dry-wit line shown alongside tonight's visible ISS pass(es).
+    static func skyISSPass(date: Date, locationId: UUID, tokens: [String: String] = [:]) -> String {
+        render(slot: .skyISSPass, queries: [[:]], date: date, locationId: locationId, tokens: tokens)
+    }
+
+    /// No-visible-ISS-pass-tonight row: a single dry-wit line.
+    static func skyNoISS(date: Date, locationId: UUID) -> String {
+        render(slot: .skyNoISS, queries: [[:]], date: date, locationId: locationId, tokens: [:])
+    }
+
+    /// A dry-wit line about tonight's moon, keyed by `MoonQuarter` (new/waxing/full/waning — a
+    /// coarser bucketing than the Moon row's own 8-phase name/symbol, which `TonightSkyCard`
+    /// computes separately from the exact phase fraction).
+    static func skyMoon(
+        quarter: MoonQuarter,
+        date: Date,
+        locationId: UUID,
+        tokens: [String: String] = [:]
+    ) -> String {
+        render(
+            slot: .skyMoon,
+            queries: [["phase": quarter.rawValue], [:]],
+            date: date,
+            locationId: locationId,
+            tokens: tokens
+        )
+    }
 
     // MARK: - WeatherKit condition-code -> ConditionGroup mapping
     //
