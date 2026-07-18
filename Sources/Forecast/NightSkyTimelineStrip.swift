@@ -30,35 +30,16 @@ struct NightSkyTimelineStrip: View {
     let auroraWindow: DateInterval?
     let now: Date
 
-    @State private var measuredWidth: CGFloat = 0
-
     private static let mainAreaHeight: CGFloat = 18
     private static let planetBarHeight: CGFloat = 3
     private static let moonBandHeight: CGFloat = 4
+    private static let planetRowHeight: CGFloat = 18
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             timeLabels
-            mainTrack(width: measuredWidth)
-            if !planetBars.isEmpty {
-                VStack(alignment: .leading, spacing: 7) {
-                    ForEach(planetBars) { bar in
-                        planetRow(bar, width: measuredWidth)
-                    }
-                }
-            }
+            marksCanvas
         }
-        // Measures the strip's own content width once (and on any resize, e.g. a Dynamic Type
-        // change reflowing the card) via a `background` `GeometryReader` — deliberately not a
-        // wrapping `GeometryReader` around `body` itself, which would force an explicit height
-        // rather than letting this view size naturally to its content.
-        .background(
-            GeometryReader { proxy in
-                Color.clear
-                    .onAppear { measuredWidth = proxy.size.width }
-                    .onChange(of: proxy.size.width) { _, newValue in measuredWidth = newValue }
-            }
-        )
     }
 
     // MARK: - Dusk/dawn labels
@@ -73,97 +54,99 @@ struct NightSkyTimelineStrip: View {
         .foregroundStyle(Color.white.opacity(0.5))
     }
 
-    // MARK: - Main track
+    // MARK: - All marks, one deterministic Canvas
 
-    @ViewBuilder
-    private func mainTrack(width: CGFloat) -> some View {
-        ZStack(alignment: .leading) {
-            Capsule()
-                .fill(Color.white.opacity(0.15))
-                .frame(width: width, height: 2)
+    /// Every mark (track, moon band, aurora wash, ISS ticks, now cursor, planet bars + their
+    /// direct labels) is drawn in a single `Canvas` from the canvas's own `size` — no measured
+    /// `@State` width, no `offset`-in-`ZStack` composition. The previous implementation computed
+    /// correct per-bar metrics but rendered them through a measure-then-reflow pass whose
+    /// settling could visibly mis-place bars (lead-QC defect: bars drawn with each other's
+    /// geometry); a Canvas has no second pass to get wrong.
+    private var marksCanvas: some View {
+        Canvas { context, size in
+            let width = size.width
+            let trackMidY = Self.mainAreaHeight / 2
 
-            if let bar = barMetrics(start: moonRise, end: moonSet, width: width) {
-                Capsule()
-                    .fill(Color.white.opacity(0.35))
-                    .frame(width: bar.width, height: Self.moonBandHeight)
-                    .offset(x: bar.x)
+            func xSpan(_ start: Date?, _ end: Date?) -> (x: CGFloat, width: CGFloat)? {
+                guard let start, let end, end > start, width > 0 else { return nil }
+                let s = fraction(for: start)
+                let e = fraction(for: end)
+                guard e > s else { return nil }
+                return (x: s * width, width: max(2, (e - s) * width))
             }
 
-            if let aurora = auroraWindow, let bar = barMetrics(start: aurora.start, end: aurora.end, width: width) {
-                Capsule()
-                    .fill(Color.green.opacity(0.25))
-                    .frame(width: bar.width, height: Self.moonBandHeight + 2)
-                    .offset(x: bar.x)
+            // Base track
+            let track = CGRect(x: 0, y: trackMidY - 1, width: width, height: 2)
+            context.fill(Path(roundedRect: track, cornerRadius: 1), with: .color(.white.opacity(0.15)))
+
+            // Moon-above-horizon band
+            if let span = xSpan(moonRise, moonSet) {
+                let rect = CGRect(x: span.x, y: trackMidY - Self.moonBandHeight / 2,
+                                  width: span.width, height: Self.moonBandHeight)
+                context.fill(Path(roundedRect: rect, cornerRadius: Self.moonBandHeight / 2),
+                             with: .color(.white.opacity(0.35)))
             }
 
-            ForEach(Array(issPassTimes.enumerated()), id: \.offset) { _, time in
-                issTick(width: width, time: time)
+            // Aurora wash
+            if let aurora = auroraWindow, let span = xSpan(aurora.start, aurora.end) {
+                let h = Self.moonBandHeight + 2
+                let rect = CGRect(x: span.x, y: trackMidY - h / 2, width: span.width, height: h)
+                context.fill(Path(roundedRect: rect, cornerRadius: h / 2),
+                             with: .color(.green.opacity(0.25)))
             }
 
+            // ISS pass ticks (diamond + soft glow)
+            for time in issPassTimes {
+                let x = fraction(for: time) * width
+                var diamond = Path()
+                diamond.move(to: CGPoint(x: x, y: trackMidY - 4))
+                diamond.addLine(to: CGPoint(x: x + 4, y: trackMidY))
+                diamond.addLine(to: CGPoint(x: x, y: trackMidY + 4))
+                diamond.addLine(to: CGPoint(x: x - 4, y: trackMidY))
+                diamond.closeSubpath()
+                var glow = context
+                glow.addFilter(.blur(radius: 3))
+                glow.fill(diamond, with: .color(.white.opacity(0.85)))
+                context.fill(diamond, with: .color(.white))
+            }
+
+            // Now cursor
             if window.contains(now) {
-                nowCursor(width: width)
+                let x = fraction(for: now) * width
+                let cursor = CGRect(x: x - 0.5, y: 0, width: 1, height: Self.mainAreaHeight)
+                context.fill(Path(cursor), with: .color(Color.clearSkyAccentOnDark))
+                let dot = CGRect(x: x - 2.5, y: 0, width: 5, height: 5)
+                context.fill(Path(ellipseIn: dot), with: .color(Color.clearSkyAccentOnDark))
             }
-        }
-        .frame(width: width, height: Self.mainAreaHeight)
-    }
 
-    private func issTick(width: CGFloat, time: Date) -> some View {
-        let x = fraction(for: time) * width
-        return Diamond()
-            .fill(Color.white)
-            .frame(width: 6, height: 6)
-            .shadow(color: .white.opacity(0.85), radius: 4)
-            .offset(x: x - 3)
-    }
+            // Planet visibility rows (below the main track), direct labels only where they fit
+            for (index, bar) in planetBars.enumerated() {
+                guard let span = xSpan(bar.start, bar.end) else { continue }
+                let rowTop = Self.mainAreaHeight + 4 + CGFloat(index) * Self.planetRowHeight
+                let color = TrueSkyLayer.dotColor(for: bar.body)
+                let rect = CGRect(x: span.x, y: rowTop, width: span.width, height: Self.planetBarHeight)
+                var glow = context
+                glow.addFilter(.blur(radius: 2))
+                glow.fill(Path(roundedRect: rect, cornerRadius: Self.planetBarHeight / 2),
+                          with: .color(color.opacity(0.7)))
+                context.fill(Path(roundedRect: rect, cornerRadius: Self.planetBarHeight / 2),
+                             with: .color(color))
 
-    private func nowCursor(width: CGFloat) -> some View {
-        let x = fraction(for: now) * width
-        return ZStack {
-            Rectangle()
-                .fill(Color.clearSkyAccentOnDark)
-                .frame(width: 1, height: Self.mainAreaHeight)
-            Circle()
-                .fill(Color.clearSkyAccentOnDark)
-                .frame(width: 5, height: 5)
-                .offset(y: -Self.mainAreaHeight / 2 + 2.5)
-        }
-        .offset(x: x - 2.5)
-    }
-
-    // MARK: - Planet rows
-
-    private func planetRow(_ bar: PlanetBar, width: CGFloat) -> some View {
-        let metrics = barMetrics(start: bar.start, end: bar.end, width: width)
-        let color = TrueSkyLayer.dotColor(for: bar.body)
-        // Direct label only where it fits without crowding — an ~46pt-wide bar is roughly the
-        // narrowest that can hold a short planet name in `.caption2` without truncating.
-        let showsLabel = (metrics?.width ?? 0) > 46
-
-        return VStack(alignment: .leading, spacing: 2) {
-            ZStack(alignment: .leading) {
-                if let metrics {
-                    Capsule()
-                        .fill(color)
-                        // A faint matching glow — same "give a thin recessive mark just enough
-                        // presence to read against the gradient" treatment the planet-row leading
-                        // dot already uses — since a bare 3pt capsule in Venus/Saturn's pale-cream
-                        // tones was hard to spot against the night panel during sim-verify.
-                        .shadow(color: color.opacity(0.7), radius: 2)
-                        .frame(width: metrics.width, height: Self.planetBarHeight)
-                        .offset(x: metrics.x)
+                if span.width > 46 {
+                    let label = Text(bar.body.displayName).font(.caption2).foregroundStyle(color)
+                    let resolved = context.resolve(label)
+                    let labelSize = resolved.measure(in: CGSize(width: span.width, height: 14))
+                    // Keep the label inside the canvas even for a bar hugging the right edge.
+                    let labelX = min(span.x, width - labelSize.width)
+                    context.draw(resolved, in: CGRect(x: labelX,
+                                                      y: rowTop + Self.planetBarHeight + 2,
+                                                      width: labelSize.width,
+                                                      height: labelSize.height))
                 }
             }
-            .frame(width: width, height: Self.planetBarHeight)
-
-            // Always-present placeholder line (opacity-toggled, not conditionally included) so
-            // every planet row occupies the same height whether or not its label fits — keeps
-            // row spacing/alignment stable regardless of which bars happen to be wide enough.
-            Text(bar.body.displayName)
-                .font(.caption2)
-                .foregroundStyle(color)
-                .offset(x: metrics?.x ?? 0)
-                .opacity(showsLabel ? 1 : 0)
         }
+        .frame(height: Self.mainAreaHeight + 4 + CGFloat(planetBars.count) * Self.planetRowHeight)
+        .accessibilityHidden(true)
     }
 
     // MARK: - Shared geometry helpers
@@ -176,37 +159,11 @@ struct NightSkyTimelineStrip: View {
         return CGFloat(clamped / total)
     }
 
-    /// Leading-x and width (in points) of a `start...end` span clamped to `window`, or `nil` if
-    /// the span doesn't overlap `window` at all (e.g. a planet's best-viewing window computed
-    /// against a slightly different night boundary than this strip's).
-    private func barMetrics(start: Date?, end: Date?, width: CGFloat) -> (x: CGFloat, width: CGFloat)? {
-        guard let start, let end, end > start, width > 0 else { return nil }
-        let s = fraction(for: start)
-        let e = fraction(for: end)
-        guard e > s else { return nil }
-        return (x: s * width, width: max(2, (e - s) * width))
-    }
-
     private static let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "h:mm a"
         return formatter
     }()
-}
-
-/// A small rotated-square tick mark for an ISS pass on the main track — brighter and more
-/// eye-catching than the thin track/moon-band capsules around it, per spec ("bright 6pt tick/
-/// diamond ... with a subtle glow").
-private struct Diamond: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
-        path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.midY))
-        path.closeSubpath()
-        return path
-    }
 }
 
 /// A ~20x14pt mini trajectory glyph — a shallow arc with a dot at its peak — for the ISS row's
