@@ -144,6 +144,12 @@ struct DoodleHeaderView: View {
     /// (`Dynamic Island`) and shortest supported device's status-bar height.
     private static let topChromeClearance: CGFloat = 150
 
+    /// Space-first design batch, item 1: the compact weather cluster's leading inset — chosen
+    /// between the top chrome bar's own 16pt horizontal padding (`ForecastView.topChromeBar`)
+    /// and the space block's 24pt (below), splitting the difference for a hero-scale element
+    /// that isn't quite either.
+    private static let heroLeadingMargin: CGFloat = 20
+
     // MARK: - Tonight preview (always-night hero)
 
     /// The owner's decision: the hero always shows a preview of TONIGHT's sky, resolved to
@@ -399,17 +405,22 @@ struct DoodleHeaderView: View {
             ZStack(alignment: .bottom) {
                 DoodleSceneView(scene: resolvedScene)
 
-                VStack(spacing: 14) {
-                    Spacer()
-                        .frame(height: Self.topChromeClearance)
-
-                    if current != nil {
+                // Space-first design batch, item 1 ("this is now a space weather app" — weather
+                // diminishes, space leads): the temp/condition/feels-like cluster moves from a
+                // centered mid-scene block to a compact top-LEFT group, at the same vertical
+                // line (`topChromeClearance`) it used to center at. The scene's center is left
+                // open on purpose — nothing else renders there — so the stars/planets/terrain
+                // breathe, and the space block below reads as the clear typographic hero.
+                if current != nil {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Spacer()
+                            .frame(height: Self.topChromeClearance)
                         heroTemperatureGroup
+                            .padding(.leading, Self.heroLeadingMargin)
+                        Spacer(minLength: 0)
                     }
-
-                    Spacer(minLength: 0)
+                    .frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading)
                 }
-                .frame(width: proxy.size.width, height: proxy.size.height)
 
                 if resolvedCaption != nil {
                     // Full-width bottom-up scrim, sized independently of the caption text so it
@@ -421,46 +432,20 @@ struct DoodleHeaderView: View {
                         .allowsHitTesting(false)
                 }
 
-                if let resolvedCaption {
-                    VStack(spacing: 4) {
-                        // Always-night hero, preview label: only shown when the scene is a
-                        // forecast (daytime viewing, previewing this evening's sky) rather than
-                        // a live view — at night the scene IS the live sky, so no label per the
-                        // owner's decision ("no exclamations... factual, no label at night").
-                        if isForecastPreview {
-                            Text("A look at tonight's sky")
-                                .font(.caption2)
-                                .foregroundStyle(.white.opacity(0.55))
-                                .multilineTextAlignment(.center)
-                        }
-
-                        Text(resolvedCaption)
-                            .font(.subheadline.weight(.medium))
-                            .tracking(0.3)
-                            .foregroundStyle(.white)
-                            // Legibility pass (illustrated-landscape integration): the caption now
-                            // sits directly over painted landscape (rather than a flat gradient
-                            // rectangle), and pale scenes — winter's snow strip especially — can
-                            // leave the scrim below under-darkened at the caption's exact height.
-                            // A small matching shadow to the hero temp group's own treatment is the
-                            // cheapest fix and reads consistently across every season.
-                            .shadow(color: .black.opacity(0.35), radius: 4, y: 1)
-                            .multilineTextAlignment(.center)
-                            // UX polish package ("Typography"): prefer a single line, but wrap
-                            // gracefully to a second rather than truncating a factual line mid-word.
-                            .lineLimit(2)
-                    }
-                    .padding(.horizontal, 24)
-                    // Nudged up by `sheetOverlap` beyond its original 14pt clearance so the
-                    // caption stays fully visible above the content sheet's curved top edge,
-                    // which now overlaps this scene by that same amount.
-                    .padding(.bottom, 14 + Self.sheetOverlap)
-                    .frame(maxWidth: .infinity)
-                    .contentShape(Rectangle())
-                    // Work item 1: tapping the caption scrolls to the Tonight's Sky card.
-                    // Only active when the caller supplied a target (the loaded state) — a
-                    // no-op tap on the loading/error/empty previews, which pass no closure.
-                    .onTapGesture { onCaptionTap?() }
+                if resolvedCaption != nil {
+                    spaceHeroBlock
+                        .padding(.horizontal, 24)
+                        // Nudged up by `sheetOverlap` beyond its original 14pt clearance so the
+                        // block stays fully visible above the content sheet's curved top edge,
+                        // which now overlaps this scene by that same amount.
+                        .padding(.bottom, 14 + Self.sheetOverlap)
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
+                        // Work item 1: tapping the whole space block scrolls to the Tonight's
+                        // Sky card. Only active when the caller supplied a target (the loaded
+                        // state) — a no-op tap on the loading/error/empty previews, which pass
+                        // no closure.
+                        .onTapGesture { onCaptionTap?() }
                 }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
@@ -491,45 +476,81 @@ struct DoodleHeaderView: View {
         "\(location?.id.uuidString ?? "none")|\(Calendar.current.startOfDay(for: date).timeIntervalSince1970)"
     }
 
-    /// The condition symbol + big temperature + "Feels like" line — PRD Section 6 item 2's
-    /// content, moved off the content sheet and into the hero scene per the redesign spec, and
-    /// rendered in white (with a soft shadow for legibility over bright scenes) since it now
-    /// sits directly on the sky illustration rather than the system background.
+    /// Space-first design batch, item 1: the weather cluster, now compact and top-left rather
+    /// than the previous 96pt-thin centered hero. Still white with a soft shadow (it still sits
+    /// directly on the sky illustration), but sized and weighted to read as secondary context
+    /// next to the space block below, not as competing hero typography.
     @ViewBuilder
     private var heroTemperatureGroup: some View {
         if let current {
-            VStack(spacing: 6) {
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    // UX polish package ("Typography"): scaled down from 44 to ~40pt at a
-                    // lighter weight so it visually balances the now-much-thinner 96pt temp
-                    // rather than reading heavier than the number beside it.
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Image(systemName: current.symbolName)
-                        .font(.system(size: 40, weight: .light))
+                        .font(.system(size: 20, weight: .light))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.3), radius: 4, y: 1)
+
+                    Text(TemperatureFormatting.string(current.temperature, unit: unitsSettings.unit))
+                        .font(.system(size: 54, weight: .light))
+                        .monospacedDigit()
                         .foregroundStyle(.white)
                         .shadow(color: .black.opacity(0.3), radius: 6, y: 2)
-
-                    // UX polish package ("Typography"): SF Pro thin elegance replaces the old
-                    // rounded semibold treatment. `.monospacedDigit()` keeps the digits from
-                    // jittering in width; the tight negative line spacing compensates for the
-                    // extra vertical whitespace a 96pt thin face otherwise leaves around itself.
-                    Text(TemperatureFormatting.string(current.temperature, unit: unitsSettings.unit))
-                        .font(.system(size: 96, weight: .thin))
-                        .monospacedDigit()
-                        .lineSpacing(-6)
-                        .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.3), radius: 8, y: 3)
                 }
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
-                Text("Feels like \(TemperatureFormatting.string(current.feelsLike, unit: unitsSettings.unit))")
-                    .font(.body.weight(.regular))
+                Text("Feels \(TemperatureFormatting.string(current.feelsLike, unit: unitsSettings.unit))")
+                    .font(.footnote)
                     .monospacedDigit()
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(.white.opacity(0.7))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
-            .frame(maxWidth: .infinity)
+        }
+    }
+
+    /// Space-first design batch, item 1: the space block — preview label, then the headline
+    /// (now the hero's typographic centerpiece at `.title2` rounded semibold, up from the
+    /// previous `.subheadline`), then a detail line when `tonightHeadline` has one. Lower-third
+    /// centered, directly above the caption scrim; the whole block stays tappable (unchanged
+    /// scroll-to-Tonight's-Sky-card behavior lives on the caller of this computed view, in
+    /// `body`).
+    @ViewBuilder
+    private var spaceHeroBlock: some View {
+        if let resolvedCaption {
+            VStack(spacing: 6) {
+                // Always-night hero, preview label: only shown when the scene is a forecast
+                // (daytime viewing, previewing this evening's sky) rather than a live view — at
+                // night the scene IS the live sky, so no label per the owner's decision ("no
+                // exclamations... factual, no label at night").
+                if isForecastPreview {
+                    Text("A look at tonight's sky")
+                        .font(.caption2)
+                        .foregroundStyle(.white.opacity(0.55))
+                        .multilineTextAlignment(.center)
+                }
+
+                Text(resolvedCaption)
+                    .font(.system(.title2, design: .rounded).weight(.semibold))
+                    .foregroundStyle(.white)
+                    // A stronger shadow than the old subheadline caption's — this is now the
+                    // hero's largest, most load-bearing text, so it needs to hold up over every
+                    // terrain/season/time-of-day combination on its own.
+                    .shadow(color: .black.opacity(0.4), radius: 6, y: 2)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+
+                // The fuller "Step outside" explanation beneath the headline — only present when
+                // `TonightHeadline` actually resolved one (event/overcast tiers always have one;
+                // the quieter fact tiers, and the phrase-bank `caption` fallback, may not).
+                if let detail = tonightHeadline?.detailText {
+                    Text(detail)
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.75))
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                }
+            }
         }
     }
 

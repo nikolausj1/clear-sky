@@ -12,9 +12,9 @@ import SwiftUI
 /// this deliberately never triggers a new network fetch of its own) and hands both here.
 enum HourlySkyEvents {
     /// One event, ready for display. SF Symbol choices (documented per work order):
-    /// - `issPass` reuses `ISSTrajectoryGlyph` where there's room for a real glyph (the default
-    ///   hourly view's inline icon, the Events chip's pills); `symbolName` below is the plain-SF
-    ///   fallback for contexts with only a symbol slot.
+    /// - `issPass` renders the real `ISSGlyph` miniature (see `glyph` below) everywhere it's
+    ///   shown (the default hourly view's inline icon, the Events chip's pills); `symbolName`
+    ///   below is the plain-SF fallback for any future context with only a symbol-name slot.
     /// - `launch`: `paperplane.fill`, rotated -45° by the caller (a view-layer concern — this
     ///   type only names the symbol) to read as a liftoff rather than a message icon.
     /// - `aurora`: `light.max` — a soft glow reads closer to "aurora" than a waveform would.
@@ -55,6 +55,7 @@ enum HourlySkyEvents {
 
         /// The matching glossary entry (work item 4: "tap anywhere on an icon ... explainer
         /// popover"). `launch` injects this specific launch's own details, per work order.
+        // (See `glyph` below, in the file-scope extension, for the actual rendered icon.)
         var explainer: ExplainerContent {
             switch self {
             case .issPass: return Explainers.issPass
@@ -175,16 +176,22 @@ enum HourlySkyEvents {
 }
 
 extension HourlySkyEvents.Icon {
-    /// The rendered glyph for this icon — a plain SF Symbol for every kind except `launch`,
-    /// which is rotated -45° (spec: "launch = `paperplane.fill` rotated -45°") so it reads as
-    /// liftoff rather than a message icon. Callers apply their own `.font`/`.foregroundStyle`
-    /// (this view intentionally carries no styling of its own, so it fits inline icon, Events
-    /// chip pill, and any future context identically).
+    /// The rendered glyph for this icon: the new `ISSGlyph` miniature for `issPass` (Space-first
+    /// design batch, item 4 — replaces the previous `arrow.up.forward.circle` SF Symbol
+    /// fallback), a plain SF Symbol for `aurora`/`meteor`, and `launch` rotated -45° (spec:
+    /// "launch = `paperplane.fill` rotated -45°") so it reads as liftoff rather than a message
+    /// icon. Callers apply their own `.font`/`.foregroundStyle` (this view intentionally carries
+    /// no styling of its own, so it fits inline icon, Events chip pill, and any future context
+    /// identically) — `ISSGlyph` is a plain `Shape` under the hood, so `.foregroundStyle` tints
+    /// it exactly the same way it tints the `Image(systemName:)` cases.
     @ViewBuilder
     var glyph: some View {
-        if case .launch = self {
+        switch self {
+        case .issPass:
+            ISSGlyph(size: CGSize(width: 16, height: 9))
+        case .launch:
             Image(systemName: symbolName).rotationEffect(.degrees(-45))
-        } else {
+        case .aurora, .meteor:
             Image(systemName: symbolName)
         }
     }

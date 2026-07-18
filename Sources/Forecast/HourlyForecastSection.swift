@@ -178,52 +178,117 @@ struct HourlyPillRow: View {
 
     // MARK: - Sky chip
 
-    /// Track tinted by the hour's `DarknessTier` (spec: "day=default separator, twilight=indigo
-    /// 0.25, full dark=indigo 0.5" — the three intermediate twilight tiers all share the
-    /// "twilight" bucket), pill positioned by `score/10` (not day-relative min/max — the score
-    /// is already a fixed 0...10 scale) and tinted by `QualityLabel`.
+    /// Space-first design batch, item 6: the Stargazing Score pill is replaced by a per-hour
+    /// horizontal bar — a subtle full-width track, an accent fill from the left sized to
+    /// `score/10` (opacity keyed to quality, plus a glow at `.excellent`), a right-aligned
+    /// "N · Quality" label, and — when one factor clearly dominates the score — a small reason
+    /// glyph at the fill's leading edge. The previous darkness-tinted track is deliberately gone
+    /// (spec: "the bars carry the info; remove the tint to reduce noise").
     private func skyTrack(proxy: GeometryProxy) -> some View {
-        let pillWidth: CGFloat = 40
-        let travel = max(proxy.size.width - pillWidth, 0)
         let score = stargazingScore
-        let normalizedPosition = Double(score?.score ?? 0) / 10.0
-        let style = Self.skyPillStyle(quality: score?.quality ?? .poor)
-        return ZStack(alignment: .leading) {
-            Rectangle()
-                .fill(Self.trackColor(tier: score?.tier))
-                .frame(height: 3)
-                .frame(maxWidth: .infinity)
+        let isDaytimeZero = score?.tier == .day
+        let fillFraction = min(1, max(0, Double(score?.score ?? 0) / 10.0))
+        let labelWidth: CGFloat = 78
+        let spacing: CGFloat = 8
+        let barWidth = max(0, proxy.size.width - labelWidth - spacing)
+        let barHeight: CGFloat = 6
+        let fillWidth = barWidth * fillFraction
+        let reason = Self.reasonGlyph(for: score)
 
-            Text(score.map { "\($0.score)" } ?? "–")
-                .font(.subheadline.weight(.semibold))
-                .monospacedDigit()
-                .frame(width: pillWidth, height: 26)
-                .background(Capsule().fill(style.fill))
-                .foregroundStyle(style.foreground)
-                .offset(x: travel * normalizedPosition)
+        return HStack(spacing: spacing) {
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.white.opacity(0.08))
+                    .frame(width: barWidth, height: barHeight)
+
+                if fillFraction > 0, let score {
+                    Capsule()
+                        .fill(Color.clearSkyAccent.opacity(Self.skyBarFillOpacity(quality: score.quality)))
+                        .frame(width: max(barHeight, fillWidth), height: barHeight)
+                        .shadow(
+                            color: score.quality == .excellent ? Color.clearSkyAccent.opacity(0.6) : .clear,
+                            radius: score.quality == .excellent ? 4 : 0
+                        )
+                }
+
+                if let reason {
+                    Button {
+                        onExplain(Explainers.stargazingScore(score?.score))
+                    } label: {
+                        Image(systemName: reason.symbolName)
+                            .font(.system(size: 8, weight: .semibold))
+                            .foregroundStyle(.black.opacity(0.65))
+                            .frame(width: 13, height: 13)
+                            .background(Circle().fill(Color.white.opacity(0.95)))
+                    }
+                    .buttonStyle(.plain)
+                    .offset(x: min(max(fillWidth, 6), barWidth) - 6.5)
+                }
+            }
+            .frame(width: barWidth, height: max(barHeight, 13), alignment: .leading)
+
+            Self.skyBarLabel(score: score, isDaytimeZero: isDaytimeZero)
+                .frame(width: labelWidth, alignment: .trailing)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
         .frame(maxHeight: .infinity, alignment: .center)
     }
 
-    private static func trackColor(tier: StargazingScore.DarknessTier?) -> Color {
-        switch tier {
-        case .none, .day:
-            return Color(.separator).opacity(0.5)
-        case .civilTwilight, .nauticalTwilight, .astronomicalTwilight:
-            return Color.indigo.opacity(0.25)
-        case .fullDark:
-            return Color.indigo.opacity(0.5)
+    /// Accent opacity per quality tier (spec): poor 0.35, fair 0.55, good 0.8, excellent 1.0 +
+    /// glow (the glow itself is applied by the caller above, keyed off the same quality check).
+    private static func skyBarFillOpacity(quality: StargazingScore.QualityLabel) -> Double {
+        switch quality {
+        case .poor: return 0.35
+        case .fair: return 0.55
+        case .good: return 0.8
+        case .excellent: return 1.0
         }
     }
 
-    private static func skyPillStyle(quality: StargazingScore.QualityLabel) -> (fill: Color, foreground: Color) {
+    /// "8 · Excellent" — monospaced-digit score + a secondary quality word, built as two `Text`
+    /// segments so each keeps its own weight/size (spec: "monospacedDigit number + quality word
+    /// .caption2 secondary"). `nil` score (no location to score against) renders a quiet "–"
+    /// rather than a fabricated value; a real score of 0 in daylight renders "0 · Daytime" (spec:
+    /// "honest") instead of "0 · Poor", since a daylight hour was never a stargazing candidate.
+    private static func skyBarLabel(score: StargazingScore.HourScore?, isDaytimeZero: Bool) -> Text {
+        guard let score else {
+            return Text("–").font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+        }
+        let qualityWord = isDaytimeZero ? "Daytime" : Self.qualityWord(score.quality)
+        return Text("\(score.score)").font(.subheadline.weight(.semibold)).monospacedDigit().foregroundStyle(.primary)
+            + Text(" \u{00B7} \(qualityWord)").font(.caption2).foregroundStyle(.secondary)
+    }
+
+    private static func qualityWord(_ quality: StargazingScore.QualityLabel) -> String {
         switch quality {
-        case .poor:
-            return (Color(.tertiarySystemFill), Color.primary)
-        case .fair, .good:
-            return (Color.clearSkyAccent.opacity(0.15), Color.clearSkyAccent)
-        case .excellent:
-            return (Color.clearSkyAccent, Color.white)
+        case .poor: return "Poor"
+        case .fair: return "Fair"
+        case .good: return "Good"
+        case .excellent: return "Excellent"
+        }
+    }
+
+    /// One dominant-factor glyph, priority sun > cloud > moon (spec) — `nil` score (no location)
+    /// shows no glyph at all. Reads straight off `HourScore`'s own transparency fields, no
+    /// re-derivation needed.
+    private static func reasonGlyph(for score: StargazingScore.HourScore?) -> ReasonGlyph? {
+        guard let score else { return nil }
+        if score.tier == .day { return .sun }
+        if score.cloudFactor <= 0.3 { return .cloud }
+        if score.moonFactor <= 0.5 { return .moon }
+        return nil
+    }
+
+    private enum ReasonGlyph {
+        case sun, cloud, moon
+
+        var symbolName: String {
+            switch self {
+            case .sun: return "sun.max.fill"
+            case .cloud: return "cloud.fill"
+            case .moon: return "moon.fill"
+            }
         }
     }
 
@@ -305,22 +370,27 @@ struct HourlyForecastSection: View {
         // small uppercase header provided by the enclosing card chrome
         // (`ForecastSheetCard` in `ForecastPageView`), so this view renders rows only.
         VStack(alignment: .leading, spacing: 0) {
-            // Work item 4: "the Sky chip's header/first-tap shows the score explainer once
-            // discoverable (a small `info.circle` next to the section header when Sky chip
-            // active)".
+            // Space-first design batch, item 6: a "Best window: 11 PM–1 AM" header line under the
+            // card's own "HOURLY FORECAST" title when the Sky chip is active — the longest
+            // contiguous run of hours scoring >= 7. Work item 4's "Stargazing Score" + info-circle
+            // discoverability row stays directly beneath it, unchanged.
             if metric == .sky {
-                HStack(spacing: 4) {
-                    Text("Stargazing Score")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.secondary)
-                    Button {
-                        skyContext.onExplain(Explainers.stargazingScore())
-                    } label: {
-                        Image(systemName: "info.circle")
-                            .font(.caption)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(Self.bestWindowLine(Array(stargazingScores.values)))
+                        .font(.subheadline.weight(.medium))
+                    HStack(spacing: 4) {
+                        Text("Stargazing Score")
+                            .font(.caption.weight(.medium))
                             .foregroundStyle(.secondary)
+                        Button {
+                            skyContext.onExplain(Explainers.stargazingScore())
+                        } label: {
+                            Image(systemName: "info.circle")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
                 .padding(.bottom, 6)
             }
@@ -378,6 +448,42 @@ struct HourlyForecastSection: View {
         let interval = date.timeIntervalSinceReferenceDate
         return Date(timeIntervalSinceReferenceDate: (interval / 3600).rounded(.down) * 3600)
     }
+
+    /// "Best window: 11 PM–1 AM" (Sky chip header line, item 6): the longest contiguous run of
+    /// `scores` (any order in) with `score >= 7`, where "contiguous" means each hour is exactly
+    /// one hour after the previous one in the run — matching `HourlyEntry`'s hourly cadence.
+    /// Ties on run length keep the earliest run (first found while scanning chronologically).
+    /// "No strong stargazing window tonight." when no hour clears the bar at all.
+    static func bestWindowLine(_ scores: [StargazingScore.HourScore]) -> String {
+        let sorted = scores.sorted { $0.date < $1.date }
+        var bestRun: [StargazingScore.HourScore] = []
+        var currentRun: [StargazingScore.HourScore] = []
+        for score in sorted {
+            guard score.score >= 7 else {
+                currentRun = []
+                continue
+            }
+            if let last = currentRun.last, score.date.timeIntervalSince(last.date) > 3600.5 {
+                currentRun = [score]
+            } else {
+                currentRun.append(score)
+            }
+            if currentRun.count > bestRun.count {
+                bestRun = currentRun
+            }
+        }
+        guard let first = bestRun.first, let last = bestRun.last else {
+            return "No strong stargazing window tonight."
+        }
+        let end = last.date.addingTimeInterval(3600)
+        return "Best window: \(bestWindowHourFormatter.string(from: first.date))–\(bestWindowHourFormatter.string(from: end))"
+    }
+
+    private static let bestWindowHourFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h a"
+        return formatter
+    }()
 
     /// Sim-verify only: `-scrollToHour N` used to index straight into the (1-hour-resolution)
     /// `hours` array. Now that the list only renders every `stepHours`-th entry, `N` is

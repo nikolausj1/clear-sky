@@ -89,22 +89,28 @@ struct TonightSkyCard: View {
                         headlineRow
                     }
                     if let duskDawnWindow {
+                        sectionHeader("TONIGHT'S TIMELINE")
                         timelineStrip(window: duskDawnWindow, astronomy: astronomy)
                             .padding(.vertical, 8)
                         nightDivider
                     }
                     // Night panel UX pass: PLANETS moved directly under the timeline strip (was
                     // below the Moon row) so the strip's planet bars sit adjacent to their rows.
+                    sectionHeader("PLANETS")
                     planetsSection(astronomy.planets)
                     nightDivider
+                    sectionHeader("THE MOON")
                     moonRow(astronomy.moon)
                     nightDivider
+                    sectionHeader("AURORA")
                     auroraRow
                     nightDivider
                     if meteorOutlook != nil {
+                        sectionHeader("METEOR SHOWER")
                         meteorRow
                         nightDivider
                     }
+                    sectionHeader("SPACE STATION")
                     issRow
                     peopleInSpaceRow
                     if let pairing = pairings.first {
@@ -216,6 +222,20 @@ struct TonightSkyCard: View {
             .fill(Color.white.opacity(0.12))
             .frame(height: 1)
             .padding(.vertical, 14)
+    }
+
+    /// Space-first design batch, item 3: a small-caps mini-header above each section, in the
+    /// exact style `factRow`'s pre-existing "SPACE FACT" label already established (`.footnote`
+    /// semibold, tracked, white 0.55). Deliberately no top padding of its own — the preceding
+    /// `nightDivider`'s own `.padding(.vertical, 14)` already supplies the "~14pt above it" gap;
+    /// this only adds the "~4pt below it" gap to its own content, mirroring `factRow`'s internal
+    /// `spacing: 4` between its own header and fact line.
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.footnote.weight(.semibold))
+            .tracking(0.8)
+            .foregroundStyle(Color.white.opacity(0.55))
+            .padding(.bottom, 4)
     }
 
     // MARK: - Headline
@@ -330,7 +350,8 @@ struct TonightSkyCard: View {
             planetBars: Self.timelinePlanetBars(astronomy.planets),
             issPassTimes: issPassTimesForStrip,
             auroraWindow: auroraWindowForStrip,
-            now: Date()
+            now: Date(),
+            timeZone: timeZone
         )
     }
 
@@ -666,8 +687,9 @@ struct TonightSkyCard: View {
                 // ("Appears ... low in the ..., climbs ..., fades ... at ...") plus a brightness
                 // simile in place of the raw class word.
                 HStack(alignment: .top, spacing: 10) {
-                    ISSTrajectoryGlyph()
-                        .padding(.top, 3)
+                    ISSGlyph()
+                        .foregroundStyle(.white.opacity(0.85))
+                        .padding(.top, 5)
                     VStack(alignment: .leading, spacing: 4) {
                         if let firstPass = passes.first {
                             Text(Self.issPlainLanguage(firstPass, timeZone: timeZone))
@@ -765,9 +787,11 @@ struct TonightSkyCard: View {
                 isPresentingPeopleSheet = true
             } label: {
                 HStack(spacing: 10) {
-                    Image(systemName: "person.2")
-                        .font(.subheadline)
-                        .foregroundStyle(Color.white.opacity(0.85))
+                    // Space-first design batch, item 4: the "SPACE STATION" section header now
+                    // groups this row with the ISS pass row directly above it, so both use the
+                    // same ISS glyph as their leading icon rather than a generic person icon.
+                    ISSGlyph()
+                        .foregroundStyle(.white.opacity(0.85))
                     Text("\(summary.count) people in space right now")
                         .font(.subheadline)
                         .monospacedDigit()

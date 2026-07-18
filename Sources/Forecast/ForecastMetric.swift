@@ -17,14 +17,18 @@ import Foundation
 /// currently selected even before the view layer branches on `isSkyIntelligenceChip`) stay total
 /// functions and never crash.
 enum ForecastMetric: String, CaseIterable, Identifiable {
+    // Space-first design batch, item 5: new chip order — Temp · Precip Chance · Sky · Events ·
+    // Precip Amount · Feels Like · Wind · UV. `CaseIterable`'s `allCases` follows declaration
+    // order, so reordering the cases below is the whole change; every case's `rawValue` (and
+    // therefore `-forceChip`/`-forceMetric <rawValue>`) is untouched.
     case temp
     case precipChance
+    case sky
+    case events
     case precipAmount
     case feelsLike
     case wind
     case uv
-    case sky
-    case events
 
     var id: String { rawValue }
 
