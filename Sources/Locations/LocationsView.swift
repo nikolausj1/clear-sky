@@ -87,7 +87,7 @@ struct LocationsView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Label("Current location unavailable", systemImage: "location.slash")
                         .font(.subheadline.weight(.semibold))
-                    Text("Clear Sky can't use your location because access is turned off. Search for a city instead, or turn location access back on in Settings.")
+                    Text("Zenith can't use your location because access is turned off. Search for a city instead, or turn location access back on in Settings.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                     Button("Open iOS Settings") {

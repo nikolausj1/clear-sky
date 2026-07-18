@@ -24,9 +24,9 @@ targets:
     info:
       path: Info.plist
       properties:
-        CFBundleDisplayName: Clear Sky
+        CFBundleDisplayName: Zenith
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         ITSAppUsesNonExemptEncryption: false
-        NSLocationWhenInUseUsageDescription: "Clear Sky uses your location to show the weather where you are. Nothing is stored or shared."
+        NSLocationWhenInUseUsageDescription: "Zenith uses your location to show the weather and tonight's sky where you are. Nothing is stored or shared."
         UILaunchScreen: {}

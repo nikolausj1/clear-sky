@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Clear Sky</string>
+	<string>Zenith</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -23,7 +23,7 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Clear Sky uses your location to show the weather where you are. Nothing is stored or shared.</string>
+	<string>Zenith uses your location to show the weather and tonight's sky where you are. Nothing is stored or shared.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 </dict>
