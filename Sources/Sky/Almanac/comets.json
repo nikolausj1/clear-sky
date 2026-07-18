@@ -1,0 +1,16 @@
+[
+  {
+    "name": "10P/Tempel 2",
+    "perihelionDate": "2026-08-02",
+    "expectedMagnitudeRange": "~7.0 at brightest -- binoculars or a small telescope under dark skies, not naked eye",
+    "visibilityWindow": "Late July through August 2026, morning sky",
+    "viewingNote": "Periodic comet (5.4-year orbit), closest to Earth Aug 3, 2026. Not expected to reach naked-eye brightness. Source: EarthSky 'Best comets of 2026', fetched 2026-07-18."
+  },
+  {
+    "name": "210P/Christensen",
+    "perihelionDate": "2026-11-22",
+    "expectedMagnitudeRange": "Forecast magnitude 8-13.6 -- telescopic; comet brightness forecasts are notoriously uncertain",
+    "visibilityWindow": "October-November 2026, brightening as it nears perihelion; southern-hemisphere sky before perihelion, northern-hemisphere sky after",
+    "viewingNote": "Periodic comet (5.6-year orbit), closest to Earth Nov 8, 2026 (0.42 AU). Not expected to reach naked-eye brightness. Source: Cambridge 'Comet Prospects for 2026' (J.D. Shanklin); TheSkyLive -- fetched 2026-07-18."
+  }
+]

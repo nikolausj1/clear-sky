@@ -1,0 +1,236 @@
+[
+  {
+    "date": "2026-02-17T12:13:05Z",
+    "type": "annularSolar",
+    "visibilitySummary": "Annular path crosses Antarctica; partial visibility from southern Argentina, southern Chile, and southern Africa.",
+    "visibilityRegions": [
+      { "label": "Southern Argentina/Chile", "minLat": -55, "maxLat": -35, "minLon": -75, "maxLon": -60 },
+      { "label": "Southern Africa", "minLat": -35, "maxLat": -15, "minLon": 10, "maxLon": 35 },
+      { "label": "Antarctica", "minLat": -90, "maxLat": -60, "minLon": -180, "maxLon": 180 }
+    ],
+    "notes": "Saros 121. Source: NASA eclipse.gsfc.nasa.gov solar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2026-08-12T17:47:05Z",
+    "type": "totalSolar",
+    "visibilitySummary": "Totality crosses the Arctic, Greenland, Iceland, and northern Spain; partial visibility across most of Europe, northern Africa, and eastern North America.",
+    "visibilityRegions": [
+      { "label": "Greenland/Iceland/Spain totality corridor", "minLat": 35, "maxLat": 83, "minLon": -55, "maxLon": 5 },
+      { "label": "Europe (partial)", "minLat": 35, "maxLat": 70, "minLon": -10, "maxLon": 40 },
+      { "label": "Eastern North America (partial)", "minLat": 25, "maxLat": 70, "minLon": -100, "maxLon": -50 }
+    ],
+    "notes": "Saros 126. Source: NASA eclipse.gsfc.nasa.gov solar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2027-02-06T16:00:47Z",
+    "type": "annularSolar",
+    "visibilitySummary": "Annular path over the South Atlantic and southern Chile/Argentina; partial visibility from South America, southern Africa, and Antarctica.",
+    "visibilityRegions": [
+      { "label": "Southern South America", "minLat": -55, "maxLat": -20, "minLon": -75, "maxLon": -55 },
+      { "label": "Southern/Western Africa", "minLat": -35, "maxLat": 5, "minLon": 8, "maxLon": 25 },
+      { "label": "Antarctica", "minLat": -90, "maxLat": -60, "minLon": -180, "maxLon": 180 }
+    ],
+    "notes": "Saros 131. Source: NASA eclipse.gsfc.nasa.gov solar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2027-08-02T10:07:49Z",
+    "type": "totalSolar",
+    "visibilitySummary": "Totality crosses Morocco, Spain, Algeria, Libya, Egypt, Saudi Arabia, Yemen, and Somalia; partial visibility across Africa, Europe, the Middle East, and western/southern Asia.",
+    "visibilityRegions": [
+      { "label": "North Africa/Middle East totality corridor", "minLat": 12, "maxLat": 37, "minLon": -8, "maxLon": 50 },
+      { "label": "Europe (partial)", "minLat": 35, "maxLat": 65, "minLon": -10, "maxLon": 40 },
+      { "label": "Western/Southern Asia (partial)", "minLat": 5, "maxLat": 40, "minLon": 40, "maxLon": 90 }
+    ],
+    "notes": "Saros 136. Maximum totality ~6m23s near Luxor, Egypt -- the longest total solar eclipse over easily accessible land in the 21st century (next longer: 2114-06-03). Sources: NASA eclipse.gsfc.nasa.gov; Space.com 'Total solar eclipse 2027: A complete guide'; Sky & Telescope 'Luxor 2027: A Total Solar Eclipse for the Ages' -- all fetched 2026-07-18."
+  },
+  {
+    "date": "2028-01-26T15:08:58Z",
+    "type": "annularSolar",
+    "visibilitySummary": "Annular path crosses Ecuador, Peru, Brazil, Suriname, Spain, and Portugal; partial visibility across eastern North America, Central/South America, and western Europe.",
+    "visibilityRegions": [
+      { "label": "South America annular corridor", "minLat": -15, "maxLat": 6, "minLon": -82, "maxLon": -50 },
+      { "label": "Iberia annular corridor", "minLat": 36, "maxLat": 43, "minLon": -10, "maxLon": 0 },
+      { "label": "Eastern North America (partial)", "minLat": 15, "maxLat": 50, "minLon": -100, "maxLon": -60 }
+    ],
+    "notes": "Saros 141. Source: NASA eclipse.gsfc.nasa.gov solar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2028-07-22T02:56:39Z",
+    "type": "totalSolar",
+    "visibilitySummary": "Totality crosses Australia and passes near New Zealand; partial visibility across Southeast Asia and the East Indies.",
+    "visibilityRegions": [
+      { "label": "Australia/New Zealand totality corridor", "minLat": -45, "maxLat": -10, "minLon": 110, "maxLon": 175 },
+      { "label": "Southeast Asia/East Indies (partial)", "minLat": -10, "maxLat": 20, "minLon": 95, "maxLon": 140 }
+    ],
+    "notes": "Saros 146. Source: NASA eclipse.gsfc.nasa.gov solar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2029-01-14T17:13:47Z",
+    "type": "partialSolar",
+    "visibilitySummary": "Partial eclipse visible across North America and Central America.",
+    "visibilityRegions": [
+      { "label": "North/Central America", "minLat": 5, "maxLat": 60, "minLon": -130, "maxLon": -60 }
+    ],
+    "notes": "Saros 151. No central (total/annular) path -- partial everywhere it is visible. Source: NASA eclipse.gsfc.nasa.gov solar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2029-06-12T04:06:13Z",
+    "type": "partialSolar",
+    "visibilitySummary": "Partial eclipse visible from the Arctic, Scandinavia, Alaska, northern Canada, and northern Asia.",
+    "visibilityRegions": [
+      { "label": "High northern latitudes", "minLat": 55, "maxLat": 90, "minLon": -170, "maxLon": 179 }
+    ],
+    "notes": "Saros 118. No central (total/annular) path. Source: NASA eclipse.gsfc.nasa.gov solar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2029-07-11T15:37:18Z",
+    "type": "partialSolar",
+    "visibilitySummary": "Partial eclipse visible from southern Chile and southern Argentina.",
+    "visibilityRegions": [
+      { "label": "Southern Chile/Argentina", "minLat": -55, "maxLat": -35, "minLon": -75, "maxLon": -60 }
+    ],
+    "notes": "Saros 156. No central (total/annular) path. Source: NASA eclipse.gsfc.nasa.gov solar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2029-12-05T15:03:57Z",
+    "type": "partialSolar",
+    "visibilitySummary": "Partial eclipse visible from southern Argentina, southern Chile, and Antarctica.",
+    "visibilityRegions": [
+      { "label": "Southern Argentina/Chile", "minLat": -60, "maxLat": -35, "minLon": -75, "maxLon": -55 },
+      { "label": "Antarctica", "minLat": -90, "maxLat": -60, "minLon": -180, "maxLon": 180 }
+    ],
+    "notes": "Saros 123. No central (total/annular) path. Source: NASA eclipse.gsfc.nasa.gov solar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2030-06-01T06:29:13Z",
+    "type": "annularSolar",
+    "visibilitySummary": "Annular path crosses Algeria, Tunisia, Greece, Turkey, Russia, northern China, and Japan; partial visibility across Europe, North Africa, the Middle East, and most of Asia.",
+    "visibilityRegions": [
+      { "label": "North Africa/Mediterranean/Asia annular corridor", "minLat": 30, "maxLat": 60, "minLon": -5, "maxLon": 145 },
+      { "label": "Arctic/Alaska (partial)", "minLat": 60, "maxLat": 75, "minLon": -170, "maxLon": -130 }
+    ],
+    "notes": "Saros 128. Source: NASA eclipse.gsfc.nasa.gov solar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2030-11-25T06:51:37Z",
+    "type": "totalSolar",
+    "visibilitySummary": "Totality crosses Botswana, South Africa, and Australia; partial visibility across southern Africa, the southern Indian Ocean, and the East Indies.",
+    "visibilityRegions": [
+      { "label": "Southern Africa totality corridor", "minLat": -35, "maxLat": -15, "minLon": 10, "maxLon": 40 },
+      { "label": "Australia totality corridor", "minLat": -40, "maxLat": -20, "minLon": 110, "maxLon": 150 },
+      { "label": "Southern Indian Ocean/East Indies (partial)", "minLat": -50, "maxLat": -5, "minLon": 40, "maxLon": 130 },
+      { "label": "Antarctica (partial)", "minLat": -90, "maxLat": -60, "minLon": -180, "maxLon": 180 }
+    ],
+    "notes": "Saros 133. Source: NASA eclipse.gsfc.nasa.gov solar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2031-05-21T07:16:04Z",
+    "type": "annularSolar",
+    "visibilitySummary": "Annular path crosses Angola, the Congo, Zambia, Tanzania, southern India, Malaysia, and Indonesia.",
+    "visibilityRegions": [
+      { "label": "Central/Southern Africa annular corridor", "minLat": -15, "maxLat": 5, "minLon": 10, "maxLon": 40 },
+      { "label": "Southern India/Southeast Asia annular corridor", "minLat": 0, "maxLat": 20, "minLon": 70, "maxLon": 120 }
+    ],
+    "notes": "Saros 138. Times listed by NASA as Terrestrial Dynamical Time (TD), within about a minute of UTC at this epoch -- immaterial at this table's coarse precision. Source: NASA eclipse.gsfc.nasa.gov, fetched 2026-07-18."
+  },
+  {
+    "date": "2031-11-14T21:07:30Z",
+    "type": "hybridSolar",
+    "visibilitySummary": "Hybrid eclipse over the Pacific and Panama; partial visibility across the southern United States, Central America, and northwestern South America.",
+    "visibilityRegions": [
+      { "label": "Pacific/Panama hybrid corridor", "minLat": -10, "maxLat": 20, "minLon": -160, "maxLon": -80 },
+      { "label": "Southern US/Central America (partial)", "minLat": 5, "maxLat": 35, "minLon": -120, "maxLon": -75 }
+    ],
+    "notes": "Saros 143. Times listed by NASA as Terrestrial Dynamical Time (TD), within about a minute of UTC at this epoch. Source: NASA eclipse.gsfc.nasa.gov, fetched 2026-07-18."
+  },
+  {
+    "date": "2026-03-03T11:34:52Z",
+    "type": "totalLunar",
+    "visibilitySummary": "Broadly visible from the Pacific, the Americas, and eastern Asia/Australia per NASA's global visibility map; exact local visibility depends on whether the Moon is above the horizon at peak -- computed live from the observer's location.",
+    "notes": "Source: NASA eclipse.gsfc.nasa.gov lunar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2026-08-28T04:14:04Z",
+    "type": "partialLunar",
+    "visibilitySummary": "Broadly visible from the Americas, Europe, Africa, and the Atlantic/Pacific per NASA's global visibility map; exact local visibility depends on whether the Moon is above the horizon at peak -- computed live from the observer's location.",
+    "notes": "Deep partial eclipse (over 90% of the Moon's disc in Earth's umbra). Source: NASA eclipse.gsfc.nasa.gov lunar eclipse decade table; Space.com 'August 2026 lunar eclipse' -- fetched 2026-07-18."
+  },
+  {
+    "date": "2027-02-20T23:14:06Z",
+    "type": "penumbralLunar",
+    "visibilitySummary": "Penumbral eclipses are subtle -- only a faint shading on the Moon's disc, not the dramatic darkening of a total or partial eclipse. Local visibility depends on whether the Moon is above the horizon at peak -- computed live from the observer's location.",
+    "notes": "Source: NASA eclipse.gsfc.nasa.gov lunar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2027-07-18T16:04:09Z",
+    "type": "penumbralLunar",
+    "visibilitySummary": "Penumbral eclipses are subtle -- only a faint shading on the Moon's disc. Local visibility depends on whether the Moon is above the horizon at peak -- computed live from the observer's location.",
+    "notes": "Source: NASA eclipse.gsfc.nasa.gov lunar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2027-08-17T07:14:59Z",
+    "type": "penumbralLunar",
+    "visibilitySummary": "Penumbral eclipses are subtle -- only a faint shading on the Moon's disc. Local visibility depends on whether the Moon is above the horizon at peak -- computed live from the observer's location.",
+    "notes": "Source: NASA eclipse.gsfc.nasa.gov lunar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2028-01-12T04:14:13Z",
+    "type": "partialLunar",
+    "visibilitySummary": "Broadly visible from the Americas, Europe, Africa, and Asia per NASA's global visibility map; exact local visibility depends on whether the Moon is above the horizon at peak -- computed live from the observer's location.",
+    "notes": "Source: NASA eclipse.gsfc.nasa.gov lunar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2028-07-06T18:20:57Z",
+    "type": "partialLunar",
+    "visibilitySummary": "Broadly visible from the Pacific, the Americas, and eastern Asia/Australia per NASA's global visibility map; exact local visibility depends on whether the Moon is above the horizon at peak -- computed live from the observer's location.",
+    "notes": "Source: NASA eclipse.gsfc.nasa.gov lunar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2028-12-31T16:53:15Z",
+    "type": "totalLunar",
+    "visibilitySummary": "Visible from Europe, Asia, Australia, Africa, and northern/western North America per NASA's global visibility map; exact local visibility depends on whether the Moon is above the horizon at peak -- computed live from the observer's location.",
+    "notes": "Source: NASA eclipse.gsfc.nasa.gov lunar eclipse decade table; timeanddate.com eclipse list -- fetched 2026-07-18."
+  },
+  {
+    "date": "2029-06-26T03:23:22Z",
+    "type": "totalLunar",
+    "visibilitySummary": "Visible from Europe, western Asia, Africa, the Americas, and Antarctica per NASA's global visibility map; exact local visibility depends on whether the Moon is above the horizon at peak -- computed live from the observer's location.",
+    "notes": "Source: NASA eclipse.gsfc.nasa.gov lunar eclipse decade table; timeanddate.com eclipse list -- fetched 2026-07-18."
+  },
+  {
+    "date": "2029-12-20T22:43:12Z",
+    "type": "totalLunar",
+    "visibilitySummary": "Visible from Europe, Asia, northern/western Australia, Africa, and the Americas per NASA's global visibility map; exact local visibility depends on whether the Moon is above the horizon at peak -- computed live from the observer's location.",
+    "notes": "Source: NASA eclipse.gsfc.nasa.gov lunar eclipse decade table; timeanddate.com eclipse list -- fetched 2026-07-18."
+  },
+  {
+    "date": "2030-06-15T18:34:34Z",
+    "type": "partialLunar",
+    "visibilitySummary": "Broadly visible from the eastern hemisphere per NASA's global visibility map; exact local visibility depends on whether the Moon is above the horizon at peak -- computed live from the observer's location.",
+    "notes": "Source: NASA eclipse.gsfc.nasa.gov lunar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2030-12-09T22:28:51Z",
+    "type": "penumbralLunar",
+    "visibilitySummary": "Penumbral eclipses are subtle -- only a faint shading on the Moon's disc. Local visibility depends on whether the Moon is above the horizon at peak -- computed live from the observer's location.",
+    "notes": "Source: NASA eclipse.gsfc.nasa.gov lunar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2031-05-07T03:52:02Z",
+    "type": "penumbralLunar",
+    "visibilitySummary": "Penumbral eclipses are subtle -- only a faint shading on the Moon's disc. Local visibility depends on whether the Moon is above the horizon at peak -- computed live from the observer's location.",
+    "notes": "Very shallow penumbral eclipse (umbral magnitude -0.090, i.e. the Moon's disc barely grazes the outer penumbra). Source: NASA eclipse.gsfc.nasa.gov lunar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2031-06-05T11:45:17Z",
+    "type": "penumbralLunar",
+    "visibilitySummary": "Penumbral eclipses are subtle -- only a faint shading on the Moon's disc. Local visibility depends on whether the Moon is above the horizon at peak -- computed live from the observer's location.",
+    "notes": "Source: NASA eclipse.gsfc.nasa.gov lunar eclipse decade table, fetched 2026-07-18."
+  },
+  {
+    "date": "2031-10-30T07:46:45Z",
+    "type": "penumbralLunar",
+    "visibilitySummary": "Penumbral eclipses are subtle -- only a faint shading on the Moon's disc. Local visibility depends on whether the Moon is above the horizon at peak -- computed live from the observer's location.",
+    "notes": "Source: NASA eclipse.gsfc.nasa.gov lunar eclipse decade table, fetched 2026-07-18."
+  }
+]
