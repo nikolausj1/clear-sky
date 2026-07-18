@@ -1,5 +1,58 @@
 import SwiftUI
 
+/// Layout constants shared by every surface that renders the CARROT-style vertical condition
+/// strip (`ConditionStripRow`) — both `HourlyForecastSection` (the main list) and
+/// `DailyExpandedDetail` (an expanded day's grid) size their strip and inset their row content
+/// off these same numbers so the two surfaces read as one consistent component.
+enum ConditionStripLayout {
+    static let width: CGFloat = 8
+    static let gap: CGFloat = 10
+    /// Row content (the pill row + its divider) starts this far from the leading edge.
+    static let contentInset: CGFloat = width + gap
+    /// Half the strip width, so the rounded caps at the very top/bottom of the bar read as a
+    /// true pill end rather than a barely-rounded rectangle.
+    static let capRadius: CGFloat = width / 2
+}
+
+/// Wraps one hourly row (plus its trailing `Divider`, if any) with the continuous condition-color
+/// strip at the leading edge (owner request, "the vertical condition strip"; see
+/// `ConditionStripColor`'s doc comment for the color mapping and `IMG_1317.png` for the CARROT
+/// reference this is modeled on).
+///
+/// Implementation approach: the strip is a plain `Rectangle`, sized only by `.frame(width:)` —
+/// SwiftUI's `ZStack` stretches a dimension-unconstrained child to match the tallest sibling, so
+/// the rectangle automatically fills exactly this row unit's real height (row + divider,
+/// including the row's own vertical padding) with no hardcoded height and no per-row height
+/// measurement needed. Stacking these units with zero spacing (the enclosing `VStack`s already
+/// use `spacing: 0`) makes consecutive segments touch with no gap or seam. Only the `Rectangle`
+/// itself — never the row's actual content — gets `clipShape`d with rounded corners, and only at
+/// `isFirst`/`isLast`, so the bar's outer caps round while every interior seam between segments
+/// stays perfectly square (a rounded interior corner would read as a gap between segments).
+struct ConditionStripRow<Content: View>: View {
+    let entry: HourlyEntry
+    let isFirst: Bool
+    let isLast: Bool
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            Rectangle()
+                .fill(ConditionStripColor.color(conditionCode: entry.conditionCode, precipChance: entry.precipChance))
+                .frame(width: ConditionStripLayout.width)
+                .clipShape(
+                    UnevenRoundedRectangle(
+                        topLeadingRadius: isFirst ? ConditionStripLayout.capRadius : 0,
+                        bottomLeadingRadius: isLast ? ConditionStripLayout.capRadius : 0,
+                        bottomTrailingRadius: isLast ? ConditionStripLayout.capRadius : 0,
+                        topTrailingRadius: isFirst ? ConditionStripLayout.capRadius : 0,
+                        style: .continuous
+                    )
+                )
+            content()
+        }
+    }
+}
+
 /// Everything an hourly row needs beyond its own `HourlyEntry`/pill position — the Sky/Events
 /// chips' per-hour intelligence (Forecast-surface overhaul, work item 3) plus the tap-to-explain
 /// wiring (work item 4). A value type with every field defaulted, so any existing call site or
@@ -399,24 +452,30 @@ struct HourlyForecastSection: View {
             let scores = stargazingScores
             let buckets = eventBuckets
             ForEach(rows, id: \.element.id) { index, entry in
-                HourlyPillRow(
-                    entry: entry,
-                    isFirstRow: index == 0,
-                    // Condition-change labels compare consecutive DISPLAYED rows (the 2-hour
-                    // subset), not raw hourly neighbors — the anchor row (index 0) always shows
-                    // its condition; later rows only when it differs from the previous
-                    // *displayed* row's condition.
-                    previousConditionDescription: index > 0 ? rows[index - 1].element.conditionDescription : nil,
-                    metric: metric,
-                    position: positions[entry.date] ?? 0.5,
-                    stargazingScore: scores[entry.date],
-                    eventBucket: buckets[entry.date],
-                    onExplain: skyContext.onExplain
-                )
-                .id(Self.rowId(for: entry))
-                if index < rows.count - 1 {
-                    Divider()
+                ConditionStripRow(entry: entry, isFirst: index == 0, isLast: index == rows.count - 1) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        HourlyPillRow(
+                            entry: entry,
+                            isFirstRow: index == 0,
+                            // Condition-change labels compare consecutive DISPLAYED rows (the
+                            // 2-hour subset), not raw hourly neighbors — the anchor row (index 0)
+                            // always shows its condition; later rows only when it differs from
+                            // the previous *displayed* row's condition.
+                            previousConditionDescription: index > 0 ? rows[index - 1].element.conditionDescription : nil,
+                            metric: metric,
+                            position: positions[entry.date] ?? 0.5,
+                            stargazingScore: scores[entry.date],
+                            eventBucket: buckets[entry.date],
+                            onExplain: skyContext.onExplain
+                        )
+                        .padding(.leading, ConditionStripLayout.contentInset)
+                        if index < rows.count - 1 {
+                            Divider()
+                                .padding(.leading, ConditionStripLayout.contentInset)
+                        }
+                    }
                 }
+                .id(Self.rowId(for: entry))
             }
         }
     }

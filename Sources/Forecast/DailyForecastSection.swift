@@ -167,24 +167,35 @@ struct DailyExpandedDetail: View {
             let rows = Array(displayedHours.enumerated())
             let scores = stargazingScores
             let buckets = eventBuckets
-            ForEach(rows, id: \.element.id) { index, hour in
-                HourlyPillRow(
-                    entry: hour,
-                    // TODAY's grid starts at "now" (see `displayedHours`), so its first row is a
-                    // real anchor row exactly like the main hourly list's — shows "Now" instead
-                    // of a formatted time. Every other day stays midnight-anchored with no
-                    // anchor row (every row is a real, formattable clock time).
-                    isFirstRow: isToday && index == 0,
-                    // Same displayed-subset condition-label rule as the main hourly list: the
-                    // first displayed row is the anchor (always shows its condition); later rows
-                    // only when different from the previous DISPLAYED row.
-                    previousConditionDescription: index > 0 ? rows[index - 1].element.conditionDescription : nil,
-                    metric: metric,
-                    position: positions[hour.date] ?? 0.5,
-                    stargazingScore: scores[hour.date],
-                    eventBucket: buckets[hour.date],
-                    onExplain: skyContext.onExplain
-                )
+            // The expanded day's strip is independent of the main hourly list's — its own
+            // first/last caps (`isFirst`/`isLast` below are scoped to THIS `rows` array), so an
+            // expanded day always shows one complete, self-contained bar regardless of how the
+            // main list above it happens to be capped.
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(rows, id: \.element.id) { index, hour in
+                    ConditionStripRow(entry: hour, isFirst: index == 0, isLast: index == rows.count - 1) {
+                        HourlyPillRow(
+                            entry: hour,
+                            // TODAY's grid starts at "now" (see `displayedHours`), so its first
+                            // row is a real anchor row exactly like the main hourly list's —
+                            // shows "Now" instead of a formatted time. Every other day stays
+                            // midnight-anchored with no anchor row (every row is a real,
+                            // formattable clock time).
+                            isFirstRow: isToday && index == 0,
+                            // Same displayed-subset condition-label rule as the main hourly
+                            // list: the first displayed row is the anchor (always shows its
+                            // condition); later rows only when different from the previous
+                            // DISPLAYED row.
+                            previousConditionDescription: index > 0 ? rows[index - 1].element.conditionDescription : nil,
+                            metric: metric,
+                            position: positions[hour.date] ?? 0.5,
+                            stargazingScore: scores[hour.date],
+                            eventBucket: buckets[hour.date],
+                            onExplain: skyContext.onExplain
+                        )
+                        .padding(.leading, ConditionStripLayout.contentInset)
+                    }
+                }
             }
 
             Divider().padding(.vertical, 4)
