@@ -270,6 +270,9 @@ struct HourlyForecastSection: View {
     /// Forecast-surface overhaul, work item 3: Sky/Events chip data + tap-to-explain wiring.
     /// Defaulted so every existing call site/preview keeps compiling unchanged.
     var skyContext: HourlySkyContext = HourlySkyContext()
+    /// Wall-clock "now" for anchoring the first row — injected (rather than `Date()` inline) so
+    /// the enclosing `TimelineView` can drive minute-level re-anchoring; see `ForecastPageView`.
+    var now: Date = Date()
 
     static let stepHours = 2
     static let displayedRowCount = 12
@@ -277,7 +280,7 @@ struct HourlyForecastSection: View {
     /// The subset actually rendered: every `stepHours`-th entry of `hours`, capped at
     /// `displayedRowCount` rows. Index 0 (the anchor/"Now" row) is always included.
     private var displayedHours: [HourlyEntry] {
-        Self.displayedIndices(for: hours).map { hours[$0] }
+        Self.displayedIndices(for: hours, now: now).map { hours[$0] }
     }
 
     /// Pill positions are computed from the FULL-resolution hourly data — every hour of each
@@ -354,18 +357,34 @@ struct HourlyForecastSection: View {
         entry.date
     }
 
-    /// The indices into the FULL `hours` array that get rendered as rows: `0, stepHours,
-    /// 2*stepHours, ...` up to `displayedRowCount` entries (clamped to however many hours exist).
-    static func displayedIndices(for hours: [HourlyEntry]) -> [Int] {
-        Array(stride(from: 0, to: hours.count, by: stepHours).prefix(displayedRowCount))
+    /// The indices into the FULL `hours` array that get rendered as rows: starting at the first
+    /// entry at-or-after the top of the CURRENT hour, then every `stepHours`-th entry, up to
+    /// `displayedRowCount` rows.
+    ///
+    /// User-reported defect fix ("the hourly forecast start time is still wrong"): the previous
+    /// implementation strode from index 0, assuming `hours[0]` is the current hour. That holds
+    /// only for a freshly-fetched payload — a CACHED payload's hours begin at its fetch time, so
+    /// an app opened hours later anchored "Now" (and every row after it) to a stale morning hour.
+    /// Filtering by wall-clock `now` instead of trusting index 0 makes the anchor correct no
+    /// matter how old the cache is. (The simulator masked this: its canned WeatherKit data has a
+    /// fixed clock, so index-0 anchoring looked right in every sim-verify screenshot.)
+    static func displayedIndices(for hours: [HourlyEntry], now: Date = Date()) -> [Int] {
+        let currentHourStart = floorToHour(now)
+        let firstCurrent = hours.firstIndex { $0.date >= currentHourStart } ?? hours.count
+        return Array(stride(from: firstCurrent, to: hours.count, by: stepHours).prefix(displayedRowCount))
+    }
+
+    static func floorToHour(_ date: Date) -> Date {
+        let interval = date.timeIntervalSinceReferenceDate
+        return Date(timeIntervalSinceReferenceDate: (interval / 3600).rounded(.down) * 3600)
     }
 
     /// Sim-verify only: `-scrollToHour N` used to index straight into the (1-hour-resolution)
     /// `hours` array. Now that the list only renders every `stepHours`-th entry, `N` is
     /// reinterpreted as the Nth DISPLAYED row and remapped back to its real index in `hours`
     /// (clamped to the actual displayed range), so the launch arg still lands on a visible row.
-    static func hourlyIndex(forDisplayedRow displayedRow: Int, hours: [HourlyEntry]) -> Int? {
-        let indices = displayedIndices(for: hours)
+    static func hourlyIndex(forDisplayedRow displayedRow: Int, hours: [HourlyEntry], now: Date = Date()) -> Int? {
+        let indices = displayedIndices(for: hours, now: now)
         guard !indices.isEmpty else { return nil }
         let clamped = max(0, min(displayedRow, indices.count - 1))
         return indices[clamped]

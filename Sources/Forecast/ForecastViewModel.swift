@@ -198,6 +198,12 @@ final class ForecastViewModel {
         forcedDate ?? Date()
     }
 
+    /// True when `-forceDate` is overriding "now" (sim-verify) — consumers that re-anchor to a
+    /// live clock (the Forecast page's TimelineView) must keep honoring the forced date instead.
+    var isDateForced: Bool {
+        forcedDate != nil
+    }
+
     // MARK: - Active-page convenience passthroughs (most of ForecastView reads these)
 
     var activeLocation: SavedLocation? {

@@ -274,13 +274,23 @@ struct ForecastPageView: View {
     @ViewBuilder
     private func loadedView(_ payload: CachedWeather) -> some View {
         ScrollViewReader { proxy in
-            ScrollView {
+            // User-reported defect fix ("header isn't showing the night sky" / stale hourly
+            // anchor): everything time-anchored in this page — the hero scene's time-of-day,
+            // the hourly list's "Now" row, today's expansion — was resolved from a Date captured
+            // at render time, and nothing forced a re-render as wall-clock time moved (an app
+            // resumed from hours of suspension happily showed the afternoon scene at midnight).
+            // A minute-cadence TimelineView re-evaluates this content on schedule AND on
+            // scene re-activation, so the scene/rows re-anchor themselves; the sections also
+            // now take `now` explicitly instead of trusting index 0 (see their doc comments).
+            TimelineView(.periodic(from: .now, by: 60)) { timeline in
+                let displayNow = viewModel.isDateForced ? viewModel.phraseBankDate : timeline.date
+                ScrollView {
                 VStack(spacing: 0) {
                     heroTopOffsetSentinel()
                     DoodleHeaderView(
                         current: payload.currentConditions,
                         caption: viewModel.doodleCaptionLine(location: location, payload: payload, unit: unitsSettings.unit),
-                        date: viewModel.phraseBankDate,
+                        date: displayNow,
                         sunrise: payload.daily.first?.sunrise,
                         sunset: payload.daily.first?.sunset,
                         forcedCondition: viewModel.forcedDoodleCondition,
@@ -315,12 +325,13 @@ struct ForecastPageView: View {
                             MetricChipsRow(selected: $viewModel.selectedMetric)
 
                             SheetCard(title: "HOURLY FORECAST") {
-                                HourlyForecastSection(hours: payload.hourly, metric: viewModel.selectedMetric, skyContext: skyContext)
+                                HourlyForecastSection(hours: payload.hourly, metric: viewModel.selectedMetric, skyContext: skyContext, now: displayNow)
                             }
 
                             SheetCard(title: "DAILY FORECAST") {
                                 DailyForecastSection(
                                     daily: payload.daily,
+                                    now: displayNow,
                                     hourly: payload.hourly,
                                     metric: viewModel.selectedMetric,
                                     skyContext: skyContext,
@@ -337,7 +348,7 @@ struct ForecastPageView: View {
                             // site.
                             TonightSkyCard(
                                 location: location,
-                                date: viewModel.phraseBankDate,
+                                date: displayNow,
                                 forcedOverrides: viewModel.skyForcedOverrides,
                                 initialExpandedPlanet: viewModel.initialExpandedSkyPlanet,
                                 onExplain: { presentedExplainer = $0 }
@@ -362,8 +373,9 @@ struct ForecastPageView: View {
             // out the hard way).
             .padding(.top, -heroTopOffset)
             .trackingHeroScrollOffset(reportScrollOffset)
-            .refreshable {
-                await onRefresh()
+                .refreshable {
+                    await onRefresh()
+                }
             }
             .sheet(isPresented: $isPresentingAlertDetail) {
                 AlertDetailSheet(alerts: payload.activeAlerts)

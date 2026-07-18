@@ -88,6 +88,9 @@ struct DailyExpandedDetail: View {
     /// Forecast-surface overhaul, work item 3: Sky/Events chip data + tap-to-explain wiring.
     /// Defaulted so every existing call site/preview keeps compiling unchanged.
     var skyContext: HourlySkyContext = HourlySkyContext()
+    /// Wall-clock "now" — injected for the same TimelineView-driven re-anchoring as the main
+    /// hourly list; see `ForecastPageView`.
+    var now: Date = Date()
 
     private static let stepHours = HourlyForecastSection.stepHours
     private static let displayedRowCount = HourlyForecastSection.displayedRowCount
@@ -114,8 +117,13 @@ struct DailyExpandedDetail: View {
     /// regardless of what time "now" happens to be.
     private var displayedHours: [HourlyEntry] {
         if isToday {
+            // User-reported defect fix: do NOT trust index 0 to be "now" — a cached payload's
+            // hours start at fetch time, not the current hour. Anchor by wall clock instead
+            // (same fix as `HourlyForecastSection.displayedIndices`).
+            let currentHourStart = HourlyForecastSection.floorToHour(now)
+            let start = hours.firstIndex { $0.date >= currentHourStart } ?? hours.count
             return Array(
-                stride(from: 0, to: hours.count, by: Self.stepHours)
+                stride(from: start, to: hours.count, by: Self.stepHours)
                     .prefix(Self.displayedRowCount)
                     .map { hours[$0] }
             )
@@ -217,6 +225,7 @@ struct DailyForecastRow: View {
     let globalMax: Double
     let isExpanded: Bool
     let hourlyForDay: [HourlyEntry]
+    var now: Date = Date()
     let metric: ForecastMetric
     var skyContext: HourlySkyContext = HourlySkyContext()
     /// Non-nil only for TODAY's row — see `DailyRangeBar.currentTemperatureF`.
@@ -271,7 +280,7 @@ struct DailyForecastRow: View {
             .buttonStyle(PressableRowStyle())
 
             if isExpanded {
-                DailyExpandedDetail(day: day, hours: hourlyForDay, metric: metric, skyContext: skyContext)
+                DailyExpandedDetail(day: day, hours: hourlyForDay, metric: metric, skyContext: skyContext, now: now)
             }
         }
         // Masks the expanding detail to the cell's animated bounds so the reveal unfolds in
@@ -283,6 +292,8 @@ struct DailyForecastRow: View {
 /// PRD Section 6, item 8: 10-day forecast with expandable day rows.
 struct DailyForecastSection: View {
     let daily: [DailyEntry]
+    /// Wall-clock now, injected for today's now-anchored expansion (see DailyExpandedDetail).
+    var now: Date = Date()
     let hourly: [HourlyEntry]
     let metric: ForecastMetric
     var skyContext: HourlySkyContext = HourlySkyContext()
@@ -318,6 +329,7 @@ struct DailyForecastSection: View {
                     globalMax: globalMax,
                     isExpanded: expandedDayId == day.date,
                     hourlyForDay: hourly.filter { Calendar.current.isDate($0.date, inSameDayAs: day.date) },
+                    now: now,
                     metric: metric,
                     skyContext: skyContext,
                     currentTemperatureF: Calendar.current.isDateInToday(day.date)
