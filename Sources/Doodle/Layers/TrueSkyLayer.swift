@@ -220,7 +220,10 @@ struct TrueSkyLayer: View {
     /// Warm tint for Mars, pale gold for Saturn, near-white for the other three (their actual
     /// naked-eye color is close enough to white/pale-yellow that a distinct tint would just read
     /// as "wrong color star" rather than a deliberate choice).
-    private static func dotColor(for body: Planets.Body) -> Color {
+    /// Non-private (Editor's-Choice sky-surfaces elevation) so `TonightSkyCard`'s dusk-dawn
+    /// timeline strip and planet-row dots can reuse these exact colors rather than duplicating
+    /// them — "TrueSky planet colors" per that work package's spec.
+    static func dotColor(for body: Planets.Body) -> Color {
         switch body {
         case .venus: return Color(red: 1.0, green: 0.98, blue: 0.90)
         case .jupiter: return Color(red: 0.97, green: 0.95, blue: 0.85)

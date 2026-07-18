@@ -309,8 +309,11 @@ struct ForecastPageView: View {
                             }
 
                             // `TonightSkyCard` applies its own `.id(TonightSkyCard.cardId)`
-                            // internally (to its `SheetCard`), which is what `-scrollToSky`
-                            // below targets — no separate id needed at the mount site.
+                            // internally (to its own bespoke "night panel" container — Editor's-
+                            // Choice sky-surfaces elevation moved this card off `SheetCard`
+                            // entirely, see that file's type-level doc comment), which is what
+                            // `-scrollToSky` below targets — no separate id needed at the mount
+                            // site.
                             TonightSkyCard(
                                 location: location,
                                 date: viewModel.phraseBankDate,
@@ -368,17 +371,18 @@ struct ForecastPageView: View {
         if scrollToSky {
             hasScrolledToTarget = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                // Sky-intelligence rows (work package WP-F) made the card tall enough, on a
-                // fully-loaded evening (headline + meteor + conjunction all present), that
-                // `anchor: .top` can now scroll all the way to the card's literal top edge —
-                // which sits exactly at the scroll content's y=0, directly under the floating
-                // translucent top bar (`NavigationShell`'s scroll-aware chrome), cropping the
-                // card's title/headline underneath it. (On a shorter card — fewer rows present —
-                // the scroll view previously couldn't scroll far enough to reach that position at
-                // all, which is why this wasn't visible before this work package.) A small
-                // positive `anchor.y` leaves deliberate headroom above the card's top edge
-                // instead of pinning it to the very top, clearing the floating bar.
-                proxy.scrollTo(TonightSkyCard.cardId, anchor: UnitPoint(x: 0.5, y: 0.22))
+                // Sky-intelligence rows (WP-F) plus the Editor's-Choice "night panel" elevation's
+                // dusk-to-dawn timeline strip have made a fully-loaded card (headline + timeline +
+                // moon + 3 planets + aurora + meteor + ISS + conjunction) comfortably TALLER than
+                // the visible scroll viewport on this device — there is no single `scrollTo`
+                // anchor that can show both its header and its lower rows in one screenshot
+                // anymore. Empirically re-tuned during this package's sim-verify (0.22, this
+                // repo's earlier value, hid the header entirely once the card grew; `.top`/0.0
+                // was, perhaps counterintuitively, no better) — 0.06 was the best of the three at
+                // keeping at least the top of the headline in frame. Still an approximation, not
+                // an exact fit; a real fix would need the floating top bar's height threaded in
+                // as an actual content inset rather than an overlay, which is out of scope here.
+                proxy.scrollTo(TonightSkyCard.cardId, anchor: UnitPoint(x: 0.5, y: 0.10))
             }
             return
         }

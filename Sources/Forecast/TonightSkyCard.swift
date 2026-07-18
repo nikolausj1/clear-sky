@@ -12,6 +12,14 @@ import SwiftUI
 /// The headline row is the one row that depends on *both* — see `load()`'s doc comment for how
 /// it avoids flickering while the async sections resolve. Uses the exact same fade + `.clipped()`
 /// inline-expand mechanism as `DailyForecastSection`'s day rows for the planet detail expansion.
+///
+/// **Editor's-Choice sky-surfaces elevation ("the night panel"):** this is the one inverted card
+/// in the app — a deep-indigo background in BOTH light and dark mode, starlight-white text, a
+/// static (non-animated) star-speck backdrop. Every color here is therefore an explicit white/
+/// white-opacity/planet-color value rather than `.primary`/`.secondary`/system fills, which would
+/// resolve to the wrong (dark) ink against this card's always-dark background. `SheetCard` is
+/// deliberately NOT used here for that reason — this card's chrome (background, divider color,
+/// header opacity) is bespoke; every other card in the app keeps using `SheetCard` unchanged.
 struct TonightSkyCard: View {
     let location: SavedLocation
     let date: Date
@@ -24,6 +32,12 @@ struct TonightSkyCard: View {
     @State private var pairings: [Conjunctions.Pairing] = []
     @State private var bestMoment: BestMoment.SkyMoment?
     @State private var expandedPlanet: Planets.Body?
+    /// Tonight's civil-dusk -> tomorrow-dawn window for the timeline strip. `nil` on the (rare,
+    /// polar-latitude) occasions `SkyTonightService.duskDawnWindow` can't resolve both edges —
+    /// the strip is simply omitted in that case (spec: "hide the strip gracefully").
+    @State private var duskDawnWindow: DateInterval?
+
+    @Environment(\.colorScheme) private var colorScheme
 
     private var timeZone: TimeZone { .current }
 
@@ -43,35 +57,53 @@ struct TonightSkyCard: View {
     }
 
     var body: some View {
-        SheetCard(title: "TONIGHT'S SKY") {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("TONIGHT'S SKY")
+                .font(.footnote.weight(.semibold))
+                .tracking(0.8)
+                .foregroundStyle(Color.white.opacity(0.55))
+            nightDivider
             VStack(alignment: .leading, spacing: 0) {
                 if let astronomy {
                     if bestMoment != nil {
                         headlineRow
-                        Divider()
+                    }
+                    if let duskDawnWindow {
+                        timelineStrip(window: duskDawnWindow, astronomy: astronomy)
+                            .padding(.vertical, 8)
+                        nightDivider
                     }
                     moonRow(astronomy.moon)
-                    Divider()
+                    nightDivider
                     planetsSection(astronomy.planets)
-                    Divider()
+                    nightDivider
                     auroraRow
-                    Divider()
+                    nightDivider
                     if meteorOutlook != nil {
                         meteorRow
-                        Divider()
+                        nightDivider
                     }
                     issRow
                     if let pairing = pairings.first {
-                        Divider()
+                        nightDivider
                         conjunctionRow(pairing)
                     }
-                    Divider()
+                    nightDivider
                     factRow
                 } else {
                     skeletonRows
                 }
             }
         }
+        .padding(16)
+        .background(NightPanelBackground())
+        // 16pt radius, matching `SheetCard.cornerRadius` — every other card in the app.
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        // A stronger shadow than `SheetCard`'s own (and shown in both color schemes, not just
+        // light) — this card needs to visually "lift" off a light surrounding in light mode AND
+        // off a dark surrounding in dark mode, since unlike every other card it never matches its
+        // surroundings' luminance.
+        .shadow(color: .black.opacity(colorScheme == .dark ? 0.35 : 0.18), radius: 14, y: 6)
         .id(Self.cardId)
         .task(id: taskKey) {
             await load()
@@ -112,6 +144,9 @@ struct TonightSkyCard: View {
         astronomy = astro
         issState = .loading
         auroraState = .loading
+        duskDawnWindow = SkyTonightService.duskDawnWindow(
+            latitude: location.latitude, longitude: location.longitude, date: date, timeZone: timeZone
+        )
 
         let (meteor, pairings) = SkyTonightService.meteorAndPairings(
             latitude: location.latitude,
@@ -137,20 +172,38 @@ struct TonightSkyCard: View {
         bestMoment = result.bestMoment
     }
 
+    // MARK: - Night panel chrome
+
+    /// Hairline row separator — `Color.white.opacity(0.12)` per spec, replacing `Divider()`
+    /// (which resolves to a light-mode-oriented system color that would be nearly invisible
+    /// against this card's always-dark background).
+    private var nightDivider: some View {
+        Rectangle()
+            .fill(Color.white.opacity(0.12))
+            .frame(height: 1)
+    }
+
     // MARK: - Headline
 
     /// "Step outside at 9:42 PM" + one factual subtitle line naming the moment. Hidden entirely
     /// when `bestMoment` is `nil` (per work order: "don't manufacture" a headline) — the `if let`
     /// in `body` already gates this, so this computed view can assume `bestMoment` is non-nil.
     private var headlineRow: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            if let bestMoment {
-                Text("Step outside at \(Self.timeFormatter.string(from: bestMoment.time))")
-                    .font(.title3.weight(.semibold))
-                    .monospacedDigit()
-                Text(Self.headlineSubtitle(bestMoment.kind))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "sparkles")
+                .font(.subheadline)
+                .foregroundStyle(Color.clearSkyAccentOnDark)
+                .padding(.top, 3)
+            VStack(alignment: .leading, spacing: 2) {
+                if let bestMoment {
+                    Text("Step outside at \(Self.timeFormatter.string(from: bestMoment.time))")
+                        .font(.system(.title3, design: .rounded).weight(.semibold))
+                        .monospacedDigit()
+                        .foregroundStyle(.white)
+                    Text(Self.headlineSubtitle(bestMoment.kind))
+                        .font(.subheadline)
+                        .foregroundStyle(Color.white.opacity(0.65))
+                }
             }
         }
         .padding(.vertical, 8)
@@ -190,25 +243,68 @@ struct TonightSkyCard: View {
         }
     }
 
+    // MARK: - Dusk-to-dawn timeline strip
+
+    /// Selects up to 3 planet bars for the strip, brightest (most negative apparent magnitude)
+    /// first — spec: "stacked in thin rows below the track (max 3 rows; if more planets, keep
+    /// the 3 brightest)". Only planets with a real best-viewing window (both edges non-`nil`,
+    /// non-degenerate) are eligible, same "is there actually a window to draw" bar
+    /// `planetRow`/`planetsSection` already apply.
+    private static func timelinePlanetBars(_ planets: [SkyTonight.PlanetVisibility]) -> [NightSkyTimelineStrip.PlanetBar] {
+        planets
+            .filter(\.isVisibleTonight)
+            .compactMap { planet -> (planet: SkyTonight.PlanetVisibility, start: Date, end: Date)? in
+                guard let start = planet.bestViewingStart, let end = planet.bestViewingEnd, end > start else { return nil }
+                return (planet, start, end)
+            }
+            .sorted { ($0.planet.apparentMagnitude ?? 99) < ($1.planet.apparentMagnitude ?? 99) }
+            .prefix(3)
+            .map { NightSkyTimelineStrip.PlanetBar(body: $0.planet.body, start: $0.start, end: $0.end) }
+    }
+
+    /// ISS pass start times to tick on the strip's main track — every resolved pass, not just the
+    /// (at most 2) the ISS row itself lists, since the strip has room for more than 2 marks.
+    private var issPassTimesForStrip: [Date] {
+        guard case .available(let passes) = issState else { return [] }
+        return passes.map(\.startTime)
+    }
+
+    /// The aurora band to wash over the track, only when it clears `.fair` (spec: "Aurora best
+    /// window when band >= .fair") — a `.none`/`.low` night draws no band at all, matching the
+    /// aurora row's own "not worth mentioning" bar for those two levels.
+    private var auroraWindowForStrip: DateInterval? {
+        guard case .available(let outlook) = auroraState, outlook.band >= .fair else { return nil }
+        return outlook.bestViewingWindow
+    }
+
+    private func timelineStrip(window: DateInterval, astronomy: SkyTonight.TonightSky) -> some View {
+        NightSkyTimelineStrip(
+            window: window,
+            moonRise: astronomy.moon.rise,
+            moonSet: astronomy.moon.set,
+            planetBars: Self.timelinePlanetBars(astronomy.planets),
+            issPassTimes: issPassTimesForStrip,
+            auroraWindow: auroraWindowForStrip,
+            now: Date()
+        )
+    }
+
     // MARK: - Moon
 
     private func moonRow(_ moon: SkyTonight.MoonInfo) -> some View {
         let quarter = Self.moonQuarter(illuminatedPercent: moon.illuminatedPercent, phaseFraction: moon.phaseFraction)
         return VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 12) {
-                Image(systemName: Self.moonSymbolName(phaseFraction: moon.phaseFraction))
-                    .font(.title2)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(Color.clearSkyAccent)
-                    .frame(width: 28)
+                MoonPhaseDisc(illumination: moon.illuminatedPercent / 100, waxing: moon.waxing, diameter: 28, style: .dark)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(Self.moonPhaseName(phaseFraction: moon.phaseFraction))
                         .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
                     Text(Self.moonRiseSetText(moon))
                         .font(.caption)
                         .monospacedDigit()
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.white.opacity(0.65))
                 }
 
                 Spacer()
@@ -216,12 +312,12 @@ struct TonightSkyCard: View {
                 Text("\(Int(moon.illuminatedPercent.rounded()))%")
                     .font(.subheadline)
                     .monospacedDigit()
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.65))
             }
 
             Text(PhraseBank.skyMoon(quarter: quarter, date: date, locationId: location.id))
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.white.opacity(0.65))
         }
         .padding(.vertical, 8)
     }
@@ -238,19 +334,6 @@ struct TonightSkyCard: View {
         case 0.5625..<0.6875: return "Waning Gibbous"
         case 0.6875..<0.8125: return "Last Quarter"
         default: return "Waning Crescent"
-        }
-    }
-
-    private static func moonSymbolName(phaseFraction: Double) -> String {
-        switch phaseFraction {
-        case 0..<0.0625, 0.9375...1.0: return "moonphase.new.moon"
-        case 0.0625..<0.1875: return "moonphase.waxing.crescent"
-        case 0.1875..<0.3125: return "moonphase.first.quarter"
-        case 0.3125..<0.4375: return "moonphase.waxing.gibbous"
-        case 0.4375..<0.5625: return "moonphase.full.moon"
-        case 0.5625..<0.6875: return "moonphase.waning.gibbous"
-        case 0.6875..<0.8125: return "moonphase.last.quarter"
-        default: return "moonphase.waning.crescent"
         }
     }
 
@@ -277,14 +360,14 @@ struct TonightSkyCard: View {
             if visible.isEmpty {
                 Text(PhraseBank.skyNoPlanets(date: date, locationId: location.id))
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.65))
                     .padding(.vertical, 8)
             } else {
                 VStack(spacing: 0) {
                     ForEach(Array(visible.enumerated()), id: \.element.body) { index, planet in
                         planetRow(planet)
                         if index < visible.count - 1 {
-                            Divider()
+                            nightDivider
                         }
                     }
                 }
@@ -294,6 +377,7 @@ struct TonightSkyCard: View {
 
     private func planetRow(_ planet: SkyTonight.PlanetVisibility) -> some View {
         let isExpanded = expandedPlanet == planet.body
+        let color = TrueSkyLayer.dotColor(for: planet.body)
         return VStack(spacing: 0) {
             Button {
                 // Same spring + inline-fade mechanism as `DailyForecastRow.onTap`.
@@ -302,13 +386,21 @@ struct TonightSkyCard: View {
                 }
             } label: {
                 HStack(spacing: 10) {
+                    // Leading colored dot + glow (spec item 3) — the same `TrueSkyLayer` color
+                    // this planet renders as in the true-sky doodle, so the two surfaces agree.
+                    Circle()
+                        .fill(color)
+                        .frame(width: 10, height: 10)
+                        .shadow(color: color.opacity(0.9), radius: 4)
+
                     Text(planet.body.displayName)
                         .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
                         .frame(width: 62, alignment: .leading)
 
                     Text(planet.directionDescription ?? "")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.white.opacity(0.65))
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
 
@@ -318,12 +410,12 @@ struct TonightSkyCard: View {
                         Text(Self.windowText(start: start, end: end))
                             .font(.footnote)
                             .monospacedDigit()
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.white.opacity(0.65))
                     }
 
                     Image(systemName: "chevron.down")
                         .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color.white.opacity(0.4))
                         .rotationEffect(.degrees(isExpanded ? 180 : 0))
                 }
                 .padding(.vertical, 8)
@@ -349,16 +441,17 @@ struct TonightSkyCard: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(SkyFindItGuide.blurb(for: planet.body))
                 .font(.footnote)
+                .foregroundStyle(.white)
 
             if let magnitude = planet.apparentMagnitude {
                 Text(Self.magnitudeDescription(magnitude))
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.65))
             }
 
             Text(PhraseBank.skyPlanet(planet.body, date: date, locationId: location.id))
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.white.opacity(0.65))
                 .italic()
         }
         .padding(.leading, 8)
@@ -397,16 +490,17 @@ struct TonightSkyCard: View {
             if outlook.band == .none {
                 Text(PhraseBank.skyAurora(band: .none, date: date, locationId: location.id))
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.65))
                     .padding(.vertical, 8)
             } else {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(Self.auroraHeadline(outlook))
                         .font(.subheadline)
                         .monospacedDigit()
+                        .foregroundStyle(.white)
                     Text(PhraseBank.skyAurora(band: outlook.band, date: date, locationId: location.id))
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.white.opacity(0.65))
                 }
                 .padding(.vertical, 8)
             }
@@ -436,18 +530,20 @@ struct TonightSkyCard: View {
                     HStack(alignment: .firstTextBaseline) {
                         Text("\(meteorOutlook.shower.name) peaks tonight")
                             .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.white)
                         Spacer(minLength: 8)
                         Text(Self.windowText(start: meteorOutlook.bestWindow.start, end: meteorOutlook.bestWindow.end))
                             .font(.footnote)
                             .monospacedDigit()
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color.white.opacity(0.65))
                     }
                     Text(Self.meteorRateText(meteorOutlook))
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.white.opacity(0.65))
                 } else {
                     Text(Self.meteorBuildingText(meteorOutlook))
                         .font(.subheadline)
+                        .foregroundStyle(.white)
                 }
                 Text(PhraseBank.skyMeteor(
                     interference: meteorOutlook.moonInterference,
@@ -456,7 +552,7 @@ struct TonightSkyCard: View {
                     tokens: ["shower": meteorOutlook.shower.name]
                 ))
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.white.opacity(0.65))
             }
         }
         .padding(.vertical, 8)
@@ -516,18 +612,23 @@ struct TonightSkyCard: View {
             if passes.isEmpty {
                 Text(PhraseBank.skyNoISS(date: date, locationId: location.id))
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.65))
                     .padding(.vertical, 8)
             } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(Array(passes.prefix(2).enumerated()), id: \.offset) { _, pass in
-                        Text(Self.issPassText(pass))
-                            .font(.subheadline)
-                            .monospacedDigit()
+                HStack(alignment: .top, spacing: 10) {
+                    ISSTrajectoryGlyph()
+                        .padding(.top, 3)
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(Array(passes.prefix(2).enumerated()), id: \.offset) { _, pass in
+                            Text(Self.issPassText(pass))
+                                .font(.subheadline)
+                                .monospacedDigit()
+                                .foregroundStyle(.white)
+                        }
+                        Text(PhraseBank.skyISSPass(date: date, locationId: location.id))
+                            .font(.footnote)
+                            .foregroundStyle(Color.white.opacity(0.65))
                     }
-                    Text(PhraseBank.skyISSPass(date: date, locationId: location.id))
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 8)
             }
@@ -544,25 +645,26 @@ struct TonightSkyCard: View {
 
     /// Only rendered when `pairings` (tightest-separation first, see
     /// `Conjunctions.closePairings`'s doc comment) is non-empty — `body` passes `pairings.first`,
-    /// tonight's single closest pairing, and gates the row + its preceding `Divider()` on it
-    /// existing at all.
+    /// tonight's single closest pairing, and gates the row + its preceding divider on it existing
+    /// at all.
     private func conjunctionRow(_ pairing: Conjunctions.Pairing) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
                 Text("\(pairing.bodyA.displayName)-\(pairing.bodyB.displayName)")
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
                 Spacer(minLength: 8)
                 Text(Self.timeFormatter.string(from: pairing.bestViewingTime))
                     .font(.footnote)
                     .monospacedDigit()
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.65))
             }
             Text(Self.conjunctionDetailText(pairing))
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.white.opacity(0.65))
             Text(PhraseBank.skyPairing(date: date, locationId: location.id))
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.white.opacity(0.65))
         }
         .padding(.vertical, 8)
     }
@@ -592,7 +694,7 @@ struct TonightSkyCard: View {
     private var factRow: some View {
         Text(SkyFacts.tonight(date: date, locationId: location.id))
             .font(.footnote)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.white.opacity(0.65))
             .padding(.vertical, 8)
     }
 
@@ -603,14 +705,15 @@ struct TonightSkyCard: View {
             HStack {
                 Text(label)
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
                 Spacer()
                 Text("—")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.65))
             }
             Text(note)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.white.opacity(0.5))
         }
         .padding(.vertical, 8)
     }
@@ -618,7 +721,7 @@ struct TonightSkyCard: View {
     /// A single redacted-placeholder line for an async row still resolving (`.loading`).
     private var skeletonLine: some View {
         RoundedRectangle(cornerRadius: 6)
-            .fill(Color(.tertiarySystemFill))
+            .fill(Color.white.opacity(0.12))
             .frame(height: 16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 8)
@@ -630,7 +733,7 @@ struct TonightSkyCard: View {
         VStack(alignment: .leading, spacing: 12) {
             ForEach(0..<4, id: \.self) { _ in
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(Color(.tertiarySystemFill))
+                    .fill(Color.white.opacity(0.12))
                     .frame(height: 16)
             }
         }
@@ -642,4 +745,43 @@ struct TonightSkyCard: View {
         formatter.dateFormat = "h:mm a"
         return formatter
     }()
+}
+
+/// The night panel's signature deep-indigo gradient plus a fixed set of tiny static star specks —
+/// deliberately NOT animated (spec: "NO animation — static"), unlike the doodle hero's
+/// `TwinkleStar` (`TimeOfDaySkyBackground`) — this is a compact card background sitting behind
+/// live data, not a hero scene, so a busy twinkle loop here would compete with the rows on top of
+/// it rather than read as atmosphere.
+private struct NightPanelBackground: View {
+    /// (xFraction, yFraction, diameter, opacity) — ~14 tiny dots, 1-2pt, 0.3-0.5 white opacity,
+    /// per spec, at fixed positions (same "hand-placed constant array" pattern as
+    /// `TimeOfDaySkyBackground.starPositions`).
+    private static let starPositions: [(CGFloat, CGFloat, CGFloat, Double)] = [
+        (0.05, 0.06, 1.5, 0.40), (0.14, 0.22, 1.0, 0.30), (0.22, 0.09, 1.5, 0.45),
+        (0.31, 0.32, 1.0, 0.35), (0.40, 0.15, 1.5, 0.40), (0.52, 0.05, 1.0, 0.30),
+        (0.61, 0.27, 1.5, 0.50), (0.70, 0.12, 1.0, 0.35), (0.79, 0.30, 1.5, 0.40),
+        (0.88, 0.08, 1.0, 0.30), (0.93, 0.24, 1.5, 0.45), (0.10, 0.40, 1.0, 0.30),
+        (0.46, 0.38, 1.5, 0.35), (0.83, 0.42, 1.0, 0.40),
+    ]
+
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 13.0 / 255.0, green: 17.0 / 255.0, blue: 42.0 / 255.0),
+                    Color(red: 24.0 / 255.0, green: 30.0 / 255.0, blue: 66.0 / 255.0),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            GeometryReader { proxy in
+                ForEach(Array(Self.starPositions.enumerated()), id: \.offset) { _, star in
+                    Circle()
+                        .fill(Color.white.opacity(star.3))
+                        .frame(width: star.2, height: star.2)
+                        .position(x: proxy.size.width * star.0, y: proxy.size.height * star.1)
+                }
+            }
+        }
+    }
 }

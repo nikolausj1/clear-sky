@@ -218,7 +218,7 @@ final class SkyTonightService {
             ? .available([Self.syntheticISSPass(referenceDate: astro.sun.sunset ?? Date())])
             : (overrides.noISS ? .available([]) : real.iss)
         let aurora: SectionState<AuroraOutlook> = overrides.auroraBand
-            .map { SectionState.available(Self.syntheticAuroraOutlook(band: $0)) } ?? real.aurora
+            .map { SectionState.available(Self.syntheticAuroraOutlook(band: $0, referenceDate: astro.sun.sunset ?? date)) } ?? real.aurora
 
         let moment = Self.bestMoment(astronomy: astro, iss: Self.availableValue(iss) ?? [], aurora: Self.availableValue(aurora), meteor: meteor, pairings: pairings)
         return State(astronomy: astro, iss: iss, aurora: aurora, meteor: meteor, pairings: pairings, bestMoment: moment)
@@ -261,6 +261,20 @@ final class SkyTonightService {
     /// up the main actor for `AuroraTonight.fetch` either. ISS and aurora are fetched
     /// concurrently and independently degrade to `.unavailable` — one failing never blocks or
     /// delays the other.
+    /// Tonight's civil-dusk -> tomorrow-dawn window, for `TonightSkyCard`'s dusk-to-dawn timeline
+    /// strip (Editor's-Choice sky-surfaces elevation). Reuses `tonightWindow`'s already-correct
+    /// "today's dusk, TOMORROW's dawn" math (see that function's doc comment for the civilDawn
+    /// gotcha this avoids) rather than re-deriving it. `nil` when either edge is unavailable
+    /// (polar edge cases) or the window would be inverted — callers should hide the strip
+    /// gracefully rather than render a nonsensical or negative-width axis.
+    nonisolated static func duskDawnWindow(
+        latitude: Double, longitude: Double, date: Date, timeZone: TimeZone
+    ) -> DateInterval? {
+        let window = tonightWindow(latitude: latitude, longitude: longitude, date: date, timeZone: timeZone)
+        guard let start = window.civilDuskTonight, let end = window.civilDawnTomorrow, end > start else { return nil }
+        return DateInterval(start: start, end: end)
+    }
+
     private nonisolated func fetchFresh(
         latitude: Double,
         longitude: Double,
@@ -386,7 +400,17 @@ final class SkyTonightService {
         )
     }
 
-    private nonisolated static func syntheticAuroraOutlook(band: AuroraBand) -> AuroraOutlook {
+    /// `referenceDate` anchors the synthetic 2-4-hours-out window to tonight's actual evening
+    /// (same "anchor to the real sunset, not raw wall-clock `Date()`" fix `syntheticISSPass`
+    /// already applies) rather than to whenever this happens to be called — defaulted to
+    /// `Date()` only so any future call site that genuinely has no better anchor still compiles.
+    /// **Sim-verify bug this fixes:** before this fix, calling `-forceAuroraBand` while
+    /// sim-verifying outside evening hours (e.g. testing at 2 AM) produced a window based on the
+    /// CURRENT wall-clock instant, which could land entirely outside `TonightSkyCard`'s own
+    /// dusk-tonight -> dawn-tomorrow window — invisible to `NightSkyTimelineStrip`'s
+    /// window-overlap logic (caught during this package's own sim-verify: the forced aurora band
+    /// silently failed to draw on the timeline strip whenever it was tested overnight).
+    private nonisolated static func syntheticAuroraOutlook(band: AuroraBand, referenceDate: Date = Date()) -> AuroraOutlook {
         let chanceNow: Int
         switch band {
         case .none: chanceNow = 2
@@ -395,7 +419,7 @@ final class SkyTonightService {
         case .good: chanceNow = 45
         case .strong: chanceNow = 70
         }
-        let now = Date()
+        let now = referenceDate
         let window = DateInterval(start: now.addingTimeInterval(2 * 3600), end: now.addingTimeInterval(4 * 3600))
         return AuroraOutlook(
             chanceNow: chanceNow,
