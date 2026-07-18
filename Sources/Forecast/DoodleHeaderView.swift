@@ -19,7 +19,9 @@ import UIKit
 /// and `ForecastView`'s TabView both apply `ignoresSafeArea(edges: .top)`, and both are needed:
 /// see the comments at those two sites). When `current` is supplied it also overlays the big
 /// condition-symbol + temperature + feels-like group that used to live in the standalone
-/// `CurrentConditionsView` (removed — see that file's doc comment).
+/// `CurrentConditionsView` (removed, along with its sheet-level sibling `CopyLinesView`'s
+/// summary/comparison text block — the hero's compact temp cluster + space block now carry
+/// that job; work package "five UI refinements", item 1).
 struct DoodleHeaderView: View {
     let current: CurrentConditions?
     /// Phase 4 fills this from the phrase bank. `nil` renders nothing.
@@ -84,6 +86,15 @@ struct DoodleHeaderView: View {
     /// populated).
     @State private var cachedScene: DoodleComposer.Scene? = nil
     @State private var cachedSceneKey: String? = nil
+    /// Header/chrome refinements (work package "five UI refinements", item 5): the space block's
+    /// detail line used to truncate at `lineLimit(2)` ("It looks like a…" for the longest real
+    /// copy — the ISS pass detail sentence). Now unlimited, so the scrim behind it needs to grow
+    /// to match rather than staying pinned at the old fixed `scrimHeight` (tuned for the short
+    /// no-detail/1-line case) — this measures `spaceHeroBlock`'s actual laid-out height (via
+    /// `.onGeometryChange`, the same measurement technique `ForecastPageView`'s
+    /// `heroTopOffsetSentinel` already uses) so `captionScrim` can size itself off real content,
+    /// including at accessibility text sizes.
+    @State private var measuredSpaceBlockHeight: CGFloat = 0
 
     private var fetchedAuroraBand: AuroraBand? {
         fetchedSkyState.flatMap { SkyTonightService.availableValue($0.aurora) }?.band
@@ -427,8 +438,13 @@ struct DoodleHeaderView: View {
                     // spans the entire header edge-to-edge — a hard-edged box around just the
                     // text (the previous behavior, when the gradient was a `.background()` on
                     // the Text itself) is exactly the visible-box artifact this is fixing.
+                    //
+                    // Item 5: height now tracks `measuredSpaceBlockHeight` (floored at the
+                    // original tuned `scrimHeight`) instead of a fixed constant, so a longer
+                    // wrapped detail line — or accessibility-size type — keeps the scrim under
+                    // the full text block rather than fading out partway up it.
                     captionScrim
-                        .frame(height: Self.scrimHeight)
+                        .frame(height: max(Self.scrimHeight, measuredSpaceBlockHeight + Self.scrimTopBuffer))
                         .allowsHitTesting(false)
                 }
 
@@ -446,9 +462,39 @@ struct DoodleHeaderView: View {
                         // state) — a no-op tap on the loading/error/empty previews, which pass
                         // no closure.
                         .onTapGesture { onCaptionTap?() }
+                        // Item 5: measures the block's real laid-out height (inclusive of its
+                        // own padding above) so `captionScrim` above can grow to match — see
+                        // `measuredSpaceBlockHeight`'s doc comment.
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { _, newHeight in
+                            measuredSpaceBlockHeight = newHeight
+                        }
                 }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
+            // Item 5, accessibility-XL fix: sim-verify at the top accessibility text size
+            // (`_review/v1-header-xl.png`) showed the un-capped space block growing tall enough
+            // to push past the fixed-height hero entirely — clipped at the top by `.clipped()`
+            // below, with `ForecastView`'s custom top chrome bar (a SEPARATE overlay above this
+            // whole view, not a sibling inside it) left floating in front of the overflow,
+            // reading as the title colliding with the caption. Two further passes tried capping
+            // growth at `.accessibility2`, then `.xxxLarge` (top of the STANDARD range); both
+            // still let the space block's top edge grow up into the independently-positioned
+            // temperature cluster (fixed at `topChromeClearance` regardless of type size) —
+            // the two only ever had the gap the original `scrimHeight`/layout constants were
+            // tuned against (~100pt, at the system's own default size) to share, and `heroHeight`
+            // itself is a deliberate, widely-depended-on constant (parallax math, sheet overlap,
+            // the scroll pull-up fix) not worth making content-driven for this scoped a package.
+            // Landed on capping the hero's own text at `.large` — the system's DEFAULT size, i.e.
+            // this hero simply doesn't grow with the text-size setting at all — which is exactly
+            // the geometry already verified collision-free in `_review/v1-header-full-text.png`.
+            // This hero is fixed-height decorative art with the temperature/caption overlaid on
+            // it (the same category of UI Apple's own Weather app caps rather than reflows for
+            // accessibility sizes); the actual accessibility win from this work item — the detail
+            // line no longer truncating ("It looks like a…") — is preserved at every text size,
+            // full accessibility scaling included, on the sheet content below. Scoped to just
+            // this hero: the sheet (chips, hourly/daily rows, Tonight's Sky card) is unaffected
+            // and keeps scaling all the way to the system's largest accessibility size.
+            .dynamicTypeSize(.large)
         }
         .frame(height: Self.heroHeight)
         .frame(maxWidth: .infinity)
@@ -544,17 +590,28 @@ struct DoodleHeaderView: View {
                 // `TonightHeadline` actually resolved one (event/overcast tiers always have one;
                 // the quieter fact tiers, and the phrase-bank `caption` fallback, may not).
                 if let detail = tonightHeadline?.detailText {
+                    // Item 5: was `.lineLimit(2)`, which truncated the longest real copy (the
+                    // ISS pass detail sentence — "Rising low in the ... It looks like a bright,
+                    // steady star moving fast." routinely runs 3 lines). Unlimited + `fixedSize`
+                    // so the text lays out at its full natural height instead of being
+                    // compressed/clipped by an ambient height proposal from the parent `VStack`.
                     Text(detail)
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.75))
                         .multilineTextAlignment(.center)
-                        .lineLimit(2)
+                        .lineLimit(nil)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
     }
 
     private static let scrimHeight: CGFloat = 112
+    /// Item 5: extra headroom added above `measuredSpaceBlockHeight` so the scrim keeps fading
+    /// in cleanly above the text (matching the original tuned `scrimHeight`'s proportions —
+    /// see this and that constant's shared use in `captionScrim`'s `.frame(height:)` call)
+    /// instead of clipping the gradient's fade-in right at the text's top edge.
+    private static let scrimTopBuffer: CGFloat = 40
 
     /// A full-width, bottom-anchored dark gradient so the caption stays legible over every
     /// season/weather/time-of-day combination — including bright scenes like a snowy winter day

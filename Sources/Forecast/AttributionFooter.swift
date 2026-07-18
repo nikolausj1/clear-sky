@@ -5,41 +5,25 @@ import SwiftUI
 /// satisfies that per the PRD's own note ("a footer at the end of the scroll content is
 /// acceptable and standard").
 ///
-/// Renders the official Apple Weather mark (light/dark aware, via `WeatherAttributionInfo`'s
-/// `combinedMarkLightURL`/`combinedMarkDarkURL`) rather than plain text, per Apple's attribution
-/// guidelines — falling back to the plain "Weather data provided by <serviceName>" text if the
-/// mark image hasn't loaded (or fails to), so attribution is never silently missing.
+/// Header/chrome refinements (work package "five UI refinements", item 2): minimized to one
+/// discreet, tappable caption line — the required trademark stays present as text (the Apple
+/// logo glyph, `U+F8FF`, paired with the service name — the standard text-only substitute for
+/// Apple's combined image mark when a compact single line is wanted), it just no longer
+/// competes visually with the hero/sheet content below it. The previous `AsyncImage`-loaded
+/// combined mark (light/dark aware) is gone; Settings (`SettingsView`) keeps its own fuller
+/// attribution block unchanged — this is Forecast-surface only.
 struct AttributionFooter: View {
-    @Environment(\.colorScheme) private var colorScheme
     let attribution: WeatherAttributionInfo
-
-    private var markURL: URL {
-        colorScheme == .dark ? attribution.combinedMarkDarkURL : attribution.combinedMarkLightURL
-    }
 
     var body: some View {
         Link(destination: attribution.legalPageURL) {
-            VStack(spacing: 6) {
-                AsyncImage(url: markURL) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 20)
-                    default:
-                        Text("Weather data provided by \(attribution.serviceName)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Text("Legal")
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(.secondary)
-            }
+            Text("\u{F8FF} \(attribution.serviceName) · Legal")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .multilineTextAlignment(.center)
         }
         .buttonStyle(.plain)
-        .frame(maxWidth: .infinity)
         .padding(.vertical, 20)
     }
 }

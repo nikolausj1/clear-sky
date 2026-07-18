@@ -172,7 +172,15 @@ struct RankingsView: View {
                     }
                 }
             }
-            .padding(16)
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+            // Floating-bar package (item 3): matches `ForecastPageView.sheetSurface`'s /
+            // `SpaceView`'s own bottom clearance convention -- without it the last row sat
+            // flush against the floating bottom bar (`NavigationShell.floatingBar`), and with
+            // a short list the whole visible screen was flat `.systemGroupedBackground` behind
+            // the bar with nothing ever scrolling beneath it, reading as a solid opaque band
+            // rather than content floating under a translucent capsule.
+            .padding(.bottom, 70)
         }
         .background(Color(.systemGroupedBackground))
     }

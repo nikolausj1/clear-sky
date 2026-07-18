@@ -360,11 +360,6 @@ struct ForecastPageView: View {
                                 AdvisoryBanner(alerts: payload.activeAlerts, isPresentingDetail: $isPresentingAlertDetail)
                             }
 
-                            CopyLinesView(
-                                summary: viewModel.summaryLine(location: location, payload: payload, unit: unitsSettings.unit),
-                                comparison: viewModel.comparisonLine(location: location, payload: payload, unit: unitsSettings.unit)
-                            )
-
                             MetricChipsRow(selected: $viewModel.selectedMetric)
 
                             SheetCard(title: "HOURLY FORECAST") {

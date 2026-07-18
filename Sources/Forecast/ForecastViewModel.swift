@@ -421,18 +421,6 @@ final class ForecastViewModel {
 // never needs to invalidate/recompute anything eagerly; `ForecastPageView` just calls these
 // on render.
 extension ForecastViewModel {
-    /// PRD Section 6, item 4: "Dry-wit summary line - plain-language read on the day's
-    /// conditions from the phrase bank."
-    func summaryLine(location: SavedLocation, payload: CachedWeather, unit: TemperatureUnit) -> String {
-        PhraseBank.summary(
-            condition: effectiveConditionGroup(for: payload),
-            tempBand: effectiveTempBand(for: payload),
-            date: phraseBankDate,
-            locationId: location.id,
-            tokens: phraseTokens(location: location, payload: payload, unit: unit)
-        )
-    }
-
     /// PRD Section 6, item 1: the doodle header's "one-line dry-wit caption keyed to date +
     /// current conditions."
     func doodleCaptionLine(location: SavedLocation, payload: CachedWeather, unit: TemperatureUnit) -> String {
@@ -442,42 +430,6 @@ extension ForecastViewModel {
             date: phraseBankDate,
             locationId: location.id,
             tokens: phraseTokens(location: location, payload: payload, unit: unit)
-        )
-    }
-
-    /// PRD Section 6, item 5: "Data source: WeatherKit's historical/daily comparison data
-    /// where available, with yesterday's cached actuals (`CachedWeather.dailyActuals`) as the
-    /// fallback; if neither exists yet (first day of use), the line is omitted rather than
-    /// faked." WeatherKit's native framework has no simple "yesterday's observed weather" API
-    /// distinct from the forward-looking daily forecast, so in practice this app has only ever
-    /// had the `dailyActuals` fallback to implement (Phase 3's `WeatherStore` already builds
-    /// that rolling history from each day's fetch) — there is no separate "historical
-    /// comparison" primary source to wire up. Returns `nil` (render nothing) whenever
-    /// yesterday's actual isn't in the rolling window yet.
-    func comparisonLine(location: SavedLocation, payload: CachedWeather, unit: TemperatureUnit) -> String? {
-        guard let today = payload.daily.first else { return nil }
-        let calendar = Calendar.current
-        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: today.date)) else { return nil }
-        guard let yesterdayActual = payload.dailyActuals.first(where: { calendar.isDate($0.date, inSameDayAs: yesterday) }) else {
-            return nil
-        }
-
-        let todayHighF = today.high.converted(to: .fahrenheit).value
-        let yesterdayHighF = yesterdayActual.observedHigh.converted(to: .fahrenheit).value
-        let deltaF = (todayHighF - yesterdayHighF).rounded()
-
-        let direction: PhraseBank.ComparisonDirection = deltaF > 0 ? .warmer : (deltaF < 0 ? .cooler : .same)
-        let magnitude: PhraseBank.ComparisonMagnitude? = direction == .same ? nil : .forDelta(abs(deltaF))
-
-        var tokens = phraseTokens(location: location, payload: payload, unit: unit)
-        tokens["delta"] = TemperatureFormatting.deltaString(fahrenheitDelta: abs(deltaF), unit: unit)
-
-        return PhraseBank.comparison(
-            direction: direction,
-            magnitude: magnitude,
-            date: phraseBankDate,
-            locationId: location.id,
-            tokens: tokens
         )
     }
 
