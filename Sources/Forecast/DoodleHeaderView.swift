@@ -139,14 +139,68 @@ struct DoodleHeaderView: View {
     /// (`Dynamic Island`) and shortest supported device's status-bar height.
     private static let topChromeClearance: CGFloat = 150
 
+    // MARK: - Tonight preview (always-night hero)
+
+    /// The owner's decision: the hero always shows a preview of TONIGHT's sky, resolved to
+    /// either a live view of the sky right now (dark hours) or a fixed point later this evening
+    /// (daytime viewing). `nil` location (loading/error/empty previews — no coordinate to run
+    /// the dusk/dawn math against) falls back to "live now, not a preview" — the same
+    /// "no regression" fallback every other location-dependent computation on this view uses.
+    private var tonightPreview: DoodleComposer.TonightPreviewResolution {
+        guard let location else { return DoodleComposer.TonightPreviewResolution(representativeDate: date, isForecastPreview: false) }
+        return DoodleComposer.resolveTonightPreview(now: date, latitude: location.latitude, longitude: location.longitude)
+    }
+
+    /// The instant in time the hero scene actually depicts — "now" whenever `date` (the real or
+    /// `-forceDate`d wall clock) already falls inside tonight's dark window, else this evening's
+    /// dusk + 90 minutes. Everything time-based below (season/moon phase via `Scene.date`, real
+    /// planet positions, the aurora/ISS network fetch, tonight's forecast condition lookup) is
+    /// anchored to this, not to `date` directly, so the whole scene depicts one consistent
+    /// moment.
+    private var representativeDate: Date { tonightPreview.representativeDate }
+
+    /// True when the scene is a forecast (a sky not yet reached) rather than a live view —
+    /// drives the "A look at tonight's sky" caption below.
+    private var isForecastPreview: Bool { tonightPreview.isForecastPreview }
+
+    /// Location terrain integration: which curated landscape art set matches the display
+    /// location, via the offline `TerrainClassifier`. `.hills` (the pre-existing default) for
+    /// the no-location states, matching their usual fallback.
+    private var terrainClass: TerrainClass {
+        guard let location else { return .hills }
+        return TerrainClassifier.classify(latitude: location.latitude, longitude: location.longitude)
+    }
+
+    /// How close (in either direction) an hourly entry needs to land to `representativeDate` to
+    /// count as "reaching that far" — generous relative to the ~1h hourly cadence so a
+    /// representative time that lands between two hourly stamps still resolves, while a
+    /// genuinely out-of-coverage representative time (hourly data that stops short of tonight)
+    /// correctly falls through to the `current`-conditions fallback below.
+    private static let tonightConditionMaxGap: TimeInterval = 90 * 60
+
+    /// Tonight-preview composer mode: the nearest hourly forecast entry's `conditionCode` to
+    /// `representativeDate`, so the weather-condition layer draws TONIGHT's forecast condition
+    /// rather than whatever's happening right now. `nil` when `hourly` is empty or its coverage
+    /// doesn't reach anywhere near `representativeDate` — `DoodleComposer.resolve` documents the
+    /// matching fallback to `current`'s condition in that case.
+    private var tonightConditionCode: String? {
+        guard let nearest = hourly.min(by: {
+            abs($0.date.timeIntervalSince(representativeDate)) < abs($1.date.timeIntervalSince(representativeDate))
+        }) else { return nil }
+        guard abs(nearest.date.timeIntervalSince(representativeDate)) <= Self.tonightConditionMaxGap else { return nil }
+        return nearest.conditionCode
+    }
+
     private var scene: DoodleComposer.Scene {
         DoodleComposer.resolve(
-            date: date,
+            date: representativeDate,
             current: current,
             sunrise: sunrise,
             sunset: sunset,
             forcedCondition: forcedCondition,
             forcedTimeOfDay: forcedTimeOfDay,
+            terrainClass: terrainClass,
+            tonightConditionCode: tonightConditionCode,
             trueSkyPlanets: currentPlanetPositions,
             trueSkyAuroraBand: fetchedAuroraBand,
             trueSkyISSPasses: fetchedISSPasses,
@@ -165,17 +219,21 @@ struct DoodleHeaderView: View {
 
     /// Synchronous, pure math (no network) — recomputed on every render just like
     /// `TonightSkyCard`'s own `SkyTonightService.astronomy(...)` call, so this never waits on
-    /// the async aurora/ISS fetch below.
+    /// the async aurora/ISS fetch below. Evaluated at `representativeDate` (not raw `date`) so a
+    /// daytime preview shows tonight's actual planet positions, not right-now's.
     private var currentPlanetPositions: [SkyTonight.CurrentPlanetPosition] {
         guard let location else { return [] }
-        return SkyTonight.currentPlanetPositions(date: date, latitude: location.latitude, longitude: location.longitude)
+        return SkyTonight.currentPlanetPositions(date: representativeDate, latitude: location.latitude, longitude: location.longitude)
     }
 
     /// Re-runs whenever the location, calendar evening, or a forced aurora/ISS override changes
-    /// — mirrors `TonightSkyCard.taskKey`'s exact rationale.
+    /// — mirrors `TonightSkyCard.taskKey`'s exact rationale. Keyed on `representativeDate` rather
+    /// than raw `date`; both fall on the same calendar day (the representative time is always
+    /// either "now" or later the same evening), so this is a no-op change for the cache key in
+    /// practice, kept in sync with `loadTrueSkyNetworkState()`'s own switch to it below.
     private var trueSkyTaskKey: String {
         guard let location else { return "none" }
-        var parts = ["\(location.id)", "\(Calendar.current.startOfDay(for: date).timeIntervalSince1970)"]
+        var parts = ["\(location.id)", "\(Calendar.current.startOfDay(for: representativeDate).timeIntervalSince1970)"]
         if let overrides = skyForcedOverrides {
             parts.append("band=\(overrides.auroraBand?.description ?? "nil")")
             parts.append("issPass=\(overrides.issPass)")
@@ -191,7 +249,7 @@ struct DoodleHeaderView: View {
             locationId: location.id,
             latitude: location.latitude,
             longitude: location.longitude,
-            date: date,
+            date: representativeDate,
             overrides: skyForcedOverrides
         )
         fetchedSkyState = result
@@ -295,32 +353,45 @@ struct DoodleHeaderView: View {
                 }
 
                 if let resolvedCaption {
-                    Text(resolvedCaption)
-                        .font(.subheadline.weight(.medium))
-                        .tracking(0.3)
-                        .foregroundStyle(.white)
-                        // Legibility pass (illustrated-landscape integration): the caption now
-                        // sits directly over painted landscape (rather than a flat gradient
-                        // rectangle), and pale scenes — winter's snow strip especially — can
-                        // leave the scrim below under-darkened at the caption's exact height.
-                        // A small matching shadow to the hero temp group's own treatment is the
-                        // cheapest fix and reads consistently across every season.
-                        .shadow(color: .black.opacity(0.35), radius: 4, y: 1)
-                        .multilineTextAlignment(.center)
-                        // UX polish package ("Typography"): prefer a single line, but wrap
-                        // gracefully to a second rather than truncating a factual line mid-word.
-                        .lineLimit(2)
-                        .padding(.horizontal, 24)
-                        // Nudged up by `sheetOverlap` beyond its original 14pt clearance so the
-                        // caption stays fully visible above the content sheet's curved top edge,
-                        // which now overlaps this scene by that same amount.
-                        .padding(.bottom, 14 + Self.sheetOverlap)
-                        .frame(maxWidth: .infinity)
-                        .contentShape(Rectangle())
-                        // Work item 1: tapping the caption scrolls to the Tonight's Sky card.
-                        // Only active when the caller supplied a target (the loaded state) — a
-                        // no-op tap on the loading/error/empty previews, which pass no closure.
-                        .onTapGesture { onCaptionTap?() }
+                    VStack(spacing: 4) {
+                        // Always-night hero, preview label: only shown when the scene is a
+                        // forecast (daytime viewing, previewing this evening's sky) rather than
+                        // a live view — at night the scene IS the live sky, so no label per the
+                        // owner's decision ("no exclamations... factual, no label at night").
+                        if isForecastPreview {
+                            Text("A look at tonight's sky")
+                                .font(.caption2)
+                                .foregroundStyle(.white.opacity(0.55))
+                                .multilineTextAlignment(.center)
+                        }
+
+                        Text(resolvedCaption)
+                            .font(.subheadline.weight(.medium))
+                            .tracking(0.3)
+                            .foregroundStyle(.white)
+                            // Legibility pass (illustrated-landscape integration): the caption now
+                            // sits directly over painted landscape (rather than a flat gradient
+                            // rectangle), and pale scenes — winter's snow strip especially — can
+                            // leave the scrim below under-darkened at the caption's exact height.
+                            // A small matching shadow to the hero temp group's own treatment is the
+                            // cheapest fix and reads consistently across every season.
+                            .shadow(color: .black.opacity(0.35), radius: 4, y: 1)
+                            .multilineTextAlignment(.center)
+                            // UX polish package ("Typography"): prefer a single line, but wrap
+                            // gracefully to a second rather than truncating a factual line mid-word.
+                            .lineLimit(2)
+                    }
+                    .padding(.horizontal, 24)
+                    // Nudged up by `sheetOverlap` beyond its original 14pt clearance so the
+                    // caption stays fully visible above the content sheet's curved top edge,
+                    // which now overlaps this scene by that same amount.
+                    .padding(.bottom, 14 + Self.sheetOverlap)
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+                    // Work item 1: tapping the caption scrolls to the Tonight's Sky card.
+                    // Only active when the caller supplied a target (the loaded state) — a
+                    // no-op tap on the loading/error/empty previews, which pass no closure.
+                    .onTapGesture { onCaptionTap?() }
                 }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)

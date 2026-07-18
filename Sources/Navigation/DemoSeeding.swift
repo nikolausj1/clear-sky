@@ -20,6 +20,9 @@ enum DemoSeeding {
         // Phase 6 (Rankings): hot/dry vs. Seattle's wet gives the seeded ranking score spread
         // room to show a real order, not four cities clustered in the same band.
         "Phoenix,AZ": CLLocationCoordinate2D(latitude: 33.4484, longitude: -112.0740),
+        // Location terrain integration sim-verify: the coast terrain case (Seattle already
+        // covers mountains, Phoenix covers desert, Tomah covers the hills default).
+        "Miami,FL": CLLocationCoordinate2D(latitude: 25.7617, longitude: -80.1918),
     ]
 
     static func parse(_ raw: String) -> [(name: String, coordinate: CLLocationCoordinate2D)] {

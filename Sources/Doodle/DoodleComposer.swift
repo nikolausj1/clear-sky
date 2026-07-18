@@ -58,11 +58,73 @@ enum DoodleComposer {
         case northern, southern
     }
 
+    // MARK: - Tonight-preview representative time (always-night hero)
+
+    /// The owner's decision (build brief, "always-night tonight preview"): the hero no longer
+    /// mirrors the current moment — it always shows a preview of TONIGHT's sky. This resolves
+    /// *which instant in time* that preview depicts: `now` itself when `now` already falls
+    /// inside tonight's dark window (a genuinely live view of the current sky), or a fixed point
+    /// this evening when it doesn't (daytime viewing shows a preview of a sky not reached yet).
+    struct TonightPreviewResolution: Equatable {
+        var representativeDate: Date
+        /// True when `representativeDate` hasn't happened yet relative to `now` — i.e. `now`
+        /// fell outside tonight's dark window, so the scene is a forecast preview rather than a
+        /// live one. Drives the "A look at tonight's sky" caption (`DoodleHeaderView`).
+        var isForecastPreview: Bool
+    }
+
+    /// How long after tonight's civil dusk the "upcoming" representative time sits, when `now`
+    /// falls outside tonight's dark window (i.e. it's currently daytime): per work order,
+    /// "upcoming dusk + 90 minutes" — solidly past the dusk instant itself, into full-dark,
+    /// stars-out evening, rather than the strip of afterglow dusk still carries.
+    private static let previewDuskOffset: TimeInterval = 90 * 60
+
+    /// Resolves the representative time per the rule above. `latitude`/`longitude` are the
+    /// DISPLAY location's coordinates (per work order: "thread the display location through to
+    /// the classifier" — the same location this feeds into `TerrainClassifier`), used only to
+    /// compute tonight's civil dusk/dawn via `SkyTonightService.duskDawnWindow` (the exact same
+    /// dusk/dawn math `TonightSkyCard`/`DoodleHeaderView`'s Tonight Headline already rely on — no
+    /// second astronomy implementation). Checks BOTH tonight's window (today's dusk -> tomorrow's
+    /// dawn, in case `now` is this evening/night) and yesterday's (yesterday's dusk -> today's
+    /// dawn, in case `now` is the early-morning hours before today's dawn) — a single "today's"
+    /// window alone would wrongly call 2 AM "daytime" (today's dusk is still hours in the
+    /// future; only yesterday's window actually covers the current dark stretch).
+    static func resolveTonightPreview(
+        now: Date,
+        latitude: Double,
+        longitude: Double,
+        timeZone: TimeZone = .current
+    ) -> TonightPreviewResolution {
+        let todayWindow = SkyTonightService.duskDawnWindow(latitude: latitude, longitude: longitude, date: now, timeZone: timeZone)
+        let yesterdayWindow = SkyTonightService.duskDawnWindow(latitude: latitude, longitude: longitude, date: now.addingTimeInterval(-86400), timeZone: timeZone)
+
+        if todayWindow?.contains(now) == true || yesterdayWindow?.contains(now) == true {
+            return TonightPreviewResolution(representativeDate: now, isForecastPreview: false)
+        }
+
+        if let dusk = todayWindow?.start {
+            return TonightPreviewResolution(representativeDate: dusk.addingTimeInterval(previewDuskOffset), isForecastPreview: true)
+        }
+
+        // Polar edge case: dusk/dawn didn't resolve at all (polar day/night). Rather than
+        // fabricate a time with no real dusk to anchor to, fall back to "now" and treat it as
+        // live — same "no regression" fallback spirit as the rest of this file.
+        return TonightPreviewResolution(representativeDate: now, isForecastPreview: false)
+    }
+
     // MARK: - Time-of-day lighting (layer 4 input)
 
     enum TimeOfDay: String, CaseIterable {
         case dawn, day, dusk, night
 
+        /// **Documented revert lever:** this full day/dawn/dusk/night resolution is no longer
+        /// called by `resolve(...)` below — the always-night hero (owner's decision, build
+        /// brief) hardcodes `.night` there instead. Kept intact (not deleted) specifically so a
+        /// future decision to revert to "mirror the current moment" only needs to swap that one
+        /// call site back to `TimeOfDay.resolve(...)`, not reconstruct this logic from git
+        /// history. `-forceTimeOfDay` (sim-verify) still bypasses both paths via `resolve`'s own
+        /// `forcedTimeOfDay ?? .night` — it never routes through this function either.
+        ///
         /// Prefers real sunrise/sunset (from `DailyEntry`) when available: dawn/dusk are the
         /// ~40-minute windows straddling sunrise/sunset, day is strictly between them, night is
         /// everything else. Falls back to an hour-of-day heuristic (gated by `isDaylight`) when
@@ -208,6 +270,11 @@ enum DoodleComposer {
         var condition: ConditionCategory
         var specialDay: SpecialDay?
         var trueSky: TrueSkyScene = TrueSkyScene()
+        /// Location terrain integration: which of `IllustratedLandscapeLayer`'s curated art sets
+        /// (mountains/desert/coast/hills) matches the display location. `.hills` — the existing
+        /// default landscape — for every call site that doesn't pass a location (loading/error/
+        /// empty previews), matching those states' existing "no regression" fallback pattern.
+        var terrainClass: TerrainClass = .hills
     }
 
     /// Layers 1-4 always resolve (there is no "off" state for season/condition/time-of-day —
@@ -216,11 +283,23 @@ enum DoodleComposer {
     static func resolve(
         date: Date,
         current: CurrentConditions?,
+        /// Unused by this function's own `timeOfDay` resolution now that the hero is always-
+        /// night (see `TimeOfDay.resolve`'s doc comment on the revert lever this bypasses) — kept
+        /// as parameters (not removed) purely so a future revert only has to change the one
+        /// `timeOfDay` line above, not this call site's signature too.
         sunrise: Date?,
         sunset: Date?,
         forcedCondition: ConditionCategory? = nil,
         forcedTimeOfDay: TimeOfDay? = nil,
         hemisphere: Hemisphere = .northern,
+        terrainClass: TerrainClass = .hills,
+        /// Tonight-preview composer mode: the nearest hourly forecast entry's `conditionCode` to
+        /// the representative time (`date`, already resolved to "now" or "this evening" by the
+        /// caller — see `resolveTonightPreview`), so the weather-condition layer reflects
+        /// TONIGHT's forecast instead of the current moment. `nil` when the caller has no hourly
+        /// coverage reaching that far (falls back to `current`'s condition below — same
+        /// documented fallback every other optional input here uses).
+        tonightConditionCode: String? = nil,
         trueSkyPlanets: [SkyTonight.CurrentPlanetPosition] = [],
         trueSkyAuroraBand: AuroraBand? = nil,
         trueSkyISSPasses: [ISSPass] = [],
@@ -236,13 +315,16 @@ enum DoodleComposer {
         forceLaunchContrail: Bool = false
     ) -> Scene {
         let season = Season.current(for: date, hemisphere: hemisphere)
-        let condition = forcedCondition ?? ConditionCategory.category(forRawCode: current?.conditionCode ?? "clear")
-        let timeOfDay = forcedTimeOfDay ?? TimeOfDay.resolve(
-            date: date,
-            isDaylight: current?.isDaylight,
-            sunrise: sunrise,
-            sunset: sunset
-        )
+        // Always-night hero (owner's decision): the weather-condition layer draws TONIGHT's
+        // forecast condition (nearest hourly entry to the representative time), not whatever
+        // `current` happens to be right now — `tonightConditionCode` is `nil` only when the
+        // caller has no hourly coverage reaching the representative time, in which case this
+        // falls back to `current`'s condition (same as the old, pre-tonight-preview behavior).
+        let condition = forcedCondition ?? ConditionCategory.category(forRawCode: tonightConditionCode ?? current?.conditionCode ?? "clear")
+        // Always-night hero: the hero's sky is always the night palette + stars now — see
+        // `TimeOfDay.resolve`'s doc comment for the documented revert lever this bypasses.
+        // `-forceTimeOfDay` still overrides for sim-verify, exactly as before.
+        let timeOfDay = forcedTimeOfDay ?? .night
         let specialDay = SpecialDayTable.specialDay(for: date)
         let trueSky = resolveTrueSky(
             date: date,
@@ -260,7 +342,7 @@ enum DoodleComposer {
             forceConjunctionScene: forceConjunctionScene,
             forceLaunchContrail: forceLaunchContrail
         )
-        return Scene(date: date, season: season, timeOfDay: timeOfDay, condition: condition, specialDay: specialDay, trueSky: trueSky)
+        return Scene(date: date, season: season, timeOfDay: timeOfDay, condition: condition, specialDay: specialDay, trueSky: trueSky, terrainClass: terrainClass)
     }
 
     /// The minimum altitude (degrees) a planet needs to clear before the true-sky doodle bothers
