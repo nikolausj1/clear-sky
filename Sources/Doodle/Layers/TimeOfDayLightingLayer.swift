@@ -13,6 +13,13 @@ import SwiftUI
 /// `condition`.
 struct TimeOfDaySkyBackground: View {
     let timeOfDay: DoodleComposer.TimeOfDay
+    /// True-sky doodle QC fix (defect 2, "planets indistinguishable from twinkle stars"): needed
+    /// only so a decorative `TwinkleStar` can be suppressed when it would otherwise land within
+    /// ~30pt of a real `TrueSkyLayer` planet dot — see `nearbyPlanetPoints`. Defaulted so every
+    /// existing call site (previews, and any future one that doesn't care about true-sky planets)
+    /// keeps compiling unchanged; `DoodleSceneView` is the only site that passes real values.
+    var condition: DoodleComposer.ConditionCategory = .clear
+    var trueSky: DoodleComposer.TrueSkyScene = DoodleComposer.TrueSkyScene()
 
     private static let starPositions: [(CGFloat, CGFloat, CGFloat)] = [
         (0.08, 0.15, 1.6), (0.18, 0.35, 1.1), (0.30, 0.10, 1.3), (0.42, 0.28, 1.0),
@@ -20,15 +27,30 @@ struct TimeOfDaySkyBackground: View {
         (0.50, 0.40, 0.9), (0.14, 0.05, 1.0),
     ]
 
+    /// Suppression radius, matching the defect-2 bar exactly ("suppress/dim any TwinkleStar
+    /// within ~30pt of a planet dot").
+    private static let planetClearanceRadius: CGFloat = 30
+
     var body: some View {
         ZStack {
             LinearGradient(colors: skyColors, startPoint: .top, endPoint: .bottom)
 
             if timeOfDay == .night {
                 GeometryReader { proxy in
+                    // Reuses `TrueSkyLayer`'s exact gating + azimuth/altitude -> fraction math
+                    // (`planetDotFractions`) rather than guessing independently whether/where a
+                    // planet dot will paint this frame — one source of truth, so this can never
+                    // drift out of sync with what `TrueSkyLayer` actually renders.
+                    let planetPoints = TrueSkyLayer.planetDotFractions(
+                        timeOfDay: timeOfDay, condition: condition, trueSky: trueSky
+                    ).map { CGPoint(x: proxy.size.width * $0.xFraction, y: proxy.size.height * $0.yFraction) }
+
                     ForEach(Array(Self.starPositions.enumerated()), id: \.offset) { index, star in
-                        TwinkleStar(baseSize: star.2 * 2.2, phaseOffset: Double(index) * 0.6)
-                            .position(x: proxy.size.width * star.0, y: proxy.size.height * star.1)
+                        let starPoint = CGPoint(x: proxy.size.width * star.0, y: proxy.size.height * star.1)
+                        if !planetPoints.contains(where: { hypot($0.x - starPoint.x, $0.y - starPoint.y) < Self.planetClearanceRadius }) {
+                            TwinkleStar(baseSize: star.2 * 2.2, phaseOffset: Double(index) * 0.6)
+                                .position(x: starPoint.x, y: starPoint.y)
+                        }
                     }
                 }
             }

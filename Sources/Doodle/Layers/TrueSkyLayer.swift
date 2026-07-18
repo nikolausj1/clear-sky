@@ -52,20 +52,51 @@ struct TrueSkyLayer: View {
                 Color.clear
 
                 if let opacity = auroraOpacity {
+                    // True-sky doodle QC fix (defect 4, "aurora glow imperceptible"): the data
+                    // pipeline was already correct (verified via on-device logging — a forced
+                    // `.good` band reliably reaches `trueSky.auroraBand`); the glow itself was
+                    // just too weak to see — a `0.25`-opacity gradient that faded from fully
+                    // transparent at its own top edge, further softened by an 8pt blur. Taller
+                    // band + less blur + a gradient that reaches real color partway down
+                    // (instead of ramping the whole height) + boosted `auroraOpacity` base values
+                    // below combine to make it plainly visible while `IllustratedLandscapeLayer`
+                    // (painted after this layer) still caps it at the hill line — still a hint,
+                    // not a light show, just no longer an imperceptible one.
                     auroraGlow
-                        .frame(width: proxy.size.width, height: proxy.size.height * 0.26)
-                        .position(x: proxy.size.width / 2, y: proxy.size.height * (Self.horizonFraction - 0.02))
-                        .blur(radius: 8)
+                        .frame(width: proxy.size.width, height: proxy.size.height * 0.32)
+                        .position(x: proxy.size.width / 2, y: proxy.size.height * Self.horizonFraction)
+                        .blur(radius: 5)
                         .opacity(opacity)
                 }
 
                 ForEach(resolvedDots, id: \.body) { dot in
-                    Circle()
-                        .fill(Self.dotColor(for: dot.body))
-                        .frame(width: dot.diameter, height: dot.diameter)
-                        .shadow(color: Self.dotColor(for: dot.body).opacity(0.9), radius: dot.glowRadius)
-                        .opacity(dot.opacity)
-                        .position(x: proxy.size.width * dot.xFraction, y: proxy.size.height * dot.yFraction)
+                    ZStack {
+                        // True-sky doodle QC fix (defect 2, "planets indistinguishable from
+                        // twinkle stars"): a miniature of `CelestialBody`'s own sun treatment —
+                        // a soft `RadialGradient` halo behind the solid dot — rather than a
+                        // `.shadow()`, which read as barely-there at this scale. Every planet
+                        // gets one now (not just the brightest), sized/opacity'd by magnitude so
+                        // Venus still reads as the star of the scene.
+                        Circle()
+                            .fill(
+                                RadialGradient(
+                                    colors: [
+                                        Self.dotColor(for: dot.body).opacity(dot.haloOpacity),
+                                        Self.dotColor(for: dot.body).opacity(0),
+                                    ],
+                                    center: .center,
+                                    startRadius: 0,
+                                    endRadius: dot.haloDiameter / 2
+                                )
+                            )
+                            .frame(width: dot.haloDiameter, height: dot.haloDiameter)
+
+                        Circle()
+                            .fill(Self.dotColor(for: dot.body))
+                            .frame(width: dot.diameter, height: dot.diameter)
+                    }
+                    .opacity(dot.opacity)
+                    .position(x: proxy.size.width * dot.xFraction, y: proxy.size.height * dot.yFraction)
                 }
 
                 if let iss = issRenderData {
@@ -89,8 +120,10 @@ struct TrueSkyLayer: View {
     /// full strength under `.clear`, dimmed (still barely there — "a hint, not a light show")
     /// under `.cloudy`, and hidden outright under anything that would actually block the sky
     /// (`.rain`/`.snow`/`.fog`/`.storm`) — same spirit as `CelestialBody.opacity`, just simpler
-    /// (a moon/sun disc still reads through haze; a magnitude-3 point of light doesn't).
-    private func visibilityMultiplier(for condition: DoodleComposer.ConditionCategory) -> Double? {
+    /// (a moon/sun disc still reads through haze; a magnitude-3 point of light doesn't). `static`
+    /// (not just an instance method) so `TimeOfDaySkyBackground`'s twinkle-star suppression (see
+    /// `planetDotFractions` below) can reuse the exact same gate without duplicating it.
+    static func visibilityMultiplier(for condition: DoodleComposer.ConditionCategory) -> Double? {
         switch condition {
         case .clear: return 1.0
         case .cloudy: return 0.35
@@ -107,41 +140,81 @@ struct TrueSkyLayer: View {
         var xFraction: CGFloat
         var yFraction: CGFloat
         var diameter: CGFloat
-        var glowRadius: CGFloat
+        var haloDiameter: CGFloat
+        var haloOpacity: Double
         var opacity: Double
+    }
+
+    /// A resolved planet dot's screen-fraction position and identity, minus the rendering
+    /// specifics (size/color/glow) that only `TrueSkyLayer` itself needs. Exposed so
+    /// `TimeOfDaySkyBackground` can compute the exact same set (true-sky doodle QC fix, defect
+    /// 2: "suppress/dim any TwinkleStar within ~30pt of a planet dot") without duplicating the
+    /// night/dusk + weather-condition gating or the azimuth/altitude -> fraction math — one
+    /// source of truth for "where will a planet dot actually paint this frame."
+    struct PlanetDotFraction {
+        var body: Planets.Body
+        var xFraction: CGFloat
+        var yFraction: CGFloat
+        var magnitude: Double
     }
 
     /// Planets: night + dusk only (Venus/Mercury in particular are often best just after sunset,
     /// while the sky's still dusk-blue) and condition-permitting. Azimuth outside the 90°-270°
     /// window is silently skipped (not dimmed) — that planet is behind the viewer, not obscured.
-    private var resolvedDots: [ResolvedDot] {
-        guard isNightOrDusk, let multiplier = visibilityMultiplier(for: condition) else { return [] }
+    static func planetDotFractions(
+        timeOfDay: DoodleComposer.TimeOfDay,
+        condition: DoodleComposer.ConditionCategory,
+        trueSky: DoodleComposer.TrueSkyScene
+    ) -> [PlanetDotFraction] {
+        guard timeOfDay == .night || timeOfDay == .dusk, visibilityMultiplier(for: condition) != nil else { return [] }
         return trueSky.planets.compactMap { planet in
-            guard let x = Self.xFractionStrict(azimuth: planet.azimuthDegrees) else { return nil }
-            return ResolvedDot(
+            guard let x = xFractionStrict(azimuth: planet.azimuthDegrees) else { return nil }
+            return PlanetDotFraction(
                 body: planet.body,
                 xFraction: x,
-                yFraction: Self.yFraction(altitude: planet.altitudeDegrees),
-                diameter: Self.dotDiameter(forMagnitude: planet.magnitude),
-                glowRadius: Self.glowRadius(forMagnitude: planet.magnitude),
+                yFraction: yFraction(altitude: planet.altitudeDegrees),
+                magnitude: planet.magnitude
+            )
+        }
+    }
+
+    private var resolvedDots: [ResolvedDot] {
+        guard let multiplier = Self.visibilityMultiplier(for: condition) else { return [] }
+        return Self.planetDotFractions(timeOfDay: timeOfDay, condition: condition, trueSky: trueSky).map { fraction in
+            ResolvedDot(
+                body: fraction.body,
+                xFraction: fraction.xFraction,
+                yFraction: fraction.yFraction,
+                diameter: Self.dotDiameter(for: fraction.body),
+                haloDiameter: Self.haloDiameter(for: fraction.body),
+                haloOpacity: Self.haloOpacity(forMagnitude: fraction.magnitude),
                 opacity: multiplier
             )
         }
     }
 
-    /// Venus (brightest, ~-4 mag) renders biggest with a soft glow; Saturn (dimmest naked-eye
-    /// planet, ~+1 mag) renders smallest with no glow. Linear interpolation across that range,
-    /// clamped so an outlier magnitude (e.g. Mars near opposition) doesn't blow past either end.
-    private static func dotDiameter(forMagnitude magnitude: Double) -> CGFloat {
-        let clamped = min(max(magnitude, -4.5), 1.5)
-        let t = (clamped + 4.5) / 6.0 // 0 at brightest, 1 at dimmest
-        return 4.0 - CGFloat(t) * 1.5 // 4.0pt -> 2.5pt
+    /// True-sky doodle QC fix (defect 2 bar, verbatim): "Venus ~6pt, others ~4pt" — a fixed size
+    /// per body rather than the previous continuous magnitude interpolation (which shrank Venus
+    /// down to barely bigger than a twinkle star). Magnitude still drives `haloOpacity` below, so
+    /// Saturn reads dimmer than Venus without needing a smaller dot too.
+    private static func dotDiameter(for body: Planets.Body) -> CGFloat {
+        body == .venus ? 6 : 4
     }
 
-    private static func glowRadius(forMagnitude magnitude: Double) -> CGFloat {
-        if magnitude < -3 { return 6 }
-        if magnitude < -1 { return 3 }
-        return 0
+    /// The soft halo's overall size — "miniature of the sun's treatment" (`CelestialBody`'s
+    /// `RadialGradient`), scaled down to planet-dot proportions. Venus gets a visibly bigger
+    /// glow than the rest, matching its ~6pt vs ~4pt dot.
+    private static func haloDiameter(for body: Planets.Body) -> CGFloat {
+        body == .venus ? 22 : 15
+    }
+
+    /// Brighter (more negative) magnitude -> a more visible halo. Even the dimmest naked-eye
+    /// planet (Saturn, ~+1) still gets a faint one — every planet dot has SOME glow now, per the
+    /// defect-2 bar — just weaker than Venus's.
+    private static func haloOpacity(forMagnitude magnitude: Double) -> Double {
+        if magnitude < -3 { return 0.55 }
+        if magnitude < -1 { return 0.4 }
+        return 0.28
     }
 
     /// Warm tint for Mars, pale gold for Saturn, near-white for the other three (their actual
@@ -164,12 +237,16 @@ struct TrueSkyLayer: View {
     /// better (`AuroraBand` is `Comparable`, ordered `none < low < fair < good < strong`).
     private var auroraOpacity: Double? {
         guard timeOfDay == .night, let band = trueSky.auroraBand, band >= .fair else { return nil }
-        guard let multiplier = visibilityMultiplier(for: condition) else { return nil }
+        guard let multiplier = Self.visibilityMultiplier(for: condition) else { return nil }
+        // True-sky doodle QC fix (defect 4): raised across the board — `.fair`'s old 0.15 base,
+        // run through an 8pt blur on top, was invisible even under `.forceAuroraBand` sim-verify
+        // (see `body`'s comment). Still ordered fair < good < strong so the band still reads as
+        // a genuine strength signal, not just an on/off glow.
         let base: Double
         switch band {
-        case .fair: base = 0.15
-        case .good: base = 0.25
-        case .strong: base = 0.40
+        case .fair: base = 0.35
+        case .good: base = 0.55
+        case .strong: base = 0.75
         case .none, .low: base = 0
         }
         return base * multiplier
@@ -178,16 +255,20 @@ struct TrueSkyLayer: View {
     /// A hint, not a light show: pure green for `.fair`, a green-violet blend for `.good`/
     /// `.strong` (real aurorae often show a violet/red fringe above the green band at higher
     /// activity) — `auroraOpacity` above already carries the actual strength, so these color
-    /// stops stay fixed regardless of band.
+    /// stops stay fixed regardless of band. True-sky doodle QC fix (defect 4): the gradient used
+    /// to ramp from fully-`.clear` at its own top edge all the way to color only at the very
+    /// bottom, so roughly half the band's height read as barely-there regardless of
+    /// `auroraOpacity`'s value. Reaching solid color by the midpoint (instead of only at the
+    /// bottom edge) concentrates the same opacity budget into a band that's actually visible.
     private var auroraGlow: some View {
-        let green = Color(red: 0.25, green: 0.85, blue: 0.55)
-        let violet = Color(red: 0.55, green: 0.35, blue: 0.85)
+        let green = Color(red: 0.25, green: 0.95, blue: 0.55)
+        let violet = Color(red: 0.60, green: 0.40, blue: 0.95)
         let colors: [Color]
         switch trueSky.auroraBand {
         case .good, .strong:
-            colors = [Color.clear, violet.opacity(0.5), green]
+            colors = [Color.clear, violet.opacity(0.65), green, green.opacity(0.9)]
         default:
-            colors = [Color.clear, green]
+            colors = [Color.clear, green.opacity(0.85), green]
         }
         return LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom)
     }
@@ -207,7 +288,7 @@ struct TrueSkyLayer: View {
     /// `nil` unless `date` falls inside a real pass window (or `-forceISSStreakNow`), so the only
     /// gating left here is time-of-day + weather.
     private var issRenderData: ISSRenderData? {
-        guard isNightOrDusk, let multiplier = visibilityMultiplier(for: condition), let pass = trueSky.activeISSPass else { return nil }
+        guard isNightOrDusk, let multiplier = Self.visibilityMultiplier(for: condition), let pass = trueSky.activeISSPass else { return nil }
         return ISSRenderData(
             pass: pass,
             startX: Self.xFractionClamped(azimuth: pass.startAzimuthDeg),
@@ -292,10 +373,26 @@ private struct ISSStreak: View {
                 .rotationEffect(.degrees(movingRight ? 0 : 180))
                 .offset(x: movingRight ? -14 : 14)
 
+                // True-sky doodle QC fix (defect 3): "brighten the head dot so it reads brighter
+                // than any star during a pass (physically true of the ISS)" — a soft white halo
+                // (same mini-radial-gradient treatment as the true-sky planet dots) plus a
+                // bigger, more strongly-shadowed core than the previous plain 3pt circle, which
+                // read no brighter than a twinkle star at its peak.
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [Color.white.opacity(0.75), Color.white.opacity(0)],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: 12
+                        )
+                    )
+                    .frame(width: 24, height: 24)
+
                 Circle()
                     .fill(Color.white)
-                    .frame(width: 3, height: 3)
-                    .shadow(color: .white.opacity(0.85), radius: 3)
+                    .frame(width: 4.5, height: 4.5)
+                    .shadow(color: .white.opacity(0.95), radius: 4)
             }
             .position(x: proxy.size.width * xFraction, y: proxy.size.height * yFraction)
             .onAppear {

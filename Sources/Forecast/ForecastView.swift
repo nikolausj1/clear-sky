@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 /// Screen A from PRD Section 6: the Forecast screen. Hosts one `ForecastPageView` per saved
 /// location inside a horizontally-paged `TabView` (Screen B: "The Forecast screen also supports
@@ -181,19 +180,26 @@ struct ForecastView: View {
             // buried inside one page's scroll content) is what actually lets each page's hero
             // extend under the status bar/nav bar.
             .ignoresSafeArea(edges: .top)
-            // Custom top chrome fix, part 2: with the system nav bar hidden (see `body`'s
-            // comment), the paging `UICollectionView` backing this `TabView(.page)` was found
-            // (empirically, via a temporary red `.background` that made its real bounds visible)
-            // to still silently reintroduce its own top content inset to every page — a residual
-            // white strip at the very top of the screen that neither the `ignoresSafeArea` above
-            // nor `ForecastPageView`'s measured negative-padding pull-up could reach, since it's
-            // applied inside the collection view's own content layout, a layer below where
-            // SwiftUI's safe-area machinery operates. This walks up from an invisible probe view
-            // to find that collection view and disables its automatic content-inset adjustment
-            // at the source — scoped to just this one `TabView` (not a global
-            // `UIScrollView.appearance()` change, which would also affect the Rankings tab's
-            // list and other unrelated scroll views).
-            .background(PagingCollectionViewInsetFix())
+            // Custom top chrome fix, part 2 — HISTORICAL, removed (true-sky doodle QC fix,
+            // defect 1): this used to also carry `.background(PagingCollectionViewInsetFix())`,
+            // which walked up from an invisible probe view to find the paging `UICollectionView`
+            // backing this `TabView(.page)` and disable its automatic content-inset adjustment,
+            // because that collection view was found (empirically, via a temporary red
+            // `.background`) to silently reintroduce its own top content inset to every page
+            // regardless of `ignoresSafeArea` above.
+            //
+            // Root-caused during the true-sky doodle QC pass: on the current iOS/SwiftUI
+            // runtime, `TabView(.page)` is no longer backed by a `UICollectionView` at all
+            // (confirmed by logging the probe's full `superview` chain — zero `UICollectionView`
+            // anywhere in it), so this fix had silently become a no-op. Separately, direct
+            // `.onGeometryChange` measurement of a page's scroll content confirmed it already
+            // rests at true `y = 0` with `ignoresSafeArea` alone — there is no residual inset
+            // left for this fix to correct on this runtime. Removed rather than chasing a new
+            // private view to poke; if a future OS/SwiftUI version reintroduces a real residual
+            // inset here, it should show up as the same symptom this whole investigation started
+            // from (the hero's sky content — moon, stars, true-sky planet dots — creeping up
+            // behind the status bar/Dynamic Island in `_review/truesky-*.png` sim-verify shots)
+            // rather than as a silently-reapplied private-API workaround.
 
             if viewModel.locations.count > 1 {
                 pageIndicator
@@ -241,31 +247,4 @@ struct ForecastView: View {
         // awkwardly pushed down below a transparent nav bar.
         .ignoresSafeArea(edges: .top)
     }
-}
-
-/// See the `.background(PagingCollectionViewInsetFix())` comment on `pagerView`'s `TabView`.
-/// An invisible, non-interactive probe view whose only job is to be inserted into the view
-/// hierarchy so it can walk `superview` up to find the ancestor `UICollectionView` — the one
-/// backing `TabView(.page)` — and disable its automatic content-inset adjustment. Runs once,
-/// asynchronously, after the view hierarchy has actually been installed (walking `superview`
-/// during `makeUIView` itself is too early: the probe isn't attached to anything yet).
-private struct PagingCollectionViewInsetFix: UIViewRepresentable {
-    func makeUIView(context: Context) -> UIView {
-        let probe = UIView(frame: .zero)
-        probe.isHidden = true
-        probe.isUserInteractionEnabled = false
-        DispatchQueue.main.async {
-            var view: UIView? = probe
-            while let current = view {
-                if let collectionView = current as? UICollectionView {
-                    collectionView.contentInsetAdjustmentBehavior = .never
-                    return
-                }
-                view = current.superview
-            }
-        }
-        return probe
-    }
-
-    func updateUIView(_ uiView: UIView, context: Context) {}
 }

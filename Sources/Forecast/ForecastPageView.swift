@@ -46,6 +46,14 @@ struct ForecastPageView: View {
     /// `heroHeader` can apply a parallax offset/overscroll scale to the hero without needing a
     /// second scroll probe.
     @State private var scrollOffset: CGFloat = 0
+    /// True-sky doodle QC fix (defect 1, "coordinate space regressed upward") — see `body`'s doc
+    /// comment for the full investigation. The hero needs to be pulled up by however much the
+    /// scroll content naturally rests below the true screen top at launch, but that amount
+    /// turned out not to be safely knowable from any single API on this OS/SwiftUI version — so
+    /// it's measured directly instead, once, via a zero-size sentinel at the very top of each
+    /// state's scroll content (see `heroTopOffsetSentinel`).
+    @State private var heroTopOffset: CGFloat = 0
+    @State private var hasMeasuredHeroTopOffset = false
 
     /// Approximate remaining viewport height below the hero, so the loading/error/empty sheets
     /// fill the screen and center their content the same way the hero+sheet shell will once real
@@ -55,51 +63,87 @@ struct ForecastPageView: View {
     }
 
     var body: some View {
-        // The GeometryReader exists to measure this page's *top safe-area inset* (status bar /
-        // Dynamic Island). The ScrollViews below all `ignoresSafeArea(edges: .top)`, but the
-        // `TabView(.page)` container reintroduces that inset to their *content* regardless
-        // (verified empirically — the scroll viewport reaches y=0, its content doesn't), which
-        // left a white band above the hero. Each state passes this measured inset to
-        // `heroHeader`/`loadedView`, which pulls the hero up by exactly that amount.
+        // True-sky doodle QC fix (defect 1, "coordinate space regressed upward" — the hero's sky
+        // content, moon/sun, twinkle stars, and the true-sky doodle's planet dots/aurora/ISS
+        // streak were all rendering compressed up behind the status bar/Dynamic Island).
         //
-        // Custom top chrome (replacing the system nav bar so iOS 26's Liquid Glass scroll-edge
-        // effect can be hidden — see `ForecastView.body`'s comment) removed the one visible
-        // signal `geo.safeAreaInsets.top` used to track: with the nav bar gone, this reads 0,
-        // yet the paging `UICollectionView` backing `TabView(.page)` was still silently
-        // reintroducing its own top content inset regardless — a residual white strip at the
-        // very top that neither this measurement nor `ignoresSafeArea` alone could reach, since
-        // it's applied *inside* the collection view's own content layout, below where SwiftUI's
-        // safe-area/ignoresSafeArea machinery operates. Fixed at the source, once, in
-        // `ForecastView.pagerView` (`PagingCollectionViewInsetFix`), which disables that
-        // collection view's automatic content-inset adjustment entirely — after that fix,
-        // `geo.safeAreaInsets.top` here is simply 0 and this whole mechanism is a no-op, kept
-        // in place (rather than deleted) so a future device/OS combination that reintroduces a
-        // real nonzero inset is still handled automatically instead of silently regressing.
-        GeometryReader { geo in
-            Group {
-                switch page.screenState {
-                case .loading:
-                    loadingView(topInset: geo.safeAreaInsets.top)
-                case .error(let message):
-                    errorView(message, topInset: geo.safeAreaInsets.top)
-                case .loaded:
-                    if let payload = page.payload {
-                        loadedView(payload, topInset: geo.safeAreaInsets.top)
-                    } else {
-                        emptyStateView(topInset: geo.safeAreaInsets.top)
-                    }
+        // HISTORY, for whoever next has to touch this: this used to be `GeometryReader { geo in
+        // ... }`, threading `geo.safeAreaInsets.top` down to `heroHeader`/`loadedView` as a
+        // `topInset` applied as `.padding(.top, -topInset)` on the hero, paired with
+        // `ForecastView.pagerView`'s (also since-removed) `PagingCollectionViewInsetFix` — a
+        // `UIViewRepresentable` probe that walked `superview` to find the `UICollectionView`
+        // backing `TabView(.page)` and disable its automatic top content-inset adjustment. Two
+        // separate fixes for what were, at the time, two independently observed residual
+        // insets (a ~31pt one attributed to that collection view, and the status-bar/Dynamic-
+        // Island inset the `-topInset` pull-up compensated for).
+        //
+        // Root-caused via sim-verify + on-device debug logging (bisected against `HEAD~1`,
+        // before the true-sky-doodle commit — this bug already existed there too, so it was
+        // never that commit's regression, just newly *visible* in its screenshots): on the
+        // current iOS/SwiftUI runtime, `TabView(.page)` is no longer backed by a
+        // `UICollectionView` at all (confirmed by logging the probe's full `superview` chain —
+        // zero `UICollectionView` anywhere in it; instead it's `UINavigationTransitionView`/
+        // `UILayoutContainerView` internals, i.e. `UINavigationController`'s own hidden-nav-bar
+        // machinery), so `PagingCollectionViewInsetFix` had become a silent no-op. Separately,
+        // `geo.safeAreaInsets.top` no longer reads 0 here (measured 62pt on iPhone 17 Pro Max),
+        // so the "harmless no-op" `-topInset` pull-up was actually firing on every launch,
+        // over-correcting by that full 62pt and shoving the hero up off the top of the screen.
+        // Removing *only* that pull-up (first fix attempt here) unmasked the OTHER, smaller
+        // residual (~31pt, i.e. the one `PagingCollectionViewInsetFix` used to own) as a plain
+        // white gap above the hero — proving it never actually went away, it had just been
+        // overwhelmed by the larger, wrong-direction 62pt correction the whole time.
+        //
+        // Rather than re-chase a new private view to poke for the second time (this project has
+        // now hit that dead end twice — Apple's paging-tab-view internals aren't a stable target
+        // to introspect), both historical mechanisms are gone for good, replaced with one
+        // measurement of the actual symptom: `heroTopOffsetSentinel` below reports each state's
+        // scroll content's real resting position in the window's coordinate space, and that
+        // measured value — whatever combination of insets produced it, on whatever OS version —
+        // is what gets pulled up. Future OS/SwiftUI internals changes can't silently regress
+        // this the way they did twice already; sim-verify's moon-position screenshot check
+        // (`_review/redesign3-moon-fixed.png`) is the backstop if they ever do.
+        Group {
+            switch page.screenState {
+            case .loading:
+                loadingView()
+            case .error(let message):
+                errorView(message)
+            case .loaded:
+                if let payload = page.payload {
+                    loadedView(payload)
+                } else {
+                    emptyStateView()
                 }
             }
         }
     }
 
-    /// The full-bleed hero for a state with no payload (loading/error/empty), pulled up over
-    /// the status-bar inset — see `body`'s comment for why the pull-up is a measured negative
-    /// padding rather than `ignoresSafeArea` alone.
-    private func heroHeader(topInset: CGFloat) -> some View {
+    /// The full-bleed hero for a state with no payload (loading/error/empty). The pull-up
+    /// correction (`heroTopOffset`) is applied to the enclosing `ScrollView` itself, not here —
+    /// see `body`'s doc comment for why: a `ScrollView` clips its content to its own frame, so a
+    /// negative top padding on a view *inside* the scroll content can only lift that view up to
+    /// the scroll view's own top edge before it's clipped away, never past it. Shifting the
+    /// `ScrollView`'s own frame is what actually reaches the missing space above it.
+    private func heroHeader() -> some View {
         DoodleHeaderView(current: nil, caption: nil)
-            .padding(.top, -topInset)
             .parallax(scrollOffset: scrollOffset)
+    }
+
+    /// A zero-size sentinel meant to sit as the very first child of a scrolling `VStack`, right
+    /// above the hero. Reports that position — this view's own top edge in the window's
+    /// coordinate space (`.global`) — into `heroTopOffset` exactly once, on first layout, then
+    /// ignores every later geometry change: scrolling moves this same sentinel by the scroll
+    /// amount, and feeding that back into the hero's pull-up would double-count the scroll on
+    /// top of `.parallax`'s own handling of it. See `body`'s doc comment for why this replaces
+    /// trusting any single safe-area/inset API for this value.
+    private func heroTopOffsetSentinel() -> some View {
+        Color.clear
+            .frame(width: 0, height: 0)
+            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { _, newValue in
+                guard !hasMeasuredHeroTopOffset else { return }
+                hasMeasuredHeroTopOffset = true
+                heroTopOffset = newValue
+            }
     }
 
     /// Forwards a scroll offset reading both up to `onScrollOffsetChange` (the scroll-aware top
@@ -112,10 +156,11 @@ struct ForecastPageView: View {
 
     // MARK: - Loading
 
-    private func loadingView(topInset: CGFloat) -> some View {
+    private func loadingView() -> some View {
         ScrollView {
             VStack(spacing: 0) {
-                heroHeader(topInset: topInset)
+                heroTopOffsetSentinel()
+                heroHeader()
                 sheetSurface(minHeight: stateSheetMinHeight) {
                     centeredStateContent {
                         ProgressView("Consulting the sky.")
@@ -125,15 +170,20 @@ struct ForecastPageView: View {
             }
         }
         .ignoresSafeArea(edges: .top)
+        // See `body`'s doc comment: this `ScrollView`'s own frame — not its content — is what
+        // needs pulling up by the measured `heroTopOffset` (a `ScrollView` clips content to its
+        // own bounds, so correcting *inside* it just gets clipped at the scroll view's edge).
+        .padding(.top, -heroTopOffset)
         .trackingHeroScrollOffset(reportScrollOffset)
     }
 
     // MARK: - Error
 
-    private func errorView(_ message: String, topInset: CGFloat) -> some View {
+    private func errorView(_ message: String) -> some View {
         ScrollView {
             VStack(spacing: 0) {
-                heroHeader(topInset: topInset)
+                heroTopOffsetSentinel()
+                heroHeader()
                 sheetSurface(minHeight: stateSheetMinHeight) {
                     centeredStateContent {
                         Image(systemName: "exclamationmark.icloud")
@@ -156,15 +206,20 @@ struct ForecastPageView: View {
             }
         }
         .ignoresSafeArea(edges: .top)
+        // See `body`'s doc comment: this `ScrollView`'s own frame — not its content — is what
+        // needs pulling up by the measured `heroTopOffset` (a `ScrollView` clips content to its
+        // own bounds, so correcting *inside* it just gets clipped at the scroll view's edge).
+        .padding(.top, -heroTopOffset)
         .trackingHeroScrollOffset(reportScrollOffset)
     }
 
     // MARK: - Empty (defensive — a location with a `.loaded` state but no payload)
 
-    private func emptyStateView(topInset: CGFloat) -> some View {
+    private func emptyStateView() -> some View {
         ScrollView {
             VStack(spacing: 0) {
-                heroHeader(topInset: topInset)
+                heroTopOffsetSentinel()
+                heroHeader()
                 sheetSurface(minHeight: stateSheetMinHeight) {
                     centeredStateContent {
                         Image(systemName: "location.slash")
@@ -180,6 +235,10 @@ struct ForecastPageView: View {
             }
         }
         .ignoresSafeArea(edges: .top)
+        // See `body`'s doc comment: this `ScrollView`'s own frame — not its content — is what
+        // needs pulling up by the measured `heroTopOffset` (a `ScrollView` clips content to its
+        // own bounds, so correcting *inside* it just gets clipped at the scroll view's edge).
+        .padding(.top, -heroTopOffset)
         .trackingHeroScrollOffset(reportScrollOffset)
     }
 
@@ -198,10 +257,11 @@ struct ForecastPageView: View {
     // MARK: - Loaded
 
     @ViewBuilder
-    private func loadedView(_ payload: CachedWeather, topInset: CGFloat) -> some View {
+    private func loadedView(_ payload: CachedWeather) -> some View {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: 0) {
+                    heroTopOffsetSentinel()
                     DoodleHeaderView(
                         current: payload.currentConditions,
                         caption: viewModel.doodleCaptionLine(location: location, payload: payload, unit: unitsSettings.unit),
@@ -215,9 +275,6 @@ struct ForecastPageView: View {
                         forceTrueSkyPlanets: viewModel.forceTrueSkyPlanets,
                         forceISSStreakNow: viewModel.forceISSStreakNow
                     )
-                    // See `body`'s comment: pulls the hero up over the status-bar inset that
-                    // the TabView container reintroduces to this scroll content.
-                    .padding(.top, -topInset)
                     .parallax(scrollOffset: scrollOffset)
 
                     sheetSurface {
@@ -273,6 +330,12 @@ struct ForecastPageView: View {
             // otherwise shows as a white band above the hero, exactly the height of the status
             // bar). Both are needed — verified each in isolation during sim-verify.
             .ignoresSafeArea(edges: .top)
+            // See `body`'s doc comment: this `ScrollView`'s own frame — not its content — is
+            // what needs pulling up by the measured `heroTopOffset`, since a `ScrollView` clips
+            // content to its own bounds (a negative padding *inside* it just gets clipped at the
+            // scroll view's top edge, as the hero-level version of this fix, tried first, found
+            // out the hard way).
+            .padding(.top, -heroTopOffset)
             .trackingHeroScrollOffset(reportScrollOffset)
             .refreshable {
                 await onRefresh()

@@ -28,7 +28,9 @@ struct DoodleSceneView: View {
 
     var body: some View {
         ZStack {
-            TimeOfDaySkyBackground(timeOfDay: scene.timeOfDay)
+            // `condition`/`trueSky` are only consumed for the defect-2 twinkle-star suppression
+            // near true-sky planet dots — see `TimeOfDaySkyBackground`'s doc comment.
+            TimeOfDaySkyBackground(timeOfDay: scene.timeOfDay, condition: scene.condition, trueSky: scene.trueSky)
             CelestialBody(timeOfDay: scene.timeOfDay, condition: scene.condition, date: scene.date)
             TrueSkyLayer(timeOfDay: scene.timeOfDay, condition: scene.condition, date: scene.date, trueSky: scene.trueSky)
             WeatherClouds(condition: scene.condition)
