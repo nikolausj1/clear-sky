@@ -6,10 +6,12 @@ import Foundation
 /// `Sources/Sky/Aurora` — each independently async and independently degradable), for
 /// `TonightSkyCard`.
 ///
-/// **Don't-modify-engine-logic note:** this file only *calls* the three sibling engines; it adds
-/// no logic to them. `ISSPass`'s `Equatable` conformance below is the one additive extension —
-/// harmless (it only compares the fields that make two passes "the same pass"), needed so this
-/// file's own `State`/`SectionState` types can be compared in SwiftUI.
+/// **Don't-modify-engine-logic note:** this file only *calls* the sibling engines; it adds no
+/// logic to them. `ISSPass`'s `Equatable` conformance and `MeteorShowers.MoonInterference`'s
+/// `argValue` initializer below are the only additive extensions — harmless (one only compares
+/// the fields that make two passes "the same pass", the other only parses a launch-arg string
+/// into the engine's own enum cases), needed so this file's own `State`/`SectionState` types can
+/// be compared in SwiftUI and so `-forceMeteorPeak` can select an engine-native case.
 ///
 /// **v1 time-zone limitation, per work order:** uses the DEVICE's time zone for "tonight" (civil
 /// dusk -> civil dawn), not the saved location's own time zone. A saved city on the far side of
@@ -17,6 +19,14 @@ import Foundation
 /// evening — acceptable for v1's single-real-user scope (most saved cities share a rough time
 /// zone with the device); a real per-location time zone (e.g. via reverse geocoding) is future
 /// work, not required here.
+///
+/// **Sky-intelligence rows (work package WP-F):** meteor outlook and close pairings are, like
+/// astronomy, synchronous pure math — computed fresh on every call, never cached, via
+/// `meteorAndPairings(latitude:longitude:date:timeZone:overrides:)`. `bestMoment` (the card's
+/// headline) is a pure function of whatever astronomy/ISS/aurora/meteor/pairings data is
+/// *currently available* — see that function's own doc comment for how `TonightSkyCard` uses it
+/// to get an immediate sync-only headline guess that smoothly upgrades once the async ISS/aurora
+/// sections resolve, without ever passing through a blank/nil state in between.
 @MainActor
 final class SkyTonightService {
     static let shared = SkyTonightService()
@@ -31,19 +41,40 @@ final class SkyTonightService {
         var astronomy: SkyTonight.TonightSky
         var iss: SectionState<[ISSPass]>
         var aurora: SectionState<AuroraOutlook>
+        /// Active shower's outlook for tonight, if any — `nil` when no shower is active
+        /// (`MeteorShowers.outlook` itself returned `nil`). Synchronous, defaults to `nil` here
+        /// only because a few internal helpers construct a partial `State` before this field is
+        /// known; `state(...)`'s own return value always fills it in properly.
+        var meteor: MeteorShowers.MeteorOutlook? = nil
+        /// Visible close pairings tonight, tightest-separation first (see
+        /// `Conjunctions.closePairings`'s own doc comment on sort order). Empty, not optional,
+        /// when none clear tonight.
+        var pairings: [Conjunctions.Pairing] = []
+        /// Tonight's single headline moment, or `nil` if nothing clears any of `BestMoment`'s
+        /// tiers. See the type-level doc comment on the "sky-intelligence rows" work package.
+        var bestMoment: BestMoment.SkyMoment? = nil
     }
 
     /// Sim-verify overrides (`-forceAuroraBand`, `-forceISSPass`, `-forceNoISS`,
-    /// `-forceSkyUnavailable`) — bypass the network/cache entirely so a screenshot can show a
-    /// specific state on demand without needing real conditions (or a real pass tonight) to
-    /// cooperate. See `NavigationShell`'s launch-arg parsing.
+    /// `-forceSkyUnavailable`, `-forceMeteorPeak`, `-forcePairing`) — bypass the network/cache
+    /// (or, for meteor/pairing, the real date-driven lookup) entirely so a screenshot can show a
+    /// specific state on demand without needing real conditions (or a real pass/shower/pairing
+    /// tonight) to cooperate. See `NavigationShell`'s launch-arg parsing.
     struct ForcedOverrides {
         var auroraBand: AuroraBand?
         var issPass: Bool = false
         var noISS: Bool = false
         var unavailable: Bool = false
+        /// `-forceMeteorPeak none|some|severe` — synthesizes a Perseids-at-peak `MeteorOutlook`
+        /// at the given Moon-interference level, so the meteor row (and headline) can be
+        /// screenshotted without waiting for a real shower to be active/peaking.
+        var meteorPeak: MeteorShowers.MoonInterference?
+        /// `-forcePairing` — synthesizes a single Moon-Jupiter 1.3°-apart pairing, so the
+        /// conjunction row (and headline) can be screenshotted without a real close pairing
+        /// existing tonight.
+        var pairing: Bool = false
 
-        var isActive: Bool { auroraBand != nil || issPass || noISS || unavailable }
+        var isActive: Bool { auroraBand != nil || issPass || noISS || unavailable || meteorPeak != nil || pairing }
     }
 
     private struct CacheKey: Hashable {
@@ -81,6 +112,66 @@ final class SkyTonightService {
         SkyTonight.compute(date: date, latitude: latitude, longitude: longitude, timeZone: timeZone)
     }
 
+    /// Meteor outlook + close pairings for tonight — like `astronomy(...)` above, synchronous
+    /// pure math (no network), so `TonightSkyCard` can render the meteor/conjunction rows
+    /// immediately, in the same call it computes astronomy, before the async ISS/aurora fetch
+    /// even starts. `overrides.meteorPeak`/`overrides.pairing` are applied here (rather than only
+    /// inside `state(...)`) so the card's own immediate sync-only pass already reflects them —
+    /// see `state(...)`'s doc comment for why that matters for the headline.
+    nonisolated static func meteorAndPairings(
+        latitude: Double,
+        longitude: Double,
+        date: Date,
+        timeZone: TimeZone,
+        overrides: ForcedOverrides? = nil
+    ) -> (meteor: MeteorShowers.MeteorOutlook?, pairings: [Conjunctions.Pairing]) {
+        let meteor = overrides?.meteorPeak.map { Self.syntheticMeteorOutlook(interference: $0, referenceDate: date) }
+            ?? MeteorShowers.outlook(on: date, latitude: latitude, longitude: longitude, timeZone: timeZone)
+        let pairings = (overrides?.pairing == true)
+            ? [Self.syntheticPairing(referenceDate: date)]
+            : Conjunctions.closePairings(on: date, latitude: latitude, longitude: longitude, timeZone: timeZone)
+        return (meteor, pairings)
+    }
+
+    /// Tonight's headline moment given whatever data is *currently available* — a thin wrapper
+    /// over `BestMoment.bestMoment(tonight:)` that only exists to bundle the five inputs the same
+    /// way `state(...)` and `TonightSkyCard.load()` both need to. Called twice per card load,
+    /// deliberately:
+    /// 1. Immediately, with `iss: []` and `aurora: nil` (those two sections haven't resolved
+    ///    yet) — gives the card an instant headline guess from whatever synchronous data
+    ///    (planets, meteor, pairings, moonrise) qualifies.
+    /// 2. Again once the async ISS/aurora fetch resolves, with their real (or `.unavailable` ->
+    ///    empty/nil) values folded in.
+    /// Because `BestMoment`'s only tiers that can *newly* qualify between call 1 and call 2 are
+    /// ISS pass and aurora window — both strictly higher-priority than anything sync-only data
+    /// can produce — call 2's result is never a lower-priority moment than call 1's. That
+    /// monotonicity is what makes the upgrade feel smooth rather than a flicker: the headline
+    /// either stays exactly the same or gets replaced by something *more* exciting, never blanks
+    /// out in between.
+    nonisolated static func bestMoment(
+        astronomy: SkyTonight.TonightSky,
+        iss: [ISSPass],
+        aurora: AuroraOutlook?,
+        meteor: MeteorShowers.MeteorOutlook?,
+        pairings: [Conjunctions.Pairing]
+    ) -> BestMoment.SkyMoment? {
+        BestMoment.bestMoment(tonight: BestMoment.TonightData(
+            sky: astronomy,
+            issPasses: iss,
+            auroraOutlook: aurora,
+            meteorOutlook: meteor,
+            pairings: pairings
+        ))
+    }
+
+    /// Pulls the payload out of a `.available` section, `nil`/empty otherwise — used to feed
+    /// `bestMoment(...)` from whatever `iss`/`aurora` `SectionState` a given branch of
+    /// `state(...)` ends up with (real, forced, or `.unavailable`).
+    private static func availableValue<T>(_ state: SectionState<T>) -> T? {
+        if case .available(let value) = state { return value }
+        return nil
+    }
+
     /// Full state for a location tonight. `astronomy` is always computed fresh; `iss`/`aurora`
     /// are served from the in-memory cache when this calendar evening was already resolved,
     /// otherwise fetched — each independently falling back to `.unavailable` on failure rather
@@ -103,17 +194,22 @@ final class SkyTonightService {
         overrides: ForcedOverrides? = nil
     ) async -> State {
         let astro = Self.astronomy(latitude: latitude, longitude: longitude, date: date, timeZone: timeZone)
+        let (meteor, pairings) = Self.meteorAndPairings(latitude: latitude, longitude: longitude, date: date, timeZone: timeZone, overrides: overrides)
 
-        // `-forceSkyUnavailable` forces both sections regardless of any real data, so the real
-        // fetch (network + cache) can be skipped entirely in that specific case.
+        // `-forceSkyUnavailable` forces both network sections regardless of any real data, so
+        // the real fetch (network + cache) can be skipped entirely in that specific case. Meteor
+        // outlook/pairings are unaffected (they're synchronous, not network-backed) — they're
+        // still computed above and still feed the headline.
         if overrides?.unavailable == true {
-            return State(astronomy: astro, iss: .unavailable, aurora: .unavailable)
+            let moment = Self.bestMoment(astronomy: astro, iss: [], aurora: nil, meteor: meteor, pairings: pairings)
+            return State(astronomy: astro, iss: .unavailable, aurora: .unavailable, meteor: meteor, pairings: pairings, bestMoment: moment)
         }
 
         let real = await realState(locationId: locationId, latitude: latitude, longitude: longitude, date: date, timeZone: timeZone, astronomy: astro)
 
         guard let overrides, overrides.isActive else {
-            return real
+            let moment = Self.bestMoment(astronomy: astro, iss: Self.availableValue(real.iss) ?? [], aurora: Self.availableValue(real.aurora), meteor: meteor, pairings: pairings)
+            return State(astronomy: astro, iss: real.iss, aurora: real.aurora, meteor: meteor, pairings: pairings, bestMoment: moment)
         }
 
         let iss: SectionState<[ISSPass]> = overrides.issPass
@@ -122,7 +218,8 @@ final class SkyTonightService {
         let aurora: SectionState<AuroraOutlook> = overrides.auroraBand
             .map { SectionState.available(Self.syntheticAuroraOutlook(band: $0)) } ?? real.aurora
 
-        return State(astronomy: astro, iss: iss, aurora: aurora)
+        let moment = Self.bestMoment(astronomy: astro, iss: Self.availableValue(iss) ?? [], aurora: Self.availableValue(aurora), meteor: meteor, pairings: pairings)
+        return State(astronomy: astro, iss: iss, aurora: aurora, meteor: meteor, pairings: pairings, bestMoment: moment)
     }
 
     /// The real (network/cache-backed) result for this location/evening, independent of any
@@ -308,6 +405,84 @@ final class SkyTonightService {
             visibilityLatitudeThreshold: 60
         )
     }
+
+    /// A synthetic Perseids-at-peak `MeteorOutlook` for `-forceMeteorPeak none|some|severe` —
+    /// real shower/ZHR/window fields (the Perseids' actual table entry, from `MeteorShowers.all`,
+    /// looked up by name so this stays honest even if that table's numbers change), with the
+    /// Moon-interference fields set directly to a value that produces the requested
+    /// `MoonInterference` bucket, rather than re-deriving them from a real Moon position (there's
+    /// no guarantee tonight's real Moon happens to produce all three buckets on demand). The rate
+    /// numbers (60/35/15 per hour) are chosen to land clearly inside each of `MeteorShowers`'
+    /// `moonRetentionFactor` bands (0.50 moonless -> 0.20 bright-Moon-all-night, applied to the
+    /// Perseids' ZHR of 100) so the card's "on paper vs. actual" honesty line reads sensibly for
+    /// each forced state.
+    private nonisolated static func syntheticMeteorOutlook(interference: MeteorShowers.MoonInterference, referenceDate: Date) -> MeteorShowers.MeteorOutlook {
+        let perseids = MeteorShowers.all.first { $0.name == "Perseids" }
+            ?? MeteorShowers.MeteorShower(
+                name: "Perseids",
+                activeStart: .init(month: 7, day: 17), activeEnd: .init(month: 8, day: 24),
+                peak: .init(month: 8, day: 12), zhr: 100,
+                radiantConstellation: "Perseus", radiantRA: 48, radiantDec: 58,
+                viewingNotes: "The most reliable major shower."
+            )
+        let estimatedVisiblePerHour: Double
+        let moonIlluminatedPercent: Double
+        let moonUpFraction: Double
+        switch interference {
+        case .none:
+            estimatedVisiblePerHour = 60
+            moonIlluminatedPercent = 4
+            moonUpFraction = 0.05
+        case .some:
+            estimatedVisiblePerHour = 35
+            moonIlluminatedPercent = 45
+            moonUpFraction = 0.4
+        case .severe:
+            estimatedVisiblePerHour = 15
+            moonIlluminatedPercent = 88
+            moonUpFraction = 0.9
+        }
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        var components = calendar.dateComponents([.year, .month, .day], from: referenceDate)
+        components.hour = 1
+        let windowStart = calendar.date(from: components) ?? referenceDate
+        let windowEnd = windowStart.addingTimeInterval(3 * 3600)
+
+        return MeteorShowers.MeteorOutlook(
+            shower: perseids,
+            isPeakNight: true,
+            daysFromPeak: 0,
+            theoreticalZHR: perseids.zhr,
+            estimatedVisiblePerHour: estimatedVisiblePerHour,
+            moonInterference: interference,
+            bestWindow: DateInterval(start: windowStart, end: windowEnd),
+            moonIlluminatedPercent: moonIlluminatedPercent,
+            moonUpFraction: moonUpFraction
+        )
+    }
+
+    /// A fixed synthetic Moon-Jupiter pairing, 1.3° apart, high in the SSW around 9:15 PM — per
+    /// work-order spec for `-forcePairing`, so a sim-verify screenshot doesn't depend on a real
+    /// close pairing existing tonight.
+    private nonisolated static func syntheticPairing(referenceDate: Date) -> Conjunctions.Pairing {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        var components = calendar.dateComponents([.year, .month, .day], from: referenceDate)
+        components.hour = 21
+        components.minute = 15
+        let viewingTime = calendar.date(from: components) ?? referenceDate
+        return Conjunctions.Pairing(
+            bodyA: .moon,
+            bodyB: .planet(.jupiter),
+            separationDegrees: 1.3,
+            bestViewingTime: viewingTime,
+            altitudeAtBest: 34,
+            azimuthAtBest: 200,
+            directionDescription: "high in the SSW"
+        )
+    }
 }
 
 /// Additive-only: lets `SkyTonightService.State` (and, transitively, sim-verify code) compare
@@ -321,5 +496,19 @@ extension ISSPass: Equatable {
             && lhs.startAzimuthCompass == rhs.startAzimuthCompass
             && lhs.endAzimuthCompass == rhs.endAzimuthCompass
             && lhs.brightness == rhs.brightness
+    }
+}
+
+/// Additive-only: lets `-forceMeteorPeak none|some|severe` parse a launch-arg string directly
+/// into `MeteorShowers.MoonInterference`'s own engine-native cases, without duplicating that
+/// vocabulary in a second enum — no engine logic touched, `MoonInterference` itself is unchanged.
+extension MeteorShowers.MoonInterference {
+    init?(launchArgValue: String) {
+        switch launchArgValue {
+        case "none": self = .none
+        case "some": self = .some
+        case "severe": self = .severe
+        default: return nil
+        }
     }
 }

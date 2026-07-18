@@ -26,7 +26,9 @@ Top-level object, one key per slot:
   "skyAurora": [ ... ],
   "skyISSPass": [ ... ],
   "skyNoISS": [ ... ],
-  "skyMoon": [ ... ]
+  "skyMoon": [ ... ],
+  "skyMeteor": [ ... ],
+  "skyPairing": [ ... ]
 }
 ```
 
@@ -50,21 +52,33 @@ structs, so all twelve slots share one lookup/fallback implementation.
 | `skyISSPass` | none | untagged only — shown alongside a visible ISS pass |
 | `skyNoISS` | none | untagged only — no visible pass tonight |
 | `skyMoon` | `phase` | `new`, `waxing`, `full`, `waning` — coarser than the Moon row's own 8-phase name/symbol, which `TonightSkyCard` computes directly from the engine's `phaseFraction`/`illuminatedPercent` |
+| `skyMeteor` | `interference` | `none`, `some`, `severe` (mirrors `MeteorShowers.MoonInterference`). Every variant uses the `{shower}` token (see below) rather than naming a shower directly, since the same pool backs whichever shower is active tonight |
+| `skyPairing` | none | untagged only — shown alongside tonight's closest visible pairing; deliberately generic since the row's own text already names the specific bodies/separation |
 
 A missing tag key on an entry (or the literal fallback entries with fewer tags — see
 "Fallback" below) means "matches anything for that key." The universal safety-net entries
 for `summary`/`doodleCaption` carry no `tags` at all so they match any condition/tempBand as
 a last resort.
 
-### "Tonight's Sky" content (PRD Revision Notes 2026-07-17)
+### "Tonight's Sky" content (PRD Revision Notes 2026-07-17; sky-intelligence rows added in
+work package WP-F)
 
-The six slots above (`skyPlanet`, `skyNoPlanets`, `skyAurora`, `skyISSPass`, `skyNoISS`,
-`skyMoon`) back the "Tonight's Sky" card (`Sources/Forecast/TonightSkyCard.swift`), fed by the
-on-device Astronomy engine plus the networked ISS/Aurora engines (`Sources/Sky/`). These lines
-are deliberately the *wit*, not the *teaching* — the planet row's inline expansion also shows a
-static, non-witty "find it" blurb (`Sources/Forecast/SkyFindItGuide.swift`) and a
+The eight slots above (`skyPlanet`, `skyNoPlanets`, `skyAurora`, `skyISSPass`, `skyNoISS`,
+`skyMoon`, `skyMeteor`, `skyPairing`) back the "Tonight's Sky" card
+(`Sources/Forecast/TonightSkyCard.swift`), fed by the on-device Astronomy engine plus the
+networked ISS/Aurora engines and the on-device meteor-shower/conjunction engines (`Sources/Sky/`).
+These lines are deliberately the *wit*, not the *teaching* — the planet row's inline expansion
+also shows a static, non-witty "find it" blurb (`Sources/Forecast/SkyFindItGuide.swift`) and a
 brightness-in-plain-English helper string; the phrase-bank line is the dry tail on top of both,
-same "fact first, wit as a tail" register as everything else in this file.
+same "fact first, wit as a tail" register as everything else in this file. `skyMeteor`/
+`skyPairing` follow the same split: the meteor/conjunction rows' own text carries the facts (rate,
+window, separation, direction), and the phrase-bank line underneath is the wit only.
+
+The card's headline row ("Step outside at 9:42 PM" + a one-line factual subtitle naming the
+moment) is **not** phrase-bank content — it's driven entirely by `BestMoment.bestMoment` (a typed
+picker over ISS/aurora/meteor/conjunction/planet/moonrise data, see that file's doc comment) and
+rendered as plain factual text in `TonightSkyCard`, with no wit line of its own and no dedicated
+"nothing happening" slot — when `bestMoment` is `nil`, the row is simply omitted.
 
 The card's one-line nightly space fact (`Sources/PhraseBank/skyfacts.json`, 200+ entries, each
 ≤140 characters) is a flat JSON array of strings rather than the tagged-entry shape above — it
@@ -91,6 +105,7 @@ Filled at render time by the caller (`ForecastViewModel` gathers these from `Cac
 | `{time}` | Friendly hour of today's peak precipitation chance (rain/snow lines only); always resolvable — falls back to "later" if no hour clears the threshold | `2 PM` |
 | `{rank}` | Ordinal rank position (Rankings) | `1st` |
 | `{score}` | Composite pleasantness score, 0-100 (Rankings) | `74` |
+| `{shower}` | Tonight's active meteor shower's display name (`skyMeteor` lines only) | `Perseids` |
 
 Not every line uses every token — most use one or two. A token that appears in a line but
 isn't supplied by the caller renders as a literal `{token}`; this should never happen in

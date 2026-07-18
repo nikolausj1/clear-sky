@@ -90,6 +90,12 @@ final class ForecastViewModel {
     private let forceISSPass: Bool
     private let forceNoISS: Bool
     private let forceSkyUnavailable: Bool
+    /// Sky-intelligence sim-verify hooks (work package WP-F): `-forceMeteorPeak
+    /// none|some|severe` synthesizes a Perseids-at-peak `MeteorOutlook` at the given
+    /// Moon-interference level; `-forcePairing` synthesizes a Moon-Jupiter 1.3° pairing. See
+    /// `SkyTonightService.ForcedOverrides`'s doc comment.
+    private let forcedMeteorPeak: MeteorShowers.MoonInterference?
+    private let forcePairing: Bool
     /// `-expandSkyPlanet mercury|venus|mars|jupiter|saturn` — see `TonightSkyCard`'s
     /// `initialExpandedPlanet` doc comment.
     let initialExpandedSkyPlanet: Planets.Body?
@@ -108,6 +114,8 @@ final class ForecastViewModel {
         forceISSPass: Bool = false,
         forceNoISS: Bool = false,
         forceSkyUnavailable: Bool = false,
+        forcedMeteorPeak: MeteorShowers.MoonInterference? = nil,
+        forcePairing: Bool = false,
         initialExpandedSkyPlanet: Planets.Body? = nil
     ) {
         self.store = store
@@ -122,6 +130,8 @@ final class ForecastViewModel {
         self.forceISSPass = forceISSPass
         self.forceNoISS = forceNoISS
         self.forceSkyUnavailable = forceSkyUnavailable
+        self.forcedMeteorPeak = forcedMeteorPeak
+        self.forcePairing = forcePairing
         self.initialExpandedSkyPlanet = initialExpandedSkyPlanet
         if let initialMetric {
             self.selectedMetric = initialMetric
@@ -129,14 +139,16 @@ final class ForecastViewModel {
     }
 
     /// `TonightSkyCard`'s sim-verify override bundle, resolved once here so the view layer
-    /// doesn't need to know about the four separate launch-arg-driven fields above. `nil`
+    /// doesn't need to know about the six separate launch-arg-driven fields above. `nil`
     /// (real network/cache behavior) unless at least one force flag is active.
     var skyForcedOverrides: SkyTonightService.ForcedOverrides? {
         let overrides = SkyTonightService.ForcedOverrides(
             auroraBand: forcedAuroraBand,
             issPass: forceISSPass,
             noISS: forceNoISS,
-            unavailable: forceSkyUnavailable
+            unavailable: forceSkyUnavailable,
+            meteorPeak: forcedMeteorPeak,
+            pairing: forcePairing
         )
         return overrides.isActive ? overrides : nil
     }

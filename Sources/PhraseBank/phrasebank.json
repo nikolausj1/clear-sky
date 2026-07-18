@@ -3825,5 +3825,185 @@
       },
       "text": "The Moon's on its way back down tonight, unhurried as always."
     }
+  ],
+  "skyMeteor": [
+    {
+      "tags": {
+        "interference": "none"
+      },
+      "text": "The {shower} are near peak tonight, and the Moon is staying out of the way."
+    },
+    {
+      "tags": {
+        "interference": "none"
+      },
+      "text": "Dark sky, active shower — about as good as meteor-watching gets."
+    },
+    {
+      "tags": {
+        "interference": "none"
+      },
+      "text": "The Moon's mostly absent tonight, so the {shower} get a clean shot at showing off."
+    },
+    {
+      "tags": {
+        "interference": "none"
+      },
+      "text": "No moonlight to speak of tonight — the best chance the {shower} get to impress."
+    },
+    {
+      "tags": {
+        "interference": "none"
+      },
+      "text": "The sky's dark and the {shower} are active. Rare alignment; worth the late night."
+    },
+    {
+      "tags": {
+        "interference": "none"
+      },
+      "text": "Moon's out of the picture tonight, which is the best news a meteor shower gets."
+    },
+    {
+      "tags": {
+        "interference": "none"
+      },
+      "text": "The {shower} peak under a properly dark sky tonight — no asterisks required."
+    },
+    {
+      "tags": {
+        "interference": "none"
+      },
+      "text": "Clear conditions, no moon competing for attention. The {shower} get the whole sky."
+    },
+    {
+      "tags": {
+        "interference": "some"
+      },
+      "text": "The {shower} are active tonight, though some moonlight is cutting into the count."
+    },
+    {
+      "tags": {
+        "interference": "some"
+      },
+      "text": "Partial moonlight tonight — the {shower} are still worth a look, just dimmer than the brochure."
+    },
+    {
+      "tags": {
+        "interference": "some"
+      },
+      "text": "The Moon's up for part of the night, quietly trimming the {shower} count."
+    },
+    {
+      "tags": {
+        "interference": "some"
+      },
+      "text": "Some glow from the Moon tonight; the fainter {shower} meteors won't all make it through."
+    },
+    {
+      "tags": {
+        "interference": "some"
+      },
+      "text": "The {shower} are peaking, with a half-hearted assist from the Moon working against them."
+    },
+    {
+      "tags": {
+        "interference": "some"
+      },
+      "text": "Moonlight's taking a modest bite out of tonight's {shower} count. Still active, just tempered."
+    },
+    {
+      "tags": {
+        "interference": "some"
+      },
+      "text": "The {shower} are up there tonight; the Moon's just bright enough to matter, not enough to ruin it."
+    },
+    {
+      "tags": {
+        "interference": "some"
+      },
+      "text": "A partly-lit sky tonight — the {shower} are active, moon-taxed but not moon-beaten."
+    },
+    {
+      "tags": {
+        "interference": "severe"
+      },
+      "text": "The {shower} are peaking; the Moon is peaking harder."
+    },
+    {
+      "tags": {
+        "interference": "severe"
+      },
+      "text": "Tonight's {shower} numbers are real, on paper. In practice, the Moon has other plans."
+    },
+    {
+      "tags": {
+        "interference": "severe"
+      },
+      "text": "A bright Moon is doing its best to outshine the {shower} tonight, and mostly succeeding."
+    },
+    {
+      "tags": {
+        "interference": "severe"
+      },
+      "text": "The {shower} are active tonight, buried under more moonlight than meteor-watching prefers."
+    },
+    {
+      "tags": {
+        "interference": "severe"
+      },
+      "text": "The Moon's out in force tonight, which is the one thing a meteor shower can't out-argue."
+    },
+    {
+      "tags": {
+        "interference": "severe"
+      },
+      "text": "Technically, tonight's the {shower} peak. Practically, it's the Moon's peak too, and the Moon's winning."
+    },
+    {
+      "tags": {
+        "interference": "severe"
+      },
+      "text": "The {shower} are up there tonight; you'll just be sharing the sky with a very bright Moon."
+    },
+    {
+      "tags": {
+        "interference": "severe"
+      },
+      "text": "Bright moonlight tonight — the {shower} are active, but most of the show is getting washed out."
+    }
+  ],
+  "skyPairing": [
+    {
+      "tags": {},
+      "text": "Two bright objects, one small patch of sky — tonight's pairing is hard to miss."
+    },
+    {
+      "tags": {},
+      "text": "The sky doesn't usually crowd its brightest objects together. Tonight, it did."
+    },
+    {
+      "tags": {},
+      "text": "A close pairing tonight — coincidence of orbits, not of intent, but a good one."
+    },
+    {
+      "tags": {},
+      "text": "Tonight's pairing won't repeat exactly like this again for a while. Worth the glance."
+    },
+    {
+      "tags": {},
+      "text": "Two objects, one line of sight tonight — no telescope required to appreciate it."
+    },
+    {
+      "tags": {},
+      "text": "The sky's version of a coincidence: two bright points, briefly, almost touching."
+    },
+    {
+      "tags": {},
+      "text": "Nothing physically connects them, but tonight they'll share the same patch of sky anyway."
+    },
+    {
+      "tags": {},
+      "text": "A tight pairing tonight — the kind that makes strangers point and ask what that is."
+    }
   ]
 }

@@ -55,6 +55,9 @@ enum PhraseBank {
         case skyISSPass
         case skyNoISS
         case skyMoon
+        // Sky-intelligence rows (work package WP-F):
+        case skyMeteor
+        case skyPairing
     }
 
     /// The condition groups `summary`/`doodleCaption` content is authored against. WeatherKit's
@@ -147,6 +150,8 @@ enum PhraseBank {
         .skyISSPass: "The ISS passes over tonight.",
         .skyNoISS: "No visible ISS pass tonight.",
         .skyMoon: "Tonight's moon, as shown above.",
+        .skyMeteor: "Meteor activity tonight, as shown above.",
+        .skyPairing: "A close pairing tonight, as shown above.",
     ]
 
     // MARK: - Public API
@@ -350,6 +355,42 @@ enum PhraseBank {
             locationId: locationId,
             tokens: tokens
         )
+    }
+
+    /// A dry-wit line for tonight's active meteor shower, keyed by `MeteorShowers.MoonInterference`
+    /// (reused directly from `Sources/Sky/Astronomy` — none/some/severe — rather than a duplicate
+    /// tag enum). Shown alongside the meteor row's own factual rate/window text. Callers should
+    /// pass `{shower}` in `tokens` (the active shower's name, e.g. "Perseids") — every variant
+    /// uses that token rather than hardcoding a shower name, since this same line pool backs
+    /// whichever shower happens to be active tonight.
+    static func skyMeteor(
+        interference: MeteorShowers.MoonInterference,
+        date: Date,
+        locationId: UUID,
+        tokens: [String: String] = [:]
+    ) -> String {
+        render(
+            slot: .skyMeteor,
+            queries: [["interference": Self.interferenceTag(interference)], [:]],
+            date: date,
+            locationId: locationId,
+            tokens: tokens
+        )
+    }
+
+    private static func interferenceTag(_ interference: MeteorShowers.MoonInterference) -> String {
+        switch interference {
+        case .none: return "none"
+        case .some: return "some"
+        case .severe: return "severe"
+        }
+    }
+
+    /// A dry-wit line for tonight's closest visible Moon/planet or planet/planet pairing. Untagged
+    /// (one shared pool) — the row's own factual text already names the specific bodies and
+    /// separation, so this line is deliberately generic enough to sit under any pairing.
+    static func skyPairing(date: Date, locationId: UUID, tokens: [String: String] = [:]) -> String {
+        render(slot: .skyPairing, queries: [[:]], date: date, locationId: locationId, tokens: tokens)
     }
 
     // MARK: - WeatherKit condition-code -> ConditionGroup mapping

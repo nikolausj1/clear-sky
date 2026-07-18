@@ -301,7 +301,17 @@ struct ForecastPageView: View {
         if scrollToSky {
             hasScrolledToTarget = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                proxy.scrollTo(TonightSkyCard.cardId, anchor: .top)
+                // Sky-intelligence rows (work package WP-F) made the card tall enough, on a
+                // fully-loaded evening (headline + meteor + conjunction all present), that
+                // `anchor: .top` can now scroll all the way to the card's literal top edge —
+                // which sits exactly at the scroll content's y=0, directly under the floating
+                // translucent top bar (`NavigationShell`'s scroll-aware chrome), cropping the
+                // card's title/headline underneath it. (On a shorter card — fewer rows present —
+                // the scroll view previously couldn't scroll far enough to reach that position at
+                // all, which is why this wasn't visible before this work package.) A small
+                // positive `anchor.y` leaves deliberate headroom above the card's top edge
+                // instead of pinning it to the very top, clearing the floating bar.
+                proxy.scrollTo(TonightSkyCard.cardId, anchor: UnitPoint(x: 0.5, y: 0.22))
             }
             return
         }

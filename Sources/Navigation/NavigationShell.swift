@@ -119,6 +119,8 @@ struct NavigationShell: View {
             forceISSPass: Self.launchArgsContain("-forceISSPass"),
             forceNoISS: Self.launchArgsContain("-forceNoISS"),
             forceSkyUnavailable: Self.launchArgsContain("-forceSkyUnavailable"),
+            forcedMeteorPeak: Self.forcedMeteorPeakFromLaunchArgs(),
+            forcePairing: Self.launchArgsContain("-forcePairing"),
             initialExpandedSkyPlanet: Self.expandSkyPlanetFromLaunchArgs()
         )
 
@@ -324,5 +326,17 @@ struct NavigationShell: View {
         let args = CommandLine.arguments
         guard let flagIndex = args.firstIndex(of: "-expandSkyPlanet"), flagIndex + 1 < args.count else { return nil }
         return Planets.Body(rawValue: args[flagIndex + 1])
+    }
+
+    // MARK: - Sky-intelligence hooks (work package WP-F: headline/meteor/conjunction rows)
+
+    /// `-forceMeteorPeak none|some|severe` — synthesizes a Perseids-at-peak `MeteorOutlook` at
+    /// the given Moon-interference level, so the meteor row (and, when it wins the ranking, the
+    /// headline row) can be screenshotted without waiting for a real shower to be active/peaking
+    /// tonight. See `SkyTonightService.ForcedOverrides.meteorPeak`.
+    private static func forcedMeteorPeakFromLaunchArgs() -> MeteorShowers.MoonInterference? {
+        let args = CommandLine.arguments
+        guard let flagIndex = args.firstIndex(of: "-forceMeteorPeak"), flagIndex + 1 < args.count else { return nil }
+        return MeteorShowers.MoonInterference(launchArgValue: args[flagIndex + 1])
     }
 }
