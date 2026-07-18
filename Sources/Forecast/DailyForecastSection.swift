@@ -66,14 +66,18 @@ struct DailyRangeBar: View {
 /// The inline expansion shown when a daily row is tapped (PRD Section 6, item 8): that day's
 /// hourly breakdown, total precipitation, daylight sunrise/sunset, and moon phase.
 ///
-/// UX redesign part 2 (density pass): renders 2-hour steps anchored to midnight — 12AM, 2AM, …
-/// 10PM (see `IMG_1176.png`) — rather than every hour. The grid is anchored to the clock hour
-/// (`hour-of-day % stepHours == 0`), not to "first entry in `hours`," so it lands on the same
-/// 12/2/4/…-o'clock slots for every day INCLUDING today: today's `hours` (passed in by
-/// `DailyForecastSection`) only contains entries from the current hour onward (WeatherKit's
-/// hourly forecast starts at "now," not midnight — see `WeatherService.fetchWeather`), so early
-/// slots before the current hour simply have no matching entry and are skipped; the grid itself
-/// never shifts to a "from now" basis the way the main hourly list's does.
+/// UX redesign part 2 (density pass): renders 2-hour steps rather than every hour — 12AM, 2AM, …
+/// 10PM (see `IMG_1176.png`), midnight-anchored (`hour-of-day % stepHours == 0`) for every day
+/// EXCEPT today.
+///
+/// Forecast-surface overhaul, work item 2 ("today's expanded hourly starts NOW"): TODAY's grid is
+/// no longer midnight-anchored — it starts at the current hour and steps forward every
+/// `stepHours` to end of day, the same "index 0 is now" technique `HourlyForecastSection` uses
+/// for the main list (today's `hours`, passed in by `DailyForecastSection`, only contains entries
+/// from the current hour onward — WeatherKit's hourly forecast starts at "now," not midnight, see
+/// `WeatherService.fetchWeather` — so striding by index naturally anchors row 1 at "now"). Every
+/// other day keeps the original midnight-anchored behavior, since there's no "now" within a
+/// future day to anchor to. See `displayedHours`' own doc comment for the exact rule.
 struct DailyExpandedDetail: View {
     let day: DailyEntry
     /// The FULL day's hourly entries (every hour WeatherKit returned for this calendar day, not
@@ -81,14 +85,42 @@ struct DailyExpandedDetail: View {
     /// `positions`' per-day min/max.
     let hours: [HourlyEntry]
     let metric: ForecastMetric
+    /// Forecast-surface overhaul, work item 3: Sky/Events chip data + tap-to-explain wiring.
+    /// Defaulted so every existing call site/preview keeps compiling unchanged.
+    var skyContext: HourlySkyContext = HourlySkyContext()
 
     private static let stepHours = HourlyForecastSection.stepHours
     private static let displayedRowCount = HourlyForecastSection.displayedRowCount
 
-    /// The subset actually rendered: entries whose hour-of-day is a multiple of `stepHours`
-    /// (12AM, 2AM, 4AM, …), capped at `displayedRowCount` rows.
+    /// Forecast-surface overhaul, work item 2 ("today's expanded hourly starts NOW"): only
+    /// TODAY's row gets the "starts now" treatment — every other day stays midnight-anchored.
+    private var isToday: Bool {
+        Calendar.current.isDateInToday(day.date)
+    }
+
+    /// The subset actually rendered.
+    ///
+    /// For TODAY: `hours` (per this type's own original doc note, still true) only contains
+    /// entries from the current hour onward — WeatherKit's hourly forecast starts at "now," not
+    /// midnight. Striding by INDEX from position 0 (the same "index 0 is now, every other entry
+    /// after that" technique `HourlyForecastSection` itself uses for the main list — see that
+    /// type's doc comment: "2-hour steps from now") therefore anchors row 1 at the current hour
+    /// and runs every 2 hours to end of day, rather than snapping back to a midnight-aligned
+    /// clock-hour grid that would either repeat hours already in the past or skip several hours
+    /// ahead to the next even clock hour.
+    ///
+    /// For every other day: unchanged, midnight-anchored (`hour-of-day % stepHours == 0`) —
+    /// 12AM, 2AM, 4AM, … — so a future day's grid always lands on the same clock slots
+    /// regardless of what time "now" happens to be.
     private var displayedHours: [HourlyEntry] {
-        Array(
+        if isToday {
+            return Array(
+                stride(from: 0, to: hours.count, by: Self.stepHours)
+                    .prefix(Self.displayedRowCount)
+                    .map { hours[$0] }
+            )
+        }
+        return Array(
             hours
                 .filter { Calendar.current.component(.hour, from: $0.date) % Self.stepHours == 0 }
                 .prefix(Self.displayedRowCount)
@@ -99,6 +131,14 @@ struct DailyExpandedDetail: View {
     /// honesty rule as the main hourly list — see `HourlyForecastSection.positions`.
     private var positions: [Date: Double] {
         PositionalPillTrack.positions(for: hours, metric: metric)
+    }
+
+    private var stargazingScores: [Date: StargazingScore.HourScore] {
+        skyContext.stargazingScores(for: hours)
+    }
+
+    private var eventBuckets: [Date: HourlySkyEvents.Bucket] {
+        skyContext.eventBuckets(displayedHours: displayedHours.map(\.date))
     }
 
     /// Unaffected by the 2-hour display subsetting: always the FULL day's hourly precip total.
@@ -117,15 +157,25 @@ struct DailyExpandedDetail: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             let rows = Array(displayedHours.enumerated())
+            let scores = stargazingScores
+            let buckets = eventBuckets
             ForEach(rows, id: \.element.id) { index, hour in
                 HourlyPillRow(
                     entry: hour,
+                    // TODAY's grid starts at "now" (see `displayedHours`), so its first row is a
+                    // real anchor row exactly like the main hourly list's — shows "Now" instead
+                    // of a formatted time. Every other day stays midnight-anchored with no
+                    // anchor row (every row is a real, formattable clock time).
+                    isFirstRow: isToday && index == 0,
                     // Same displayed-subset condition-label rule as the main hourly list: the
                     // first displayed row is the anchor (always shows its condition); later rows
                     // only when different from the previous DISPLAYED row.
                     previousConditionDescription: index > 0 ? rows[index - 1].element.conditionDescription : nil,
                     metric: metric,
-                    position: positions[hour.date] ?? 0.5
+                    position: positions[hour.date] ?? 0.5,
+                    stargazingScore: scores[hour.date],
+                    eventBucket: buckets[hour.date],
+                    onExplain: skyContext.onExplain
                 )
             }
 
@@ -168,6 +218,7 @@ struct DailyForecastRow: View {
     let isExpanded: Bool
     let hourlyForDay: [HourlyEntry]
     let metric: ForecastMetric
+    var skyContext: HourlySkyContext = HourlySkyContext()
     /// Non-nil only for TODAY's row — see `DailyRangeBar.currentTemperatureF`.
     var currentTemperatureF: Double? = nil
     let onTap: () -> Void
@@ -220,7 +271,7 @@ struct DailyForecastRow: View {
             .buttonStyle(PressableRowStyle())
 
             if isExpanded {
-                DailyExpandedDetail(day: day, hours: hourlyForDay, metric: metric)
+                DailyExpandedDetail(day: day, hours: hourlyForDay, metric: metric, skyContext: skyContext)
             }
         }
         // Masks the expanding detail to the cell's animated bounds so the reveal unfolds in
@@ -234,6 +285,7 @@ struct DailyForecastSection: View {
     let daily: [DailyEntry]
     let hourly: [HourlyEntry]
     let metric: ForecastMetric
+    var skyContext: HourlySkyContext = HourlySkyContext()
     @Binding var expandedDayId: Date?
     /// Today's actual current temperature (`CachedWeather.currentConditions.temperature`) —
     /// threaded through so `DailyRangeBar` can plot a "current temp" dot on TODAY's row only.
@@ -267,6 +319,7 @@ struct DailyForecastSection: View {
                     isExpanded: expandedDayId == day.date,
                     hourlyForDay: hourly.filter { Calendar.current.isDate($0.date, inSameDayAs: day.date) },
                     metric: metric,
+                    skyContext: skyContext,
                     currentTemperatureF: Calendar.current.isDateInToday(day.date)
                         ? currentTemperature?.converted(to: .fahrenheit).value
                         : nil,

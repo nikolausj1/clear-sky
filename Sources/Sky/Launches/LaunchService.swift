@@ -254,6 +254,22 @@ actor LaunchService {
         return try await task.value
     }
 
+    /// Cache-only read, no network attempt ever — for callers (the Forecast hourly Events chip's
+    /// launch-icon lookup) that want "whatever's already cached, if fresh" without triggering a
+    /// new network fetch as a side effect of rendering an unrelated screen (work-order
+    /// instruction: "reuse the Space tab's service/cache; if no cache, no launch icons, fine").
+    /// Returns `nil` on a cache miss OR a cache older than `freshInterval` — deliberately the
+    /// tighter "fresh" bound, not the looser `staleLimit` fallback window `fetchUpcomingLaunches`
+    /// uses on a failed network attempt, since there is no failed attempt here to excuse showing
+    /// day-old data.
+    func cachedUpcomingLaunchesIfFresh(cacheDirectory: URL, now: Date = Date()) -> LL2UpcomingLaunchesResponse? {
+        let cacheFile = cacheDirectory.appendingPathComponent(Self.cacheFileName)
+        guard let cached = Self.readEnvelope(cacheFile), now.timeIntervalSince(cached.fetchedAt) < Self.freshInterval else {
+            return nil
+        }
+        return cached.payload
+    }
+
     // MARK: Network + stale fallback (no actor isolation needed: takes everything as params)
 
     private static func fetchFromNetworkOrFallBackToStale(

@@ -27,6 +27,10 @@ struct ForecastPageView: View {
     /// Sim-verify only ("Tonight's Sky" work package): `-scrollToSky` — scrolls straight to
     /// `TonightSkyCard`, mirroring `-scrollToAttribution` above.
     var scrollToSky: Bool = false
+    /// Sim-verify only (Forecast-surface overhaul, work item 4): `-showExplainer <key>` —
+    /// presents an explainer sheet directly at launch, since `simctl` can't tap through to an
+    /// icon. See `Explainers.forLaunchArgKey(_:)` for the accepted keys.
+    var forcedExplainerKey: String? = nil
     /// UX redesign part 2 (lead QC defect: scroll-aware top bar): reports this page's scroll
     /// content offset (`0` at rest, growing as the user scrolls down) up to `ForecastView`,
     /// which only listens for the currently-active page (see `ForecastView.pagerView`) and uses
@@ -41,6 +45,17 @@ struct ForecastPageView: View {
     @Environment(UnitsSettings.self) private var unitsSettings
     @State private var isPresentingAlertDetail = false
     @State private var hasScrolledToTarget = false
+    /// Forecast-surface overhaul, work item 4: the currently-presented tap-to-explain sheet, if
+    /// any. Centralized here (rather than one `@State` per tappable icon scattered across
+    /// `HourlyForecastSection`/`TonightSkyCard`) so every explainer — hourly event icons, the Sky
+    /// chip's score info button, `TonightSkyCard`'s ISS section — shares one sheet presentation.
+    @State private var presentedExplainer: ExplainerContent?
+    /// Forecast-surface overhaul, work item 3: the Sky/Events chips' per-hour intelligence,
+    /// resolved once per (location, evening) via `loadSkyContext()` below and threaded into both
+    /// `HourlyForecastSection` and `DailyForecastSection`. Starts as the all-defaults value (no
+    /// events, no scores) so the chips render their quiet/empty states until the task resolves —
+    /// same "never blocks the rest of the page" spirit as `TonightSkyCard`'s own async rows.
+    @State private var skyContext = HourlySkyContext()
     /// UX polish package ("Depth & motion" — hero parallax): the same content-scroll offset the
     /// scroll-aware top bar already tracks (`onScrollOffsetChange`), mirrored into local state so
     /// `heroHeader` can apply a parallax offset/overscroll scale to the hero without needing a
@@ -273,7 +288,9 @@ struct ForecastPageView: View {
                         location: location,
                         skyForcedOverrides: viewModel.skyForcedOverrides,
                         forceTrueSkyPlanets: viewModel.forceTrueSkyPlanets,
-                        forceISSStreakNow: viewModel.forceISSStreakNow
+                        forceISSStreakNow: viewModel.forceISSStreakNow,
+                        hourly: payload.hourly,
+                        onCaptionTap: { scrollToSkyCard(proxy: proxy) }
                     )
                     .parallax(scrollOffset: scrollOffset)
 
@@ -295,7 +312,7 @@ struct ForecastPageView: View {
                             MetricChipsRow(selected: $viewModel.selectedMetric)
 
                             SheetCard(title: "HOURLY FORECAST") {
-                                HourlyForecastSection(hours: payload.hourly, metric: viewModel.selectedMetric)
+                                HourlyForecastSection(hours: payload.hourly, metric: viewModel.selectedMetric, skyContext: skyContext)
                             }
 
                             SheetCard(title: "DAILY FORECAST") {
@@ -303,6 +320,7 @@ struct ForecastPageView: View {
                                     daily: payload.daily,
                                     hourly: payload.hourly,
                                     metric: viewModel.selectedMetric,
+                                    skyContext: skyContext,
                                     expandedDayId: $viewModel.expandedDayId,
                                     currentTemperature: payload.currentConditions.temperature
                                 )
@@ -318,7 +336,8 @@ struct ForecastPageView: View {
                                 location: location,
                                 date: viewModel.phraseBankDate,
                                 forcedOverrides: viewModel.skyForcedOverrides,
-                                initialExpandedPlanet: viewModel.initialExpandedSkyPlanet
+                                initialExpandedPlanet: viewModel.initialExpandedSkyPlanet,
+                                onExplain: { presentedExplainer = $0 }
                             )
 
                             AttributionFooter(attribution: payload.attribution)
@@ -346,12 +365,76 @@ struct ForecastPageView: View {
             .sheet(isPresented: $isPresentingAlertDetail) {
                 AlertDetailSheet(alerts: payload.activeAlerts)
             }
+            .sheet(item: $presentedExplainer) { content in
+                ExplainerSheet(content: content)
+            }
             .onAppear {
                 scrollToTargetIfNeeded(payload, proxy: proxy)
+                if let forcedExplainerKey, presentedExplainer == nil {
+                    presentedExplainer = Explainers.forLaunchArgKey(forcedExplainerKey)
+                }
             }
             .onChange(of: viewModel.selectedMetric) {
                 scrollToTargetIfNeeded(payload, proxy: proxy)
             }
+            .task(id: skyContextTaskKey) {
+                await loadSkyContext(payload: payload)
+            }
+        }
+    }
+
+    // MARK: - Sky intelligence context (work item 3)
+
+    /// Re-runs whenever the location or calendar evening changes — mirrors `TonightSkyCard
+    /// .taskKey`'s exact rationale (`.task(id:)` cancels/restarts automatically on any change).
+    private var skyContextTaskKey: String {
+        "\(location.id)|\(Calendar.current.startOfDay(for: viewModel.phraseBankDate).timeIntervalSince1970)"
+    }
+
+    /// `sky/` subdirectory of the app's caches directory — the same directory
+    /// `SkyTonightService`/`SpaceViewModel` already share for their own ISS/aurora/launch/solar
+    /// caches (each file within it is independently named, so there's no collision).
+    private static var skyCacheDirectory: URL {
+        let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        return base.appendingPathComponent("sky", isDirectory: true)
+    }
+
+    /// Resolves this evening's Sky/Events chip data: ISS passes + aurora outlook via
+    /// `SkyTonightService` (already fetched/cached for `TonightSkyCard`/`DoodleHeaderView`, so
+    /// this is a cache hit in practice, not a second network round-trip), the meteor outlook
+    /// (synchronous, no network), and launches via the cache-only path (work order: "do NOT add
+    /// new network behavior — reuse the Space tab's service/cache; if no cache, no launch icons,
+    /// fine").
+    private func loadSkyContext(payload: CachedWeather) async {
+        let result = await SkyTonightService.shared.state(
+            locationId: location.id,
+            latitude: location.latitude,
+            longitude: location.longitude,
+            date: viewModel.phraseBankDate,
+            overrides: viewModel.skyForcedOverrides
+        )
+        let launches = await LaunchesUpcoming.cachedNextLaunchesIfFresh(
+            cacheDirectory: Self.skyCacheDirectory,
+            from: viewModel.phraseBankDate,
+            count: 10
+        )
+        skyContext = HourlySkyContext(
+            location: location,
+            issPasses: SkyTonightService.availableValue(result.iss) ?? [],
+            auroraOutlook: SkyTonightService.availableValue(result.aurora),
+            meteorOutlook: result.meteor,
+            launches: launches,
+            onExplain: { presentedExplainer = $0 }
+        )
+    }
+
+    /// Work item 1: tapping the hero caption scrolls to `TonightSkyCard` — reuses the exact same
+    /// anchor `-scrollToSky`'s sim-verify hook already uses (see `scrollToTargetIfNeeded`'s doc
+    /// comment for why `0.10` was chosen over `.top`/`0.22`).
+    private func scrollToSkyCard(proxy: ScrollViewProxy) {
+        withAnimation {
+            proxy.scrollTo(TonightSkyCard.cardId, anchor: UnitPoint(x: 0.5, y: 0.10))
         }
     }
 

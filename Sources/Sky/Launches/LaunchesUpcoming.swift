@@ -53,4 +53,17 @@ enum LaunchesUpcoming {
         let launches = LaunchSchedule.nextLaunches(from: response.results, now: now, count: count)
         return (launches, isStale)
     }
+
+    /// Cache-only, no network — for the Forecast hourly Events chip's launch icons (work-order
+    /// instruction: "reuse the Space tab's service/cache... do NOT add new network behavior; if
+    /// no cache, no launch icons, fine"). Returns an empty array on a cache miss/stale cache
+    /// rather than throwing, since "no launch icons this render" is the documented, acceptable
+    /// degraded behavior here, not an error condition.
+    static func cachedNextLaunchesIfFresh(cacheDirectory: URL, from now: Date, count: Int = 5) async -> [UpcomingLaunch] {
+        let service = LaunchService()
+        guard let response = await service.cachedUpcomingLaunchesIfFresh(cacheDirectory: cacheDirectory, now: now) else {
+            return []
+        }
+        return LaunchSchedule.nextLaunches(from: response.results, now: now, count: count)
+    }
 }

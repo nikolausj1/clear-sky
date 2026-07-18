@@ -178,6 +178,44 @@ enum TonightHeadline {
         )
     }
 
+    // MARK: - Detail text for an already-picked `BestMoment.SkyMoment`
+
+    /// Renders `kind`'s own detail sentence directly — the same wording `generate`'s tier-1 event
+    /// headlines (and, for the two tiers `generate` itself never treats as "events" — brightest
+    /// planet, notable moonrise — the equivalent tier-3 fact wording) use. For callers (the night
+    /// panel's headline row) that already hold a `BestMoment.SkyMoment` and want its matching
+    /// detail text specifically, rather than risking `generate`'s own independent tier-3
+    /// re-ranking picking a *different* fact than the one the headline row is already titled
+    /// with (see that tier's doc comment: "the single most interesting fact wins," which is not
+    /// guaranteed to be the same fact `BestMoment` picked for a `.brightPlanet`/`.moonRise`
+    /// moment). Always non-nil.
+    static func detailText(for kind: BestMoment.Kind, timeZone: TimeZone) -> String {
+        switch kind {
+        case .issPass(let pass):
+            return issHeadline(pass, timeZone: timeZone).detailText ?? ""
+        case .auroraWindow(let outlook):
+            return auroraHeadline(outlook, timeZone: timeZone).detailText ?? ""
+        case .meteorShower(let outlook):
+            return meteorHeadline(outlook, timeZone: timeZone).detailText ?? ""
+        case .conjunction(let pairing):
+            return conjunctionHeadline(pairing, timeZone: timeZone).detailText ?? ""
+        case .brightPlanet(let planet):
+            let direction = planet.bestAzimuth.map { compassWord(compassPoint(forAzimuth: $0)) } ?? "up tonight"
+            let when = (planet.bestViewingStart ?? planet.rise).map { shortTime($0, timeZone: timeZone) }
+            let whenClause = when.map { " around \($0)" } ?? ""
+            return "\(planet.body.displayName) is the brightest planet visible tonight, best seen \(direction), "
+                + "\(planet.directionDescription ?? "well up in the sky")\(whenClause)."
+        case .moonRise(let moonKind, let illuminatedPercent, let riseTime):
+            let riseClause = " rising around \(shortTime(riseTime, timeZone: timeZone))"
+            switch moonKind {
+            case .fullMoon:
+                return "The Moon is essentially full tonight (about \(Int(illuminatedPercent.rounded()))% illuminated)\(riseClause), washing out all but the brightest stars."
+            case .newMoon:
+                return "The Moon is essentially new tonight (about \(Int(illuminatedPercent.rounded()))% illuminated)\(riseClause), leaving skies at their darkest all month."
+            }
+        }
+    }
+
     // MARK: - Tier 1: strong event
 
     private static func eventHeadline(for moment: BestMoment.SkyMoment, timeZone: TimeZone) -> Headline? {
@@ -354,15 +392,20 @@ enum TonightHeadline {
     }
 
     // MARK: - Formatting helpers
+    //
+    // `compassWord`/`shortTime` are `internal` (not `private`) rather than file-scoped, so
+    // `TonightSkyCard`'s ISS plain-language block (Forecast-surface overhaul, work item 5) can
+    // reuse the exact same compass-word/time wording this file already uses for the hero
+    // caption, instead of a second, potentially-drifting copy of the same trivial formatting.
 
-    private static let compassWords: [String: String] = [
+    static let compassWords: [String: String] = [
         "N": "north", "NNE": "north-northeast", "NE": "northeast", "ENE": "east-northeast",
         "E": "east", "ESE": "east-southeast", "SE": "southeast", "SSE": "south-southeast",
         "S": "south", "SSW": "south-southwest", "SW": "southwest", "WSW": "west-southwest",
         "W": "west", "WNW": "west-northwest", "NW": "northwest", "NNW": "north-northwest",
     ]
 
-    private static func compassWord(_ abbreviation: String) -> String {
+    static func compassWord(_ abbreviation: String) -> String {
         compassWords[abbreviation] ?? abbreviation.lowercased()
     }
 
@@ -370,7 +413,7 @@ enum TonightHeadline {
     /// instants, otherwise a bare 12-hour "h:mm" with no AM/PM suffix (matching the Observatory
     /// Guide register's terse style, e.g. "9:42", "11:15") -- deliberately not disambiguated
     /// with AM/PM since every use in this file is already anchored to "tonight."
-    private static func shortTime(_ date: Date, timeZone: TimeZone) -> String {
+    static func shortTime(_ date: Date, timeZone: TimeZone) -> String {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
         let components = calendar.dateComponents([.hour, .minute], from: date)

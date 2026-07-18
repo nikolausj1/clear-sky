@@ -24,6 +24,10 @@ struct TonightSkyCard: View {
     let location: SavedLocation
     let date: Date
     var forcedOverrides: SkyTonightService.ForcedOverrides? = nil
+    /// Forecast-surface overhaul, work item 4: tap-to-explain wiring for the ISS section's
+    /// `info.circle` button. Defaulted so every existing call site/preview keeps compiling
+    /// unchanged (a no-op tap).
+    var onExplain: (ExplainerContent) -> Void = { _ in }
 
     @State private var astronomy: SkyTonight.TonightSky?
     @State private var issState: SkyTonightService.SectionState<[ISSPass]> = .loading
@@ -48,12 +52,14 @@ struct TonightSkyCard: View {
         location: SavedLocation,
         date: Date,
         forcedOverrides: SkyTonightService.ForcedOverrides? = nil,
-        initialExpandedPlanet: Planets.Body? = nil
+        initialExpandedPlanet: Planets.Body? = nil,
+        onExplain: @escaping (ExplainerContent) -> Void = { _ in }
     ) {
         self.location = location
         self.date = date
         self.forcedOverrides = forcedOverrides
         self._expandedPlanet = State(initialValue: initialExpandedPlanet)
+        self.onExplain = onExplain
     }
 
     var body: some View {
@@ -73,9 +79,11 @@ struct TonightSkyCard: View {
                             .padding(.vertical, 8)
                         nightDivider
                     }
-                    moonRow(astronomy.moon)
-                    nightDivider
+                    // Night panel UX pass: PLANETS moved directly under the timeline strip (was
+                    // below the Moon row) so the strip's planet bars sit adjacent to their rows.
                     planetsSection(astronomy.planets)
+                    nightDivider
+                    moonRow(astronomy.moon)
                     nightDivider
                     auroraRow
                     nightDivider
@@ -176,11 +184,13 @@ struct TonightSkyCard: View {
 
     /// Hairline row separator — `Color.white.opacity(0.12)` per spec, replacing `Divider()`
     /// (which resolves to a light-mode-oriented system color that would be nearly invisible
-    /// against this card's always-dark background).
+    /// against this card's always-dark background). Night panel UX pass: ~14pt vertical padding
+    /// (up from none) so sections get more breathing room between them.
     private var nightDivider: some View {
         Rectangle()
             .fill(Color.white.opacity(0.12))
             .frame(height: 1)
+            .padding(.vertical, 14)
     }
 
     // MARK: - Headline
@@ -194,7 +204,7 @@ struct TonightSkyCard: View {
                 .font(.subheadline)
                 .foregroundStyle(Color.clearSkyAccentOnDark)
                 .padding(.top, 3)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 if let bestMoment {
                     Text("Step outside at \(Self.timeFormatter.string(from: bestMoment.time))")
                         .font(.system(.title3, design: .rounded).weight(.semibold))
@@ -203,6 +213,16 @@ struct TonightSkyCard: View {
                     Text(Self.headlineSubtitle(bestMoment.kind))
                         .font(.subheadline)
                         .foregroundStyle(Color.white.opacity(0.65))
+                    // Night panel UX pass: the fuller "Step outside" explanation beneath the
+                    // headline's own treatment — `TonightHeadline.detailText` renders the exact
+                    // same fact `bestMoment.kind` already names above, so this is always
+                    // consistent with the headline text itself (see that function's doc comment
+                    // on why it takes `bestMoment.kind` directly rather than re-deriving via
+                    // `TonightHeadline.generate`, which could independently pick a different
+                    // fact for the quieter tiers).
+                    Text(TonightHeadline.detailText(for: bestMoment.kind, timeZone: timeZone))
+                        .font(.subheadline)
+                        .foregroundStyle(Color.white.opacity(0.75))
                 }
             }
         }
@@ -507,13 +527,14 @@ struct TonightSkyCard: View {
         }
     }
 
-    /// "Aurora: fair chance · best 11 PM–1 AM" (+ "· 22% now" only when `chanceNow` clears 5%,
-    /// per the PRD's "avoid fake precision" note).
+    /// "Aurora: fair chance · best 11 PM–1 AM" (+ "· 22% chance right now" only when `chanceNow`
+    /// clears 5%, per the PRD's "avoid fake precision" note).
     private static func auroraHeadline(_ outlook: AuroraOutlook) -> String {
         var parts = ["Aurora: \(outlook.band.description) chance"]
         parts.append("best \(timeFormatter.string(from: outlook.bestViewingWindow.start))–\(timeFormatter.string(from: outlook.bestViewingWindow.end))")
         if outlook.chanceNow >= 5 {
-            parts.append("\(outlook.chanceNow)% now")
+            // Night panel UX pass ("non-nerd sweep"): "45% now" -> "45% chance right now".
+            parts.append("\(outlook.chanceNow)% chance right now")
         }
         return parts.joined(separator: " · ")
     }
@@ -615,27 +636,81 @@ struct TonightSkyCard: View {
                     .foregroundStyle(Color.white.opacity(0.65))
                     .padding(.vertical, 8)
             } else {
+                // Night panel UX pass: the bare pass-time-text rows are replaced with a
+                // plain-language block — arc glyph, then a sentence built from the pass data
+                // ("Appears ... low in the ..., climbs ..., fades ... at ...") plus a brightness
+                // simile in place of the raw class word.
                 HStack(alignment: .top, spacing: 10) {
                     ISSTrajectoryGlyph()
                         .padding(.top, 3)
                     VStack(alignment: .leading, spacing: 4) {
-                        ForEach(Array(passes.prefix(2).enumerated()), id: \.offset) { _, pass in
-                            Text(Self.issPassText(pass))
+                        if let firstPass = passes.first {
+                            Text(Self.issPlainLanguage(firstPass, timeZone: timeZone))
                                 .font(.subheadline)
-                                .monospacedDigit()
                                 .foregroundStyle(.white)
+                        }
+                        // A second pass tonight, if any, still gets the compact factual line —
+                        // the plain-language treatment above is reserved for the headline pass.
+                        ForEach(Array(passes.dropFirst().prefix(1).enumerated()), id: \.offset) { _, pass in
+                            Text(Self.issPassText(pass))
+                                .font(.footnote)
+                                .monospacedDigit()
+                                .foregroundStyle(Color.white.opacity(0.65))
                         }
                         Text(PhraseBank.skyISSPass(date: date, locationId: location.id))
                             .font(.footnote)
                             .foregroundStyle(Color.white.opacity(0.65))
                     }
+                    Spacer(minLength: 8)
+                    Button {
+                        onExplain(Explainers.issPass)
+                    } label: {
+                        Image(systemName: "info.circle")
+                            .font(.footnote)
+                            .foregroundStyle(Color.white.opacity(0.5))
+                    }
+                    .buttonStyle(.plain)
                 }
                 .padding(.vertical, 8)
             }
         }
     }
 
-    /// "9:42 PM · WNW→ESE · 4 min · bright" — PRD-specified row format.
+    /// "Appears 9:42 low in the WNW, climbs a third of the way up the sky, fades ESE at 9:46.
+    /// As bright as the brightest star in the sky." — the plain-language ISS block (night panel
+    /// UX pass), replacing the previous bare "9:42 PM · WNW→ESE · 4 min · bright" row.
+    private static func issPlainLanguage(_ pass: ISSPass, timeZone: TimeZone) -> String {
+        let start = TonightHeadline.shortTime(pass.startTime, timeZone: timeZone)
+        let end = TonightHeadline.shortTime(pass.endTime, timeZone: timeZone)
+        let startDirection = TonightHeadline.compassWord(pass.startAzimuthCompass)
+        let endDirection = TonightHeadline.compassWord(pass.endAzimuthCompass)
+        let arc = Self.qualitativeAltitude(pass.peakAltitudeDeg)
+        let brightness = Self.brightnessSimile(pass.brightness)
+        return "Appears \(start) low in the \(startDirection), climbs \(arc), fades \(endDirection) at \(end). \(brightness)"
+    }
+
+    /// Qualitative peak-altitude phrase (spec: "a third of the way"/"halfway"/"high overhead").
+    private static func qualitativeAltitude(_ peakAltitudeDegrees: Double) -> String {
+        switch peakAltitudeDegrees {
+        case ..<30: return "a third of the way up the sky"
+        case 30..<70: return "halfway up the sky"
+        default: return "high overhead"
+        }
+    }
+
+    /// Brightness similes replacing the raw `ISSBrightness` class words (spec): bright -> "as
+    /// bright as the brightest star", moderate -> "easy to spot if you're looking", dim ->
+    /// "faint — easier from somewhere dark".
+    private static func brightnessSimile(_ brightness: ISSBrightness) -> String {
+        switch brightness {
+        case .bright: return "As bright as the brightest star in the sky."
+        case .moderate: return "Easy to spot if you're looking."
+        case .dim: return "Faint — easier to see from somewhere dark."
+        }
+    }
+
+    /// "9:42 PM · WNW→ESE · 4 min · bright" — compact factual format, still used for a second
+    /// same-night pass beneath the headline pass's plain-language block above.
     private static func issPassText(_ pass: ISSPass) -> String {
         let durationMinutes = max(1, Int((pass.endTime.timeIntervalSince(pass.startTime) / 60.0).rounded()))
         return "\(timeFormatter.string(from: pass.startTime)) · \(pass.startAzimuthCompass)→\(pass.endAzimuthCompass) · \(durationMinutes) min · \(pass.brightness.rawValue)"
@@ -691,11 +766,20 @@ struct TonightSkyCard: View {
 
     // MARK: - Sky note
 
+    /// Night panel UX pass: a "SPACE FACT" mini-label above the fact line, matching the card's
+    /// own "TONIGHT'S SKY" header treatment (footnote semibold, tracked, white 0.55) at a
+    /// smaller scope.
     private var factRow: some View {
-        Text(SkyFacts.tonight(date: date, locationId: location.id))
-            .font(.footnote)
-            .foregroundStyle(Color.white.opacity(0.65))
-            .padding(.vertical, 8)
+        VStack(alignment: .leading, spacing: 4) {
+            Text("SPACE FACT")
+                .font(.footnote.weight(.semibold))
+                .tracking(0.8)
+                .foregroundStyle(Color.white.opacity(0.55))
+            Text(SkyFacts.tonight(date: date, locationId: location.id))
+                .font(.footnote)
+                .foregroundStyle(Color.white.opacity(0.65))
+        }
+        .padding(.vertical, 8)
     }
 
     // MARK: - Shared row chrome

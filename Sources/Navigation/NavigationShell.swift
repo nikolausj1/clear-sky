@@ -51,6 +51,7 @@ struct NavigationShell: View {
                             scrollTargetHourIndex: Self.scrollToHourFromLaunchArgs(),
                             scrollToAttribution: Self.launchArgsContain("-scrollToAttribution"),
                             scrollToSky: Self.launchArgsContain("-scrollToSky"),
+                            forcedExplainerKey: Self.forcedExplainerKeyFromLaunchArgs(),
                             onOpenSettings: { isPresentingSettings = true },
                             onOpenLocations: { isPresentingLocations = true }
                         )
@@ -291,6 +292,14 @@ struct NavigationShell: View {
         let args = CommandLine.arguments
         guard let flagIndex = args.firstIndex(of: "-scrollToHour"), flagIndex + 1 < args.count else { return nil }
         return Int(args[flagIndex + 1])
+    }
+
+    /// `-showExplainer issPass|aurora|meteorShower|stargazingScore|brightness|rocketLaunch` — see
+    /// `ForecastPageView`'s doc comment and `Explainers.forLaunchArgKey(_:)`.
+    private static func forcedExplainerKeyFromLaunchArgs() -> String? {
+        let args = CommandLine.arguments
+        guard let flagIndex = args.firstIndex(of: "-showExplainer"), flagIndex + 1 < args.count else { return nil }
+        return args[flagIndex + 1]
     }
 
     private static func activeLocationIndexFromLaunchArgs() -> Int? {

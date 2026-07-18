@@ -292,7 +292,7 @@ enum PhraseBank {
 
     // MARK: - "Tonight's Sky" (PRD Revision Notes 2026-07-17)
 
-    /// A dry-wit line about a specific visible planet, keyed by `Planets.Body` (reused directly
+    /// An Observatory Guide line about a specific visible planet, keyed by `Planets.Body` (reused directly
     /// from `Sources/Sky/Astronomy` rather than a duplicate tag enum). Shown inside that
     /// planet's inline-expanded detail, alongside (not instead of) `SkyFindItGuide`'s
     /// informational blurb — see that type's doc comment for the "teach vs. entertain" split.
@@ -311,12 +311,12 @@ enum PhraseBank {
         )
     }
 
-    /// Zero-visible-planets row: a single quiet dry-wit line.
+    /// Zero-visible-planets row: a single quiet factual line.
     static func skyNoPlanets(date: Date, locationId: UUID) -> String {
         render(slot: .skyNoPlanets, queries: [[:]], date: date, locationId: locationId, tokens: [:])
     }
 
-    /// A dry-wit line for tonight's aurora outlook, keyed by `AuroraBand` (reused directly from
+    /// An Observatory Guide line for tonight's aurora outlook, keyed by `AuroraBand` (reused directly from
     /// `Sources/Sky/Aurora` via its `description` — "none"/"low"/"fair"/"good"/"strong" — rather
     /// than a duplicate tag enum).
     static func skyAurora(
@@ -334,17 +334,17 @@ enum PhraseBank {
         )
     }
 
-    /// A dry-wit line shown alongside tonight's visible ISS pass(es).
+    /// An Observatory Guide line shown alongside tonight's visible ISS pass(es).
     static func skyISSPass(date: Date, locationId: UUID, tokens: [String: String] = [:]) -> String {
         render(slot: .skyISSPass, queries: [[:]], date: date, locationId: locationId, tokens: tokens)
     }
 
-    /// No-visible-ISS-pass-tonight row: a single dry-wit line.
+    /// No-visible-ISS-pass-tonight row: a single factual line.
     static func skyNoISS(date: Date, locationId: UUID) -> String {
         render(slot: .skyNoISS, queries: [[:]], date: date, locationId: locationId, tokens: [:])
     }
 
-    /// A dry-wit line about tonight's moon, keyed by `MoonQuarter` (new/waxing/full/waning — a
+    /// An Observatory Guide line about tonight's moon, keyed by `MoonQuarter` (new/waxing/full/waning — a
     /// coarser bucketing than the Moon row's own 8-phase name/symbol, which `TonightSkyCard`
     /// computes separately from the exact phase fraction).
     static func skyMoon(
@@ -362,7 +362,7 @@ enum PhraseBank {
         )
     }
 
-    /// A dry-wit line for tonight's active meteor shower, keyed by `MeteorShowers.MoonInterference`
+    /// An Observatory Guide line for tonight's active meteor shower, keyed by `MeteorShowers.MoonInterference`
     /// (reused directly from `Sources/Sky/Astronomy` — none/some/severe — rather than a duplicate
     /// tag enum). Shown alongside the meteor row's own factual rate/window text. Callers should
     /// pass `{shower}` in `tokens` (the active shower's name, e.g. "Perseids") — every variant
@@ -391,7 +391,7 @@ enum PhraseBank {
         }
     }
 
-    /// A dry-wit line for tonight's closest visible Moon/planet or planet/planet pairing. Untagged
+    /// An Observatory Guide line for tonight's closest visible Moon/planet or planet/planet pairing. Untagged
     /// (one shared pool) — the row's own factual text already names the specific bodies and
     /// separation, so this line is deliberately generic enough to sit under any pairing.
     static func skyPairing(date: Date, locationId: UUID, tokens: [String: String] = [:]) -> String {
@@ -400,17 +400,17 @@ enum PhraseBank {
 
     // MARK: - Space tab (work package WP-K)
 
-    /// A dry-wit line about the Launch Schedule card. Untagged (one shared pool) — rockets and
+    /// An Observatory Guide line about the Launch Schedule card. Untagged (one shared pool) — rockets and
     /// schedules in general, not any specific mission, so it works underneath whichever launches
     /// happen to be next.
     static func skyLaunch(date: Date, locationId: UUID, tokens: [String: String] = [:]) -> String {
         render(slot: .skyLaunch, queries: [[:]], date: date, locationId: locationId, tokens: tokens)
     }
 
-    /// A dry-wit line for the Sun card, keyed by `SolarActivityLevel` (reused directly from
+    /// An Observatory Guide line for the Sun card, keyed by `SolarActivityLevel` (reused directly from
     /// `Sources/Sky/Solar` — quiet/active/stormy). Stormy lines lead with the real-world
-    /// disruption (radio/GPS) before any wit, per work order: a genuine X-class flare is useful
-    /// information the joke must never undercut.
+    /// disruption (radio/GPS) before anything else, per work order: a genuine X-class flare is
+    /// useful information the copy must never undercut.
     static func skySolar(
         level: SolarActivityLevel,
         date: Date,

@@ -51,15 +51,33 @@ struct DoodleHeaderView: View {
     var forceTrueSkyPlanets: Bool = false
     /// `-forceISSStreakNow` — see `DoodleComposer.resolve`'s `forceISSStreakNow` parameter.
     var forceISSStreakNow: Bool = false
+    /// Forecast-surface overhaul, work item 1 (Tonight Headline hero): tonight's hourly cloud
+    /// data, needed to build `TonightHeadline.Inputs`' overcast/stargazing-score tiers. Defaulted
+    /// to empty so every existing call site (loading/error/empty previews) keeps compiling
+    /// unchanged and simply never resolves a Tonight Headline (falls back to `caption`).
+    var hourly: [HourlyEntry] = []
+    /// Forecast-surface overhaul, work item 1: tapping the caption scrolls to the Tonight's Sky
+    /// card — `ForecastPageView` wires this to its existing `ScrollViewProxy.scrollTo` mechanism
+    /// (the same one `-scrollToSky` already drives).
+    var onCaptionTap: (() -> Void)? = nil
 
-    /// Aurora/ISS are network-backed (`SkyTonightService.state`), so — unlike planets, which are
-    /// synchronous math computed fresh in `scene` below — they're fetched once via `.task(id:)`
-    /// and cached here. Calling `SkyTonightService.shared.state(...)` a second time for the same
-    /// (location, evening) that `TonightSkyCard` already fetched hits that service's own
-    /// in-memory cache/in-flight-task de-dup (see its doc comment) rather than re-hitting the
-    /// network — this view never fetches twice for the same evening.
-    @State private var fetchedAuroraBand: AuroraBand? = nil
-    @State private var fetchedISSPasses: [ISSPass] = []
+    /// Aurora/ISS/bestMoment/meteor are network-or-derived-state (`SkyTonightService.state`), so
+    /// — unlike planets, which are synchronous math computed fresh in `scene` below — they're
+    /// fetched once via `.task(id:)` and cached here. Calling `SkyTonightService.shared.state(...)`
+    /// a second time for the same (location, evening) that `TonightSkyCard` already fetched hits
+    /// that service's own in-memory cache/in-flight-task de-dup (see its doc comment) rather than
+    /// re-hitting the network — this view never fetches twice for the same evening. Storing the
+    /// full `State` (rather than just the aurora band/ISS passes the true-sky doodle scene
+    /// needs) additionally lets this view build `TonightHeadline.Inputs` for the hero caption.
+    @State private var fetchedSkyState: SkyTonightService.State? = nil
+
+    private var fetchedAuroraBand: AuroraBand? {
+        fetchedSkyState.flatMap { SkyTonightService.availableValue($0.aurora) }?.band
+    }
+
+    private var fetchedISSPasses: [ISSPass] {
+        fetchedSkyState.flatMap { SkyTonightService.availableValue($0.iss) } ?? []
+    }
 
     @Environment(UnitsSettings.self) private var unitsSettings
 
@@ -139,8 +157,54 @@ struct DoodleHeaderView: View {
             date: date,
             overrides: skyForcedOverrides
         )
-        fetchedAuroraBand = SkyTonightService.availableValue(result.aurora)?.band
-        fetchedISSPasses = SkyTonightService.availableValue(result.iss) ?? []
+        fetchedSkyState = result
+    }
+
+    // MARK: - Tonight Headline (work item 1)
+
+    /// Builds `TonightHeadline.Inputs` from `fetchedSkyState` (bestMoment/meteor/planets/moon)
+    /// plus `hourly` (this evening's cloud data, for the overcast/stargazing-score tiers) and
+    /// generates tonight's headline. `nil` whenever the inputs aren't available yet — first
+    /// launch, no location, the async sky fetch hasn't resolved, or tonight's dusk/dawn window
+    /// can't be resolved (polar edge case) — in which case `resolvedCaption` falls back to the
+    /// phrase-bank `caption` passed in, per work order.
+    private var tonightHeadline: TonightHeadline.Headline? {
+        guard let location, let skyState = fetchedSkyState, !hourly.isEmpty else { return nil }
+        guard let window = SkyTonightService.duskDawnWindow(
+            latitude: location.latitude, longitude: location.longitude, date: date, timeZone: .current
+        ) else { return nil }
+
+        let hourInputs = hourly.map {
+            StargazingScore.HourInput(date: $0.date, conditionCode: $0.conditionCode, precipChance: $0.precipChance)
+        }
+        let scores = StargazingScore.hourlyScores(hours: hourInputs, latitude: location.latitude, longitude: location.longitude)
+        let peak = scores.filter { window.contains($0.date) }.max { $0.score < $1.score }
+        let cloudCovers = hourly.map {
+            TonightHeadline.HourCloudCover(
+                date: $0.date,
+                cloudCoverFraction: StargazingScore.cloudCoverFraction(conditionCode: $0.conditionCode, precipChance: $0.precipChance)
+            )
+        }
+
+        let inputs = TonightHeadline.Inputs(
+            moment: skyState.bestMoment,
+            meteorOutlook: skyState.meteor,
+            planets: skyState.astronomy.planets,
+            moon: skyState.astronomy.moon,
+            peakStargazingScore: peak?.score,
+            peakStargazingHour: peak?.date,
+            tonightWindow: window,
+            hourlyCloudCover: cloudCovers,
+            timeZone: .current
+        )
+        return TonightHeadline.generate(inputs)
+    }
+
+    /// The hero caption actually shown: `TonightHeadline`'s line when its inputs are available,
+    /// otherwise the phrase-bank `caption` passed in (work order fallback: "first launch, no
+    /// astronomy yet").
+    private var resolvedCaption: String? {
+        tonightHeadline?.text ?? caption
     }
 
     var body: some View {
@@ -160,7 +224,7 @@ struct DoodleHeaderView: View {
                 }
                 .frame(width: proxy.size.width, height: proxy.size.height)
 
-                if caption != nil {
+                if resolvedCaption != nil {
                     // Full-width bottom-up scrim, sized independently of the caption text so it
                     // spans the entire header edge-to-edge — a hard-edged box around just the
                     // text (the previous behavior, when the gradient was a `.background()` on
@@ -170,8 +234,8 @@ struct DoodleHeaderView: View {
                         .allowsHitTesting(false)
                 }
 
-                if let caption {
-                    Text(caption)
+                if let resolvedCaption {
+                    Text(resolvedCaption)
                         .font(.subheadline.weight(.medium))
                         .tracking(0.3)
                         .foregroundStyle(.white)
@@ -184,7 +248,7 @@ struct DoodleHeaderView: View {
                         .shadow(color: .black.opacity(0.35), radius: 4, y: 1)
                         .multilineTextAlignment(.center)
                         // UX polish package ("Typography"): prefer a single line, but wrap
-                        // gracefully to a second rather than truncating a dry-wit line mid-word.
+                        // gracefully to a second rather than truncating a factual line mid-word.
                         .lineLimit(2)
                         .padding(.horizontal, 24)
                         // Nudged up by `sheetOverlap` beyond its original 14pt clearance so the
@@ -192,6 +256,11 @@ struct DoodleHeaderView: View {
                         // which now overlaps this scene by that same amount.
                         .padding(.bottom, 14 + Self.sheetOverlap)
                         .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
+                        // Work item 1: tapping the caption scrolls to the Tonight's Sky card.
+                        // Only active when the caller supplied a target (the loaded state) — a
+                        // no-op tap on the loading/error/empty previews, which pass no closure.
+                        .onTapGesture { onCaptionTap?() }
                 }
             }
             .frame(width: proxy.size.width, height: proxy.size.height)

@@ -1,20 +1,87 @@
 import SwiftUI
 
+/// Everything an hourly row needs beyond its own `HourlyEntry`/pill position — the Sky/Events
+/// chips' per-hour intelligence (Forecast-surface overhaul, work item 3) plus the tap-to-explain
+/// wiring (work item 4). A value type with every field defaulted, so any existing call site or
+/// preview that doesn't care about sky intelligence keeps compiling unchanged.
+struct HourlySkyContext {
+    var location: SavedLocation?
+    var issPasses: [ISSPass]
+    var auroraOutlook: AuroraOutlook?
+    var meteorOutlook: MeteorShowers.MeteorOutlook?
+    var launches: [UpcomingLaunch]
+    var onExplain: (ExplainerContent) -> Void
+
+    init(
+        location: SavedLocation? = nil,
+        issPasses: [ISSPass] = [],
+        auroraOutlook: AuroraOutlook? = nil,
+        meteorOutlook: MeteorShowers.MeteorOutlook? = nil,
+        launches: [UpcomingLaunch] = [],
+        onExplain: @escaping (ExplainerContent) -> Void = { _ in }
+    ) {
+        self.location = location
+        self.issPasses = issPasses
+        self.auroraOutlook = auroraOutlook
+        self.meteorOutlook = meteorOutlook
+        self.launches = launches
+        self.onExplain = onExplain
+    }
+
+    /// Stargazing Score for every hour in `hours` (Sky chip). A `nil` location returns an empty
+    /// map — the Sky chip then simply shows no positioned pills rather than guessing a
+    /// location. `StargazingScore` is cheap, synchronous, pure math (see its own doc comment),
+    /// so recomputing this per render is fine.
+    func stargazingScores(for hours: [HourlyEntry]) -> [Date: StargazingScore.HourScore] {
+        guard let location else { return [:] }
+        let inputs = hours.map {
+            StargazingScore.HourInput(date: $0.date, conditionCode: $0.conditionCode, precipChance: $0.precipChance)
+        }
+        let scores = StargazingScore.hourlyScores(hours: inputs, latitude: location.latitude, longitude: location.longitude)
+        return Dictionary(uniqueKeysWithValues: scores.map { ($0.date, $0) })
+    }
+
+    /// Event-icon buckets for a specific set of displayed row dates (Events chip + the default
+    /// view's inline icon) — see `HourlySkyEvents.compute`'s doc comment for the bucketing rule.
+    func eventBuckets(displayedHours: [Date]) -> [Date: HourlySkyEvents.Bucket] {
+        HourlySkyEvents.compute(
+            displayedHours: displayedHours,
+            issPasses: issPasses,
+            auroraOutlook: auroraOutlook,
+            meteorOutlook: meteorOutlook,
+            launches: launches
+        )
+    }
+}
+
 /// One row of the hourly list: time label, a condition-change label shown only when the
-/// condition differs from the previous row, and a positional pill on a full-width track (PRD
-/// Section 6, item 7 + the "Positional pill spec"). `position` is the pre-computed, clamped
-/// `[0, 1]` value from `PositionalPillTrack`.
+/// condition differs from the previous row, and — depending on `metric` — either a positional
+/// pill on a full-width track (PRD Section 6, item 7 + the "Positional pill spec"), a
+/// Stargazing-Score pill on a darkness-tinted track (`.sky`), or an event-icon row (`.events`).
+/// `position` is the pre-computed, clamped `[0, 1]` value from `PositionalPillTrack`, used only
+/// by the default (weather-metric) track.
 struct HourlyPillRow: View {
     @Environment(UnitsSettings.self) private var unitsSettings
     let entry: HourlyEntry
     /// UX redesign part 2: the main hourly list's anchor row reads "Now" instead of a formatted
     /// time — this is the only row that isn't a real 2-hour step, so it's called out explicitly
     /// rather than trying to make "h a" produce that string. `DailyExpandedDetail`'s
-    /// midnight-anchored grid never sets this (every one of its rows is a real, formattable time).
+    /// midnight-anchored grid never sets this (every one of its rows is a real, formattable
+    /// time); its TODAY grid (Forecast-surface overhaul: "today's expanded hourly starts NOW")
+    /// does, for the same reason the main list does.
     var isFirstRow: Bool = false
     let previousConditionDescription: String?
     let metric: ForecastMetric
     let position: Double
+    /// Non-nil only when meaningful for `.sky` — this hour's Stargazing Score. `nil` renders a
+    /// quiet "–" pill rather than a fabricated zero, distinguishing "no location to score
+    /// against" from "scored 0" (a real, honest daytime value).
+    var stargazingScore: StargazingScore.HourScore? = nil
+    /// This hour's event bucket, independent of `metric` — read both by the Events chip's icon
+    /// row and the default view's trailing inline icon (work item 3: "Inline event icons in the
+    /// DEFAULT hourly view").
+    var eventBucket: HourlySkyEvents.Bucket? = nil
+    var onExplain: (ExplainerContent) -> Void = { _ in }
 
     private static let hourFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -48,36 +115,145 @@ struct HourlyPillRow: View {
                 .minimumScaleFactor(0.8)
 
             GeometryReader { proxy in
-                let pillWidth: CGFloat = 56
-                let travel = max(proxy.size.width - pillWidth, 0)
-                ZStack(alignment: .leading) {
-                    // UX polish package ("Data-mark discipline"): recessive per mark-discipline —
-                    // thinner (0.75pt) and the low-contrast `separator` color rather than
-                    // `secondary`, so the track reads as scaffolding, not data.
-                    Rectangle()
-                        .fill(Color(.separator).opacity(0.5))
-                        .frame(height: 0.75)
-                        .frame(maxWidth: .infinity)
-
-                    Text(metric.displayString(for: entry, unit: unitsSettings.unit))
-                        .font(.subheadline.weight(.semibold))
-                        .monospacedDigit()
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                        .padding(.horizontal, 8)
-                        .frame(width: pillWidth, height: 30)
-                        // UX polish package: the "Now" row's pill gets the accent tint at 15%
-                        // opacity with accent-colored text, so the anchor row visually pops
-                        // against the otherwise-neutral list.
-                        .background(Capsule().fill(isFirstRow ? Color.clearSkyAccent.opacity(0.15) : Color(.tertiarySystemFill)))
-                        .foregroundStyle(isFirstRow ? Color.clearSkyAccent : Color.primary)
-                        .offset(x: travel * position)
+                switch metric {
+                case .events:
+                    eventsTrack
+                case .sky:
+                    skyTrack(proxy: proxy)
+                default:
+                    defaultTrack(proxy: proxy)
                 }
-                .frame(maxHeight: .infinity, alignment: .center)
             }
             .frame(height: 30)
+
+            // Inline event icon (work item 3): shown for every chip EXCEPT `.events` itself
+            // (which already renders the full icon row in place of the pill — a second copy
+            // there would be redundant). Only the single most notable icon shows inline (the
+            // Events chip is where the full set lives); tapping it opens the matching explainer.
+            if metric != .events, let icon = eventBucket?.icons.first {
+                Button {
+                    onExplain(icon.explainer)
+                } label: {
+                    icon.glyph
+                        .font(.caption)
+                        .foregroundStyle(icon.tintColor)
+                        .frame(width: 20, height: 20)
+                }
+                .buttonStyle(.plain)
+            }
         }
         .padding(.vertical, 5)
+    }
+
+    // MARK: - Default (weather-metric) track + positional pill
+
+    private func defaultTrack(proxy: GeometryProxy) -> some View {
+        let pillWidth: CGFloat = 56
+        let travel = max(proxy.size.width - pillWidth, 0)
+        return ZStack(alignment: .leading) {
+            // UX polish package ("Data-mark discipline"): recessive per mark-discipline —
+            // thinner (0.75pt) and the low-contrast `separator` color rather than
+            // `secondary`, so the track reads as scaffolding, not data.
+            Rectangle()
+                .fill(Color(.separator).opacity(0.5))
+                .frame(height: 0.75)
+                .frame(maxWidth: .infinity)
+
+            Text(metric.displayString(for: entry, unit: unitsSettings.unit))
+                .font(.subheadline.weight(.semibold))
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .padding(.horizontal, 8)
+                .frame(width: pillWidth, height: 30)
+                // UX polish package: the "Now" row's pill gets the accent tint at 15%
+                // opacity with accent-colored text, so the anchor row visually pops
+                // against the otherwise-neutral list.
+                .background(Capsule().fill(isFirstRow ? Color.clearSkyAccent.opacity(0.15) : Color(.tertiarySystemFill)))
+                .foregroundStyle(isFirstRow ? Color.clearSkyAccent : Color.primary)
+                .offset(x: travel * position)
+        }
+        .frame(maxHeight: .infinity, alignment: .center)
+    }
+
+    // MARK: - Sky chip
+
+    /// Track tinted by the hour's `DarknessTier` (spec: "day=default separator, twilight=indigo
+    /// 0.25, full dark=indigo 0.5" — the three intermediate twilight tiers all share the
+    /// "twilight" bucket), pill positioned by `score/10` (not day-relative min/max — the score
+    /// is already a fixed 0...10 scale) and tinted by `QualityLabel`.
+    private func skyTrack(proxy: GeometryProxy) -> some View {
+        let pillWidth: CGFloat = 40
+        let travel = max(proxy.size.width - pillWidth, 0)
+        let score = stargazingScore
+        let normalizedPosition = Double(score?.score ?? 0) / 10.0
+        let style = Self.skyPillStyle(quality: score?.quality ?? .poor)
+        return ZStack(alignment: .leading) {
+            Rectangle()
+                .fill(Self.trackColor(tier: score?.tier))
+                .frame(height: 3)
+                .frame(maxWidth: .infinity)
+
+            Text(score.map { "\($0.score)" } ?? "–")
+                .font(.subheadline.weight(.semibold))
+                .monospacedDigit()
+                .frame(width: pillWidth, height: 26)
+                .background(Capsule().fill(style.fill))
+                .foregroundStyle(style.foreground)
+                .offset(x: travel * normalizedPosition)
+        }
+        .frame(maxHeight: .infinity, alignment: .center)
+    }
+
+    private static func trackColor(tier: StargazingScore.DarknessTier?) -> Color {
+        switch tier {
+        case .none, .day:
+            return Color(.separator).opacity(0.5)
+        case .civilTwilight, .nauticalTwilight, .astronomicalTwilight:
+            return Color.indigo.opacity(0.25)
+        case .fullDark:
+            return Color.indigo.opacity(0.5)
+        }
+    }
+
+    private static func skyPillStyle(quality: StargazingScore.QualityLabel) -> (fill: Color, foreground: Color) {
+        switch quality {
+        case .poor:
+            return (Color(.tertiarySystemFill), Color.primary)
+        case .fair, .good:
+            return (Color.clearSkyAccent.opacity(0.15), Color.clearSkyAccent)
+        case .excellent:
+            return (Color.clearSkyAccent, Color.white)
+        }
+    }
+
+    // MARK: - Events chip
+
+    /// Pills replaced entirely by event presence (spec): the hour's icons (up to 3, leading-
+    /// aligned), or a single quiet dot when nothing's happening this hour.
+    private var eventsTrack: some View {
+        HStack(spacing: 8) {
+            let icons = eventBucket?.icons ?? []
+            if icons.isEmpty {
+                Circle()
+                    .fill(Color(.tertiaryLabel))
+                    .frame(width: 4, height: 4)
+            } else {
+                ForEach(icons) { icon in
+                    Button {
+                        onExplain(icon.explainer)
+                    } label: {
+                        icon.glyph
+                            .font(.footnote)
+                            .foregroundStyle(icon.tintColor)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxHeight: .infinity, alignment: .center)
     }
 }
 
@@ -91,6 +267,9 @@ struct HourlyPillRow: View {
 struct HourlyForecastSection: View {
     let hours: [HourlyEntry]
     let metric: ForecastMetric
+    /// Forecast-surface overhaul, work item 3: Sky/Events chip data + tap-to-explain wiring.
+    /// Defaulted so every existing call site/preview keeps compiling unchanged.
+    var skyContext: HourlySkyContext = HourlySkyContext()
 
     static let stepHours = 2
     static let displayedRowCount = 12
@@ -104,9 +283,18 @@ struct HourlyForecastSection: View {
     /// Pill positions are computed from the FULL-resolution hourly data — every hour of each
     /// calendar day, not just the displayed 2-hour subset — so the day's min/max (and therefore
     /// each pill's position) stays honest regardless of how sparsely the list renders rows. See
-    /// `PositionalPillTrack`'s doc comment for the per-day normalization this relies on.
+    /// `PositionalPillTrack`'s doc comment for the per-day normalization this relies on. Only
+    /// meaningful for the default (weather-metric) chips; `.sky`/`.events` ignore it.
     private var positions: [Date: Double] {
         PositionalPillTrack.positions(for: hours, metric: metric)
+    }
+
+    private var stargazingScores: [Date: StargazingScore.HourScore] {
+        skyContext.stargazingScores(for: hours)
+    }
+
+    private var eventBuckets: [Date: HourlySkyEvents.Bucket] {
+        skyContext.eventBuckets(displayedHours: displayedHours.map(\.date))
     }
 
     var body: some View {
@@ -114,7 +302,29 @@ struct HourlyForecastSection: View {
         // small uppercase header provided by the enclosing card chrome
         // (`ForecastSheetCard` in `ForecastPageView`), so this view renders rows only.
         VStack(alignment: .leading, spacing: 0) {
+            // Work item 4: "the Sky chip's header/first-tap shows the score explainer once
+            // discoverable (a small `info.circle` next to the section header when Sky chip
+            // active)".
+            if metric == .sky {
+                HStack(spacing: 4) {
+                    Text("Stargazing Score")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                    Button {
+                        skyContext.onExplain(Explainers.stargazingScore())
+                    } label: {
+                        Image(systemName: "info.circle")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.bottom, 6)
+            }
+
             let rows = Array(displayedHours.enumerated())
+            let scores = stargazingScores
+            let buckets = eventBuckets
             ForEach(rows, id: \.element.id) { index, entry in
                 HourlyPillRow(
                     entry: entry,
@@ -125,7 +335,10 @@ struct HourlyForecastSection: View {
                     // *displayed* row's condition.
                     previousConditionDescription: index > 0 ? rows[index - 1].element.conditionDescription : nil,
                     metric: metric,
-                    position: positions[entry.date] ?? 0.5
+                    position: positions[entry.date] ?? 0.5,
+                    stargazingScore: scores[entry.date],
+                    eventBucket: buckets[entry.date],
+                    onExplain: skyContext.onExplain
                 )
                 .id(Self.rowId(for: entry))
                 if index < rows.count - 1 {
