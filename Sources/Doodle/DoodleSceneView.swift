@@ -14,6 +14,10 @@ import SwiftUI
 ///
 /// 1. `TimeOfDaySkyBackground` — sky gradient + stars (time-of-day, back-most)
 /// 2. `CelestialBody` — sun/moon (time-of-day; dimmed per weather condition)
+/// 2.5. `TrueSkyLayer` — true-sky doodle: real planet dots, aurora glow, ISS streak (additive;
+///    see its own doc comment for the full z-order rationale). Painted after the moon so a
+///    planet dot never reads as gratuitously "behind" it, and before the clouds/landscape below
+///    so both naturally obscure it the same way they'd obscure the real sky.
 /// 3. `WeatherClouds` — drifting clouds (weather condition; behind the landscape)
 /// 4. `IllustratedLandscapeLayer` — the AI-illustrated season landscape (base scene + season
 ///    skin combined; replaces the old programmatic `BaseSceneLayer`/`SeasonSkinLayer` hills)
@@ -26,6 +30,7 @@ struct DoodleSceneView: View {
         ZStack {
             TimeOfDaySkyBackground(timeOfDay: scene.timeOfDay)
             CelestialBody(timeOfDay: scene.timeOfDay, condition: scene.condition, date: scene.date)
+            TrueSkyLayer(timeOfDay: scene.timeOfDay, condition: scene.condition, date: scene.date, trueSky: scene.trueSky)
             WeatherClouds(condition: scene.condition)
             IllustratedLandscapeLayer(season: scene.season, timeOfDay: scene.timeOfDay)
             WeatherPrecipitation(condition: scene.condition)

@@ -209,7 +209,11 @@ struct ForecastPageView: View {
                         sunrise: payload.daily.first?.sunrise,
                         sunset: payload.daily.first?.sunset,
                         forcedCondition: viewModel.forcedDoodleCondition,
-                        forcedTimeOfDay: viewModel.forcedDoodleTimeOfDay
+                        forcedTimeOfDay: viewModel.forcedDoodleTimeOfDay,
+                        location: location,
+                        skyForcedOverrides: viewModel.skyForcedOverrides,
+                        forceTrueSkyPlanets: viewModel.forceTrueSkyPlanets,
+                        forceISSStreakNow: viewModel.forceISSStreakNow
                     )
                     // See `body`'s comment: pulls the hero up over the status-bar inset that
                     // the TabView container reintroduces to this scroll content.

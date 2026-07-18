@@ -38,6 +38,28 @@ struct DoodleHeaderView: View {
     var forcedCondition: DoodleComposer.ConditionCategory? = nil
     /// Sim-verify hook: `-forceTimeOfDay dawn|day|dusk|night` (new this phase).
     var forcedTimeOfDay: DoodleComposer.TimeOfDay? = nil
+    /// True-sky doodle work package: the location whose sky this hero scene should depict.
+    /// `nil` for the no-payload states (loading/error/empty previews — no coordinate to compute
+    /// planet positions or fetch aurora/ISS for), which is exactly the "renders as today, no
+    /// regression" fallback those states already rely on for `current`/`caption`.
+    var location: SavedLocation? = nil
+    /// Reuses `TonightSkyCard`'s exact override bundle (`-forceAuroraBand`, `-forceISSPass`,
+    /// `-forceNoISS`, `-forceSkyUnavailable`) so one flag drives both the sky card and the hero
+    /// scene together — see `ForecastViewModel.skyForcedOverrides`.
+    var skyForcedOverrides: SkyTonightService.ForcedOverrides? = nil
+    /// `-forceTrueSkyPlanets` — see `DoodleComposer.resolve`'s `forceTrueSkyPlanets` parameter.
+    var forceTrueSkyPlanets: Bool = false
+    /// `-forceISSStreakNow` — see `DoodleComposer.resolve`'s `forceISSStreakNow` parameter.
+    var forceISSStreakNow: Bool = false
+
+    /// Aurora/ISS are network-backed (`SkyTonightService.state`), so — unlike planets, which are
+    /// synchronous math computed fresh in `scene` below — they're fetched once via `.task(id:)`
+    /// and cached here. Calling `SkyTonightService.shared.state(...)` a second time for the same
+    /// (location, evening) that `TonightSkyCard` already fetched hits that service's own
+    /// in-memory cache/in-flight-task de-dup (see its doc comment) rather than re-hitting the
+    /// network — this view never fetches twice for the same evening.
+    @State private var fetchedAuroraBand: AuroraBand? = nil
+    @State private var fetchedISSPasses: [ISSPass] = []
 
     @Environment(UnitsSettings.self) private var unitsSettings
 
@@ -77,8 +99,48 @@ struct DoodleHeaderView: View {
             sunrise: sunrise,
             sunset: sunset,
             forcedCondition: forcedCondition,
-            forcedTimeOfDay: forcedTimeOfDay
+            forcedTimeOfDay: forcedTimeOfDay,
+            trueSkyPlanets: currentPlanetPositions,
+            trueSkyAuroraBand: fetchedAuroraBand,
+            trueSkyISSPasses: fetchedISSPasses,
+            forceTrueSkyPlanets: forceTrueSkyPlanets,
+            forceISSStreakNow: forceISSStreakNow
         )
+    }
+
+    /// Synchronous, pure math (no network) — recomputed on every render just like
+    /// `TonightSkyCard`'s own `SkyTonightService.astronomy(...)` call, so this never waits on
+    /// the async aurora/ISS fetch below.
+    private var currentPlanetPositions: [SkyTonight.CurrentPlanetPosition] {
+        guard let location else { return [] }
+        return SkyTonight.currentPlanetPositions(date: date, latitude: location.latitude, longitude: location.longitude)
+    }
+
+    /// Re-runs whenever the location, calendar evening, or a forced aurora/ISS override changes
+    /// — mirrors `TonightSkyCard.taskKey`'s exact rationale.
+    private var trueSkyTaskKey: String {
+        guard let location else { return "none" }
+        var parts = ["\(location.id)", "\(Calendar.current.startOfDay(for: date).timeIntervalSince1970)"]
+        if let overrides = skyForcedOverrides {
+            parts.append("band=\(overrides.auroraBand?.description ?? "nil")")
+            parts.append("issPass=\(overrides.issPass)")
+            parts.append("noISS=\(overrides.noISS)")
+            parts.append("unavailable=\(overrides.unavailable)")
+        }
+        return parts.joined(separator: "|")
+    }
+
+    private func loadTrueSkyNetworkState() async {
+        guard let location else { return }
+        let result = await SkyTonightService.shared.state(
+            locationId: location.id,
+            latitude: location.latitude,
+            longitude: location.longitude,
+            date: date,
+            overrides: skyForcedOverrides
+        )
+        fetchedAuroraBand = SkyTonightService.availableValue(result.aurora)?.band
+        fetchedISSPasses = SkyTonightService.availableValue(result.iss) ?? []
     }
 
     var body: some View {
@@ -137,6 +199,9 @@ struct DoodleHeaderView: View {
         .frame(height: Self.heroHeight)
         .frame(maxWidth: .infinity)
         .clipped()
+        .task(id: trueSkyTaskKey) {
+            await loadTrueSkyNetworkState()
+        }
     }
 
     /// The condition symbol + big temperature + "Feels like" line — PRD Section 6 item 2's

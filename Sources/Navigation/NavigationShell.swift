@@ -121,7 +121,9 @@ struct NavigationShell: View {
             forceSkyUnavailable: Self.launchArgsContain("-forceSkyUnavailable"),
             forcedMeteorPeak: Self.forcedMeteorPeakFromLaunchArgs(),
             forcePairing: Self.launchArgsContain("-forcePairing"),
-            initialExpandedSkyPlanet: Self.expandSkyPlanetFromLaunchArgs()
+            initialExpandedSkyPlanet: Self.expandSkyPlanetFromLaunchArgs(),
+            forceTrueSkyPlanets: Self.launchArgsContain("-forceTrueSkyPlanets"),
+            forceISSStreakNow: Self.launchArgsContain("-forceISSStreakNow")
         )
 
         let rankingsVM = RankingsViewModel(

@@ -150,15 +150,42 @@ enum DoodleComposer {
         }
     }
 
+    // MARK: - True-sky doodle (additive layer, between sky background and clouds)
+
+    /// One planet's resolved dot for the true-sky doodle (`TrueSkyLayer`) — azimuth/altitude/
+    /// magnitude only; screen-coordinate mapping and magnitude->size/color are `TrueSkyLayer`'s
+    /// own rendering concern (same split as `CelestialBody`'s xFraction/yFraction, which also
+    /// aren't computed here).
+    struct TrueSkyPlanetDot: Equatable {
+        var body: Planets.Body
+        var azimuthDegrees: Double
+        var altitudeDegrees: Double
+        var magnitude: Double
+    }
+
+    /// Everything `TrueSkyLayer` needs: planets already filtered to "worth a dot" altitude,
+    /// tonight's aurora band (`nil` when unknown/unresolved — renders no glow, not a fake
+    /// "none"), and whichever ISS pass (if any) `date` currently falls inside. Non-optional with
+    /// an all-empty default so `Scene` stays trivially constructible wherever true-sky data isn't
+    /// available yet (loading/error states, previews) — `TrueSkyLayer` renders nothing for an
+    /// empty `TrueSkyScene`, which is the "no regression" fallback the work order asks for.
+    struct TrueSkyScene: Equatable {
+        var planets: [TrueSkyPlanetDot] = []
+        var auroraBand: AuroraBand? = nil
+        var activeISSPass: ISSPass? = nil
+    }
+
     // MARK: - Resolved scene
 
-    /// Everything the five layers need to render, resolved once per header render.
+    /// Everything the five (now six, with the additive true-sky layer) layers need to render,
+    /// resolved once per header render.
     struct Scene: Equatable {
         var date: Date
         var season: Season
         var timeOfDay: TimeOfDay
         var condition: ConditionCategory
         var specialDay: SpecialDay?
+        var trueSky: TrueSkyScene = TrueSkyScene()
     }
 
     /// Layers 1-4 always resolve (there is no "off" state for season/condition/time-of-day —
@@ -171,7 +198,12 @@ enum DoodleComposer {
         sunset: Date?,
         forcedCondition: ConditionCategory? = nil,
         forcedTimeOfDay: TimeOfDay? = nil,
-        hemisphere: Hemisphere = .northern
+        hemisphere: Hemisphere = .northern,
+        trueSkyPlanets: [SkyTonight.CurrentPlanetPosition] = [],
+        trueSkyAuroraBand: AuroraBand? = nil,
+        trueSkyISSPasses: [ISSPass] = [],
+        forceTrueSkyPlanets: Bool = false,
+        forceISSStreakNow: Bool = false
     ) -> Scene {
         let season = Season.current(for: date, hemisphere: hemisphere)
         let condition = forcedCondition ?? ConditionCategory.category(forRawCode: current?.conditionCode ?? "clear")
@@ -182,6 +214,84 @@ enum DoodleComposer {
             sunset: sunset
         )
         let specialDay = SpecialDayTable.specialDay(for: date)
-        return Scene(date: date, season: season, timeOfDay: timeOfDay, condition: condition, specialDay: specialDay)
+        let trueSky = resolveTrueSky(
+            date: date,
+            planets: trueSkyPlanets,
+            auroraBand: trueSkyAuroraBand,
+            issPasses: trueSkyISSPasses,
+            forcePlanets: forceTrueSkyPlanets,
+            forceISSStreakNow: forceISSStreakNow
+        )
+        return Scene(date: date, season: season, timeOfDay: timeOfDay, condition: condition, specialDay: specialDay, trueSky: trueSky)
+    }
+
+    /// The minimum altitude (degrees) a planet needs to clear before the true-sky doodle bothers
+    /// with a dot — mirrors `SkyTonight`'s own `minimumViewingAltitude` (10°: "just above
+    /// rooftops/trees"), kept as a separate constant here rather than referencing that (private)
+    /// one so this file doesn't need to reach into `SkyTonight`'s private implementation details.
+    private static let trueSkyMinimumAltitude = 10.0
+
+    /// Folds the raw astronomy/aurora/ISS data `resolve(...)` is handed into the small bundle
+    /// `TrueSkyLayer` paints. Aurora/ISS pass through close to as-is (their band-threshold /
+    /// "is `date` inside a pass window" gating lives in `TrueSkyLayer` itself, alongside its
+    /// `timeOfDay`/`condition` gating, which this function has no reason to duplicate) — the
+    /// only real resolution work here is the planet altitude filter and the two sim-verify
+    /// forcing hooks.
+    private static func resolveTrueSky(
+        date: Date,
+        planets: [SkyTonight.CurrentPlanetPosition],
+        auroraBand: AuroraBand?,
+        issPasses: [ISSPass],
+        forcePlanets: Bool,
+        forceISSStreakNow: Bool
+    ) -> TrueSkyScene {
+        let resolvedPlanets: [TrueSkyPlanetDot]
+        if forcePlanets {
+            resolvedPlanets = Self.syntheticTrueSkyPlanets
+        } else {
+            resolvedPlanets = planets
+                .filter { $0.altitude >= Self.trueSkyMinimumAltitude }
+                .map { TrueSkyPlanetDot(body: $0.body, azimuthDegrees: $0.azimuth, altitudeDegrees: $0.altitude, magnitude: $0.apparentMagnitude) }
+        }
+
+        let activeISSPass: ISSPass?
+        if forceISSStreakNow {
+            activeISSPass = Self.syntheticActiveISSPass(now: date)
+        } else {
+            activeISSPass = issPasses.first { date >= $0.startTime && date <= $0.endTime }
+        }
+
+        return TrueSkyScene(planets: resolvedPlanets, auroraBand: auroraBand, activeISSPass: activeISSPass)
+    }
+
+    /// `-forceTrueSkyPlanets` sim-verify synthetic set (work-order spec): Venus low in the west
+    /// (bright, should render), Saturn mid-high in the SE (dim, should render), and Mars low in
+    /// the ENE — deliberately azimuth 68°, just *outside* `TrueSkyLayer`'s 90°-270° "faces south"
+    /// window, included specifically to prove the "behind the viewer" skip logic actually hides
+    /// a real planet, rather than that code path only ever going untested.
+    private static let syntheticTrueSkyPlanets: [TrueSkyPlanetDot] = [
+        TrueSkyPlanetDot(body: .venus, azimuthDegrees: 262, altitudeDegrees: 12, magnitude: -4.2),
+        TrueSkyPlanetDot(body: .saturn, azimuthDegrees: 140, altitudeDegrees: 35, magnitude: 0.8),
+        TrueSkyPlanetDot(body: .mars, azimuthDegrees: 68, altitudeDegrees: 12, magnitude: 0.9),
+    ]
+
+    /// `-forceISSStreakNow` sim-verify synthetic pass (work-order spec: "active right now,
+    /// WNW->ESE") — centered on `now` (half elapsed) rather than a fixed clock time (unlike
+    /// `SkyTonightService.syntheticISSPass`'s fixed 9:42 PM, which isn't guaranteed to be "now"),
+    /// so the streak is always mid-transit whenever this flag is set, regardless of when the
+    /// screenshot is actually taken.
+    private static func syntheticActiveISSPass(now: Date) -> ISSPass {
+        ISSPass(
+            startTime: now.addingTimeInterval(-120),
+            peakTime: now,
+            endTime: now.addingTimeInterval(120),
+            peakAltitudeDeg: 40,
+            startAzimuthDeg: 292.5,
+            endAzimuthDeg: 112.5,
+            startAzimuthCompass: "WNW",
+            endAzimuthCompass: "ESE",
+            peakRangeKm: 450,
+            brightness: .bright
+        )
     }
 }

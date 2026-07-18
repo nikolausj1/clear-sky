@@ -99,6 +99,15 @@ final class ForecastViewModel {
     /// `-expandSkyPlanet mercury|venus|mars|jupiter|saturn` — see `TonightSkyCard`'s
     /// `initialExpandedPlanet` doc comment.
     let initialExpandedSkyPlanet: Planets.Body?
+    /// True-sky doodle sim-verify hooks (`DoodleHeaderView`'s hero scene, not `TonightSkyCard`):
+    /// `-forceTrueSkyPlanets` synthesizes a fixed planet-dot set (Venus low W, Saturn mid SE,
+    /// Mars low ENE — the last deliberately behind-the-viewer, testing the skip logic)
+    /// independent of real astronomy; `-forceISSStreakNow` synthesizes an ISS pass active at
+    /// this exact moment (unlike `-forceISSPass`'s fixed 9:42 PM, which isn't guaranteed to be
+    /// "now") so the streak sweep can be screenshotted on demand. See `DoodleComposer.resolve`'s
+    /// matching parameters.
+    let forceTrueSkyPlanets: Bool
+    let forceISSStreakNow: Bool
 
     init(
         store: WeatherStore,
@@ -116,7 +125,9 @@ final class ForecastViewModel {
         forceSkyUnavailable: Bool = false,
         forcedMeteorPeak: MeteorShowers.MoonInterference? = nil,
         forcePairing: Bool = false,
-        initialExpandedSkyPlanet: Planets.Body? = nil
+        initialExpandedSkyPlanet: Planets.Body? = nil,
+        forceTrueSkyPlanets: Bool = false,
+        forceISSStreakNow: Bool = false
     ) {
         self.store = store
         self.forcedState = forcedState
@@ -133,6 +144,8 @@ final class ForecastViewModel {
         self.forcedMeteorPeak = forcedMeteorPeak
         self.forcePairing = forcePairing
         self.initialExpandedSkyPlanet = initialExpandedSkyPlanet
+        self.forceTrueSkyPlanets = forceTrueSkyPlanets
+        self.forceISSStreakNow = forceISSStreakNow
         if let initialMetric {
             self.selectedMetric = initialMetric
         }

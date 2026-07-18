@@ -49,6 +49,40 @@ enum SkyTonight {
         var planets: [PlanetVisibility]
     }
 
+    // MARK: - Current-moment planet positions (true-sky doodle)
+
+    /// A planet's actual position/brightness at one specific instant — unlike
+    /// `PlanetVisibility.bestAltitude`/`bestAzimuth` (the peak within tonight's *viewing
+    /// window*), this is evaluated at exactly `date`. Added for the true-sky doodle hero scene
+    /// (`TrueSkyLayer`), which places a dot wherever a planet actually is right now, not where
+    /// it will be at its best-viewing moment later tonight.
+    struct CurrentPlanetPosition {
+        var body: Planets.Body
+        var altitude: Double
+        var azimuth: Double
+        var apparentMagnitude: Double
+    }
+
+    /// Current alt/az/magnitude for all five naked-eye planets at `date` — the same
+    /// low-precision Meeus math `planetVisibility` below uses to score its "best" moment
+    /// (geocentric position -> phase angle -> apparent magnitude -> horizontal coordinates),
+    /// evaluated once at a single instant instead of scanned across a whole night. Synchronous,
+    /// pure math (no network, no caching) — cheap enough to call on every render, same as
+    /// `astronomy(...)` in `SkyTonightService`.
+    static func currentPlanetPositions(date: Date, latitude: Double, longitude: Double) -> [CurrentPlanetPosition] {
+        let jd = AstroTime.julianDay(date)
+        let T = AstroTime.julianCenturies(jd: jd)
+        let (_, sunEarthDistance) = SunMoon.sunGeometric(T: T)
+        return Planets.Body.allCases.map { body in
+            let (equatorial, r, delta) = Planets.geocentric(body, date: date)
+            let phaseAngle = Planets.phaseAngle(r: r, delta: delta, sunEarthDistance: sunEarthDistance)
+            let ringTilt = body == .saturn ? Planets.saturnRingTilt(date: date) : nil
+            let magnitude = Planets.apparentMagnitude(body, r: r, delta: delta, phaseAngleDegrees: phaseAngle, saturnRingTiltDegrees: ringTilt)
+            let horizontal = equatorialToHorizontal(equatorial, latitude: latitude, longitudeEast: longitude, jd: jd)
+            return CurrentPlanetPosition(body: body, altitude: horizontal.altitude, azimuth: horizontal.azimuth, apparentMagnitude: magnitude)
+        }
+    }
+
     // MARK: - Entry point
 
     /// Computes tonight's sky for the calendar day (in `timeZone`) containing `date`, at

@@ -166,8 +166,10 @@ final class SkyTonightService {
 
     /// Pulls the payload out of a `.available` section, `nil`/empty otherwise — used to feed
     /// `bestMoment(...)` from whatever `iss`/`aurora` `SectionState` a given branch of
-    /// `state(...)` ends up with (real, forced, or `.unavailable`).
-    private static func availableValue<T>(_ state: SectionState<T>) -> T? {
+    /// `state(...)` ends up with (real, forced, or `.unavailable`). Internal rather than
+    /// `private` so other same-target callers with their own `SectionState` in hand (e.g.
+    /// `DoodleHeaderView`'s true-sky fetch) don't need to duplicate this one-liner.
+    static func availableValue<T>(_ state: SectionState<T>) -> T? {
         if case .available(let value) = state { return value }
         return nil
     }
