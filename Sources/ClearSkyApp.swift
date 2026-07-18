@@ -22,6 +22,13 @@ struct ClearSkyApp: App {
             // for every tint/selection/link across the app, applied at the root so it reaches
             // every `NavigationStack`/sheet without needing a bespoke `AccentColor` asset.
             .tint(Color.clearSkyAccent)
+            // Owner decision (People-in-Space/always-dark package): the app is dark-only,
+            // night-sky-identity — forced here at the window root so EVERY screen (Forecast,
+            // Rankings, Locations, Settings, every sheet) renders dark regardless of the device's
+            // system appearance, not just the Space tab/night panel/doodle hero, which were
+            // already dark by construction. No Settings toggle is added for this (that's a
+            // future product decision, explicitly not part of this package).
+            .preferredColorScheme(.dark)
         }
         .modelContainer(modelContainer)
     }

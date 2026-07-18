@@ -31,6 +31,14 @@ struct ForecastPageView: View {
     /// presents an explainer sheet directly at launch, since `simctl` can't tap through to an
     /// icon. See `Explainers.forLaunchArgKey(_:)` for the accepted keys.
     var forcedExplainerKey: String? = nil
+    /// Sim-verify only ("People in Space" work package): `-showPeopleSheet` — see
+    /// `TonightSkyCard.init`'s doc comment.
+    var showPeopleSheetAtLaunch: Bool = false
+    /// Sim-verify only (always-dark audit sweep): `-showAlertDetail` — presents
+    /// `AlertDetailSheet` directly at launch (paired with `-forceState alert`, since `simctl`
+    /// can't tap the `AdvisoryBanner` to open it), so the sheet's dark rendering can be
+    /// screenshotted without a real tap.
+    var showAlertDetailAtLaunch: Bool = false
     /// UX redesign part 2 (lead QC defect: scroll-aware top bar): reports this page's scroll
     /// content offset (`0` at rest, growing as the user scrolls down) up to `ForecastView`,
     /// which only listens for the currently-active page (see `ForecastView.pagerView`) and uses
@@ -351,6 +359,7 @@ struct ForecastPageView: View {
                                 date: displayNow,
                                 forcedOverrides: viewModel.skyForcedOverrides,
                                 initialExpandedPlanet: viewModel.initialExpandedSkyPlanet,
+                                initialShowPeopleSheet: showPeopleSheetAtLaunch,
                                 onExplain: { presentedExplainer = $0 }
                             )
 
@@ -385,6 +394,9 @@ struct ForecastPageView: View {
             }
             .onAppear {
                 scrollToTargetIfNeeded(payload, proxy: proxy)
+                if showAlertDetailAtLaunch, !payload.activeAlerts.isEmpty {
+                    isPresentingAlertDetail = true
+                }
                 if let forcedExplainerKey, presentedExplainer == nil {
                     presentedExplainer = Explainers.forLaunchArgKey(forcedExplainerKey)
                 }

@@ -40,6 +40,11 @@ struct TonightSkyCard: View {
     /// polar-latitude) occasions `SkyTonightService.duskDawnWindow` can't resolve both edges —
     /// the strip is simply omitted in that case (spec: "hide the strip gracefully").
     @State private var duskDawnWindow: DateInterval?
+    /// People-in-Space row (Tonight's Sky card work package): shared app-wide, not per-location —
+    /// see `PeopleInSpaceStore`'s own doc comment for why this is a plain reference to an
+    /// `@Observable` singleton rather than a per-card fetch.
+    private let peopleStore = PeopleInSpaceStore.shared
+    @State private var isPresentingPeopleSheet = false
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -48,17 +53,26 @@ struct TonightSkyCard: View {
     /// Sim-verify only: `-expandSkyPlanet mercury|venus|mars|jupiter|saturn` (see
     /// `NavigationShell`) pre-expands a planet row at launch — mirrors `-expandDay`'s rationale
     /// on `DailyForecastSection`: `simctl` can't tap through to an expanded row for a screenshot.
+    /// Sim-verify only ("People in Space" work package): `-showPeopleSheet` — see
+    /// `NavigationShell`'s doc comment. Mirrors `initialExpandedPlanet`'s pattern: `simctl` can't
+    /// tap the row to open the sheet, so this reaches it directly at launch instead. The sheet
+    /// itself only renders real content once `peopleStore.state` resolves to `.available` (see
+    /// `body`'s `.sheet` modifier) — since `PeopleInSpaceStore` is `@Observable`, presenting the
+    /// sheet before that fetch resolves just shows it empty for a moment, then it fills in with
+    /// real data the instant the fetch completes, same as the live row does.
     init(
         location: SavedLocation,
         date: Date,
         forcedOverrides: SkyTonightService.ForcedOverrides? = nil,
         initialExpandedPlanet: Planets.Body? = nil,
+        initialShowPeopleSheet: Bool = false,
         onExplain: @escaping (ExplainerContent) -> Void = { _ in }
     ) {
         self.location = location
         self.date = date
         self.forcedOverrides = forcedOverrides
         self._expandedPlanet = State(initialValue: initialExpandedPlanet)
+        self._isPresentingPeopleSheet = State(initialValue: initialShowPeopleSheet)
         self.onExplain = onExplain
     }
 
@@ -92,6 +106,7 @@ struct TonightSkyCard: View {
                         nightDivider
                     }
                     issRow
+                    peopleInSpaceRow
                     if let pairing = pairings.first {
                         nightDivider
                         conjunctionRow(pairing)
@@ -115,6 +130,11 @@ struct TonightSkyCard: View {
         .id(Self.cardId)
         .task(id: taskKey) {
             await load()
+        }
+        .sheet(isPresented: $isPresentingPeopleSheet) {
+            if case .available(let summary) = peopleStore.state {
+                PeopleInSpaceSheet(summary: summary)
+            }
         }
     }
 
@@ -148,6 +168,11 @@ struct TonightSkyCard: View {
     /// than anything the sync-only pass could have produced), never blank it out or downgrade it,
     /// which is what keeps this update feeling smooth rather than a flicker.
     private func load() async {
+        // People-in-Space row: location-independent, so this only ever actually triggers a fetch
+        // once app-wide (see `PeopleInSpaceStore.ensureLoaded`'s doc comment) — every other page's
+        // card calling this is a no-op that just keeps observing the shared `peopleStore.state`.
+        peopleStore.ensureLoaded()
+
         let astro = SkyTonightService.astronomy(latitude: location.latitude, longitude: location.longitude, date: date, timeZone: timeZone)
         astronomy = astro
         issState = .loading
@@ -714,6 +739,49 @@ struct TonightSkyCard: View {
     private static func issPassText(_ pass: ISSPass) -> String {
         let durationMinutes = max(1, Int((pass.endTime.timeIntervalSince(pass.startTime) / 60.0).rounded()))
         return "\(timeFormatter.string(from: pass.startTime)) · \(pass.startAzimuthCompass)→\(pass.endAzimuthCompass) · \(durationMinutes) min · \(pass.brightness.rawValue)"
+    }
+
+    // MARK: - People in space
+
+    /// "N people in space right now" (Tonight's Sky card work package), directly after the ISS
+    /// section — live count from the app-wide `PeopleInSpaceStore`, chevron to
+    /// `PeopleInSpaceSheet`. Deliberately quieter than the network rows above it: `.loading` shows
+    /// a skeleton (same as `issRow`/`auroraRow`), but `.unavailable` renders nothing at all — no
+    /// "—" row, no divider — per work order ("it's supplementary; document"). This is
+    /// supplementary trivia layered on top of the night panel's core sky-observing content, not a
+    /// core row users depend on the way ISS/aurora are, so a quiet omission on failure is more
+    /// honest than manufacturing a placeholder for it.
+    @ViewBuilder
+    private var peopleInSpaceRow: some View {
+        switch peopleStore.state {
+        case .loading:
+            nightDivider
+            skeletonLine
+        case .unavailable:
+            EmptyView()
+        case .available(let summary):
+            nightDivider
+            Button {
+                isPresentingPeopleSheet = true
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "person.2")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.white.opacity(0.85))
+                    Text("\(summary.count) people in space right now")
+                        .font(.subheadline)
+                        .monospacedDigit()
+                        .foregroundStyle(.white)
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                        .foregroundStyle(Color.white.opacity(0.4))
+                }
+                .padding(.vertical, 8)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(PressableRowStyle())
+        }
     }
 
     // MARK: - Conjunction

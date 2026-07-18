@@ -40,9 +40,9 @@ struct DoodleSceneView: View {
             TrueSkyLayer(timeOfDay: scene.timeOfDay, condition: scene.condition, date: scene.date, trueSky: scene.trueSky)
             MeteorStreakLayer(timeOfDay: scene.timeOfDay, condition: scene.condition, outlook: scene.trueSky.meteorOutlook)
             LaunchContrailLayer(timeOfDay: scene.timeOfDay, hasGoLaunchToday: scene.trueSky.hasGoLaunchToday)
-            WeatherClouds(condition: scene.condition)
+            WeatherClouds(condition: scene.condition, timeOfDay: scene.timeOfDay)
             IllustratedLandscapeLayer(season: scene.season, timeOfDay: scene.timeOfDay, terrainClass: scene.terrainClass)
-            WeatherPrecipitation(condition: scene.condition)
+            WeatherPrecipitation(condition: scene.condition, timeOfDay: scene.timeOfDay)
             if let specialDay = scene.specialDay {
                 SpecialDayOverlayLayer(specialDay: specialDay, timeOfDay: scene.timeOfDay)
             }

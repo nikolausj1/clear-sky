@@ -12,10 +12,24 @@ import SwiftUI
 /// no-ops for `.clear`.
 struct WeatherClouds: View {
     let condition: DoodleComposer.ConditionCategory
+    /// Lead-QC defect fix (People-in-Space/always-dark package): the always-night hero (see
+    /// `DoodleComposer.TimeOfDay`'s doc comment — `resolve(...)` now hardcodes `.night` except
+    /// under `-forceTimeOfDay`) was still painting these clouds in their old *daytime* colors —
+    /// bright white puffs glaring over a night scene (`_review/t3-phoenix-desert.png`). `isNight`
+    /// below switches every non-clear condition to a moonlit-slate tint at night; `-forceTimeOfDay
+    /// day` (sim-verify's revert lever) still resolves `timeOfDay` to `.day`, so it still shows
+    /// the original white/day cloud colors untouched.
+    let timeOfDay: DoodleComposer.TimeOfDay
 
+    /// Shifted down from the original (0.22, 0.14, 0.26) y-fractions so every puff clears
+    /// `CelestialBody.topInsetFraction`'s 0.26 chrome-avoidance floor (the middle puff at 0.14 sat
+    /// well inside the status-bar/title chrome band) — same +0.12 shift applied to all three so
+    /// their relative stacking is unchanged, just moved as a group.
     private static let puffs: [(CGFloat, CGFloat, CGFloat)] = [
-        (0.16, 0.22, 1.0), (0.46, 0.14, 0.75), (0.74, 0.26, 0.9),
+        (0.16, 0.34, 1.0), (0.46, 0.26, 0.75), (0.74, 0.38, 0.9),
     ]
+
+    private var isNight: Bool { timeOfDay == .night }
 
     var body: some View {
         Group {
@@ -33,6 +47,13 @@ struct WeatherClouds: View {
     }
 
     private var cloudColor: Color {
+        // Moonlit slate, one flat treatment for every condition at night — a night sky lit only
+        // by moon/starlight doesn't pick out "this cloud is a rain cloud, that one is a snow
+        // cloud" the way daylight does, so a single blue-gray/reduced-opacity tint reads truer
+        // than tinting each condition's day color down individually.
+        if isNight, condition != .clear {
+            return Color(red: 0.55, green: 0.58, blue: 0.66).opacity(0.55)
+        }
         switch condition {
         case .clear: return .clear
         case .cloudy: return Color.white.opacity(0.92)
@@ -72,6 +93,14 @@ private struct DriftingCloud: View {
 
 struct WeatherPrecipitation: View {
     let condition: DoodleComposer.ConditionCategory
+    /// Same always-night defect fix as `WeatherClouds.timeOfDay` — dims rain/snow particles at
+    /// night so they don't glare as brightly as their daytime values (see `rainStreaks`/
+    /// `snowflakes`). Fog and the storm lightning bolt are left untouched: fog's whitening wash
+    /// wasn't the reported defect, and the lightning bolt is a light SOURCE (a genuine flash),
+    /// not a lit surface, so dimming it wouldn't read as "moonlit."
+    let timeOfDay: DoodleComposer.TimeOfDay
+
+    private var isNight: Bool { timeOfDay == .night }
 
     var body: some View {
         GeometryReader { proxy in
@@ -99,6 +128,8 @@ struct WeatherPrecipitation: View {
 
     private func rainStreaks(in size: CGSize, heavy: Bool = false) -> some View {
         let columns = heavy ? 10 : 7
+        let baseOpacity = heavy ? 0.8 : 0.6
+        let opacity = isNight ? baseOpacity * 0.7 : baseOpacity
         return ForEach(0..<columns, id: \.self) { i in
             FallingStreak(
                 xFraction: (CGFloat(i) + 0.5) / CGFloat(columns),
@@ -109,7 +140,7 @@ struct WeatherPrecipitation: View {
                 sway: 0
             ) {
                 Capsule()
-                    .fill(Color(red: 0.72, green: 0.80, blue: 0.90).opacity(heavy ? 0.8 : 0.6))
+                    .fill(Color(red: 0.72, green: 0.80, blue: 0.90).opacity(opacity))
                     .frame(width: 2.4, height: size.height * 0.14)
                     .rotationEffect(.degrees(12))
             }
@@ -119,7 +150,8 @@ struct WeatherPrecipitation: View {
     // MARK: - Snow
 
     private func snowflakes(in size: CGSize) -> some View {
-        ForEach(0..<9, id: \.self) { i in
+        let opacity = isNight ? 0.9 * 0.7 : 0.9
+        return ForEach(0..<9, id: \.self) { i in
             FallingStreak(
                 xFraction: (CGFloat(i) + 0.5) / 9,
                 verticalSpan: size.height * 1.2,
@@ -129,7 +161,7 @@ struct WeatherPrecipitation: View {
                 sway: 8
             ) {
                 Circle()
-                    .fill(Color.white.opacity(0.9))
+                    .fill(Color.white.opacity(opacity))
                     .frame(width: 5, height: 5)
             }
         }

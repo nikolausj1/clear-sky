@@ -17,6 +17,12 @@ struct ForecastView: View {
     /// Sim-verify only (Forecast-surface overhaul, work item 4): `-showExplainer <key>` — see
     /// `ForecastPageView`'s doc comment.
     var forcedExplainerKey: String? = nil
+    /// Sim-verify only ("People in Space" work package): `-showPeopleSheet` — see
+    /// `TonightSkyCard.init`'s doc comment.
+    var showPeopleSheetAtLaunch: Bool = false
+    /// Sim-verify only (always-dark audit sweep): `-showAlertDetail` — see
+    /// `ForecastPageView.showAlertDetailAtLaunch`'s doc comment.
+    var showAlertDetailAtLaunch: Bool = false
     var onOpenSettings: () -> Void = {}
     var onOpenLocations: () -> Void = {}
 
@@ -163,6 +169,8 @@ struct ForecastView: View {
                         scrollToAttribution: index == viewModel.activeIndex && scrollToAttribution,
                         scrollToSky: index == viewModel.activeIndex && scrollToSky,
                         forcedExplainerKey: index == viewModel.activeIndex ? forcedExplainerKey : nil,
+                        showPeopleSheetAtLaunch: index == viewModel.activeIndex && showPeopleSheetAtLaunch,
+                        showAlertDetailAtLaunch: index == viewModel.activeIndex && showAlertDetailAtLaunch,
                         // Only the active page's scroll offset should drive the shared bar
                         // state — an inactive page's `ScrollView` can report stale/irrelevant
                         // offsets (e.g. from before a swipe) that would otherwise fight the

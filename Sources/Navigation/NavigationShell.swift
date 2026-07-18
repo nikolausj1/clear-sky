@@ -22,6 +22,8 @@ import SwiftUI
 ///   the first — `simctl` can't swipe the pager for a screenshot of a non-default page.
 /// - `-scrollToAttribution` (Phase 7) scrolls the active Forecast page straight to the
 ///   `AttributionFooter` for a sim-verify screenshot — `simctl` can't scroll.
+/// - `-showPeopleSheet` ("People in Space" work package) presents `PeopleInSpaceSheet` on the
+///   active Forecast page at launch — `simctl` can't tap the Tonight's Sky card's people row.
 struct NavigationShell: View {
     private enum Tab {
         case forecast
@@ -52,6 +54,8 @@ struct NavigationShell: View {
                             scrollToAttribution: Self.launchArgsContain("-scrollToAttribution"),
                             scrollToSky: Self.launchArgsContain("-scrollToSky"),
                             forcedExplainerKey: Self.forcedExplainerKeyFromLaunchArgs(),
+                            showPeopleSheetAtLaunch: Self.launchArgsContain("-showPeopleSheet"),
+                            showAlertDetailAtLaunch: Self.launchArgsContain("-showAlertDetail"),
                             onOpenSettings: { isPresentingSettings = true },
                             onOpenLocations: { isPresentingLocations = true }
                         )
