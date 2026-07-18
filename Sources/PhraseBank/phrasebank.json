@@ -2016,7 +2016,7 @@
         "direction": "cooler",
         "magnitude": "large"
       },
-      "text": "{delta} cooler today. Yesterday's shorts are likely too optimistic now."
+      "text": "{delta} cooler today. Enough of a drop to change what you'll want to wear."
     },
     {
       "tags": {
@@ -2081,7 +2081,7 @@
       "tags": {
         "direction": "same"
       },
-      "text": "No difference from yesterday. Predictable, at least."
+      "text": "No difference from yesterday. A steady stretch of weather."
     },
     {
       "tags": {
@@ -2596,7 +2596,7 @@
         "position": "bottom",
         "pleasantness": "rough"
       },
-      "text": "{city} ranks last, {temp}, mainly the wind."
+      "text": "{city} ranks last today at {temp} - the least comfortable conditions of your cities."
     },
     {
       "tags": {
