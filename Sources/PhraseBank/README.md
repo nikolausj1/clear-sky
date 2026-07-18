@@ -1,8 +1,10 @@
 # PhraseBank (Phase 4)
 
-Static, bundled dry-wit copy per PRD Section 8 ("PhraseBank"). No runtime AI, ever — every
-line below is hand-written and shipped in `phrasebank.json`. `PhraseBank.swift` is the
-deterministic selection engine that picks which pre-written line renders, per slot, per day.
+Static, bundled copy per PRD Section 8 ("PhraseBank"), written in the "Observatory Guide"
+register (clear, warm, factual, explanatory — see Revision Notes 2026-07-18). No runtime AI,
+ever — every line below is hand-written and shipped in `phrasebank.json`. `PhraseBank.swift`
+is the deterministic selection engine that picks which pre-written line renders, per slot,
+per day.
 
 ## Files
 
@@ -57,7 +59,7 @@ structs, so all twelve slots share one lookup/fallback implementation.
 | `skyMeteor` | `interference` | `none`, `some`, `severe` (mirrors `MeteorShowers.MoonInterference`). Every variant uses the `{shower}` token (see below) rather than naming a shower directly, since the same pool backs whichever shower is active tonight |
 | `skyPairing` | none | untagged only — shown alongside tonight's closest visible pairing; deliberately generic since the row's own text already names the specific bodies/separation |
 | `skyLaunch` | none | untagged only — shown at the bottom of the Space tab's Launch Schedule card; general about rockets/schedules, not any specific mission |
-| `skySolar` | `level` | `quiet`, `active`, `stormy` (mirrors `SolarActivityLevel.description`). `stormy` lines lead with the real disruption (radio/GPS) before any wit — a genuine X-class flare is useful information the joke must never undercut |
+| `skySolar` | `level` | `quiet`, `active`, `stormy` (mirrors `SolarActivityLevel.description`). `stormy` lines lead with the real disruption (radio/GPS) plainly and first — a genuine X-class flare is useful information that must never be buried under color |
 
 A missing tag key on an entry (or the literal fallback entries with fewer tags — see
 "Fallback" below) means "matches anything for that key." The universal safety-net entries
@@ -71,18 +73,20 @@ The eight slots above (`skyPlanet`, `skyNoPlanets`, `skyAurora`, `skyISSPass`, `
 `skyMoon`, `skyMeteor`, `skyPairing`) back the "Tonight's Sky" card
 (`Sources/Forecast/TonightSkyCard.swift`), fed by the on-device Astronomy engine plus the
 networked ISS/Aurora engines and the on-device meteor-shower/conjunction engines (`Sources/Sky/`).
-These lines are deliberately the *wit*, not the *teaching* — the planet row's inline expansion
-also shows a static, non-witty "find it" blurb (`Sources/Forecast/SkyFindItGuide.swift`) and a
-brightness-in-plain-English helper string; the phrase-bank line is the dry tail on top of both,
-same "fact first, wit as a tail" register as everything else in this file. `skyMeteor`/
-`skyPairing` follow the same split: the meteor/conjunction rows' own text carries the facts (rate,
-window, separation, direction), and the phrase-bank line underneath is the wit only.
+Since the 2026-07-18 register change these lines are themselves explanatory, not just a tail on
+someone else's facts — each variant teaches or orients (why Mercury only shows up briefly, why an
+ISS pass has no blinking lights, why a bright Moon washes out a meteor shower) in addition to the
+planet row's inline "find it" blurb (`Sources/Forecast/SkyFindItGuide.swift`) and
+brightness-in-plain-English helper string. `skyMeteor`/`skyPairing` follow the same idea: the
+meteor/conjunction rows' own text carries the numeric facts (rate, window, separation, direction),
+and the phrase-bank line underneath adds the explanatory context (what moonlight does to visible
+rate, what a conjunction actually is).
 
 The card's headline row ("Step outside at 9:42 PM" + a one-line factual subtitle naming the
 moment) is **not** phrase-bank content — it's driven entirely by `BestMoment.bestMoment` (a typed
 picker over ISS/aurora/meteor/conjunction/planet/moonrise data, see that file's doc comment) and
-rendered as plain factual text in `TonightSkyCard`, with no wit line of its own and no dedicated
-"nothing happening" slot — when `bestMoment` is `nil`, the row is simply omitted.
+rendered as plain factual text in `TonightSkyCard`, with no phrase-bank line of its own and no
+dedicated "nothing happening" slot — when `bestMoment` is `nil`, the row is simply omitted.
 
 The card's one-line nightly space fact (`Sources/PhraseBank/skyfacts.json`, 200+ entries, each
 ≤140 characters) is a flat JSON array of strings rather than the tagged-entry shape above — it
@@ -95,10 +99,13 @@ than reimplementing the FNV/Fisher-Yates machinery.
 
 `skyLaunch` and `skySolar` back the Space tab's LAUNCH SCHEDULE and THE SUN cards
 (`Sources/Space/SpaceView.swift`), fed by the on-device Launch Library 2 and NOAA solar-activity
-engines (`Sources/Sky/Launches`, `Sources/Sky/Solar`). Same "fact first, wit as a tail" register
-as the rest of the file: each card's own text carries the facts (mission/provider/vehicle/T-0/
-status; activity level/sunspot number/flare/aurora tie-in), and the phrase-bank line underneath
-is the wit only. `skyLaunch` uses `PhraseBank.universalLocationId`-or-active-location seeding like
+engines (`Sources/Sky/Launches`, `Sources/Sky/Solar`). Same fact-first register as the rest of
+the file: each card's own text carries the specific facts (mission/provider/vehicle/T-0/status;
+activity level/sunspot number/flare/aurora tie-in), and the phrase-bank line underneath adds
+general, still-factual context (how launch schedules behave, what a flare class means). `stormy`
+`skySolar` lines in particular lead with the real disruption (radio/GPS) before anything else —
+a genuine X-class flare is useful information that must never be buried. `skyLaunch` uses
+`PhraseBank.universalLocationId`-or-active-location seeding like
 everywhere else that isn't inherently location-specific — the launch schedule itself doesn't vary
 by location, but seeding on the active location still gives different saved cities variety on the
 same day.
@@ -132,7 +139,7 @@ practice because `ForecastViewModel` always populates the full token set before 
 
 Defined once, in `PhraseBank.swift`, based on Fahrenheit regardless of the user's display
 unit (Settings' F/C toggle only affects `{temp}`-style token *formatting*, never which
-bucket of copy is selected — so switching units never silently changes the joke):
+bucket of copy is selected — so switching units never silently changes which line renders):
 
 - `cold`: below 45°F
 - `mild`: 45°F–82°F (inclusive)
@@ -161,6 +168,9 @@ same bucket on the same day don't necessarily show the same line.
 
 ## Content workflow
 
-Per PRD Section 8: Claude drafts, Justin reviews via `_review/phase4-voice-samples.md` before
-it ships. Every line here was checked against the six canonical lines in PRD Section 6
-("Voice register (canonical)") — understated, deadpan, info before the bit, never mean.
+Per PRD Section 8: Claude drafts, Justin reviews before it ships. As of the 2026-07-18 register
+retirement (see PRD Revision Notes), the dry-wit voice and its six canonical lines in the former
+PRD Section 6 no longer govern; every line here is instead checked against the "Observatory
+Guide" register — clear, warm, precise, quietly enthusiastic, fact first always, no jokes, no
+irony, no personification of the sky/weather, no exclamation marks, no emoji. Sample renders for
+lead review live in `_review/voice2-samples.md`.

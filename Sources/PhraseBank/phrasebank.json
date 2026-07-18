@@ -5,858 +5,858 @@
         "condition": "clear",
         "tempBand": "cold"
       },
-      "text": "{temp} and clear. The sun is up; it isn't trying very hard."
+      "text": "Clear and {temp}. Full sun, but cold air; dress like it's colder than it looks."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "cold"
       },
-      "text": "Clear skies, {temp}. All bark, no warmth."
+      "text": "{temp} under a cloudless sky. Clear nights lose heat fast, so it cools quickly after sunset."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "cold"
       },
-      "text": "Sunny and {temp}. Read that as a suggestion, not a promise."
+      "text": "Sunny and {temp} today. The sun's up, but its low winter angle keeps the warmth limited."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "cold"
       },
-      "text": "Clear all day, {temp} the whole time. Bring a coat anyway."
+      "text": "Clear all day at {temp}. A coat helps more than the blue sky suggests."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "cold"
       },
-      "text": "{temp} under a cloudless sky. Deceptively bright, actually cold."
+      "text": "{temp}, clear skies. Bright light and cold air, a common pairing this time of year."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "cold"
       },
-      "text": "Not a cloud in sight, {temp} regardless. The sky is showing off."
+      "text": "Clear and {temp}. Good visibility, low temperatures; layers you can shed indoors work best."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "cold"
       },
-      "text": "Clear and {temp}. Good light, poor excuse to go coatless."
+      "text": "Cloudless and {temp} today. Direct sun alone won't do much for the temperature."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "cold"
       },
-      "text": "{temp}, clear. The kind of blue sky that lies about the temperature."
+      "text": "High of {high}, low of {low} today. Clear skies help by day and hurt after sunset."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "mild"
       },
-      "text": "Clear and {temp}. Nothing to report, which is the point."
+      "text": "Clear and {temp}. A comfortable day to be outside for a while."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "mild"
       },
-      "text": "{temp} and clear all day. Take the win."
+      "text": "{temp} and clear all day. Good conditions for anything you had planned outdoors."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "mild"
       },
-      "text": "Blue sky, {temp}. Worth stepping outside for, no asterisk."
+      "text": "Blue sky, {temp}. One of the more pleasant stretches of weather this week."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "mild"
       },
-      "text": "Clear, {temp}. A day that doesn't need commentary but is getting some anyway."
+      "text": "Clear skies and {temp}. Comfortable enough to skip a jacket for most of the day."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "mild"
       },
-      "text": "{temp} under full sun. This is what the calendar promised, for once."
+      "text": "{temp} under full sun. Steady, easy weather with nothing to plan around."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "mild"
       },
-      "text": "Clear skies, {temp}. Nothing dramatic, nothing to complain about."
+      "text": "Clear and {temp}. Good light most of the day, cooling a little after sunset."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "mild"
       },
-      "text": "{temp}, clear straight through. Go outside; it isn't asking twice."
+      "text": "Sunny and {temp}. A dependable day, weather-wise."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "mild"
       },
-      "text": "Sunny, {temp}. A day that behaves."
+      "text": "Clear through the evening, {temp}. Comfortable enough for a walk after dinner."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "mild"
       },
-      "text": "High of {high}, low of {low} today. A full, pleasant range."
+      "text": "High of {high}, low of {low} today. A wide, comfortable range for the whole day."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "hot"
       },
-      "text": "{temp} and clear. Bold choice, the sky."
+      "text": "Clear and {temp}. Full sun all day, so plan for shade during the afternoon peak."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "hot"
       },
-      "text": "Clear and {temp}. The sun found the thermostat and left it there."
+      "text": "Sunny and {temp}. No cloud cover to soften direct sun, so sunscreen matters more today."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "hot"
       },
-      "text": "{temp} under a cloudless sky. No shade coming to bail anyone out."
+      "text": "{temp} under a cloudless sky. Hydration and shade go a long way today."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "hot"
       },
-      "text": "Sunny, {temp}. Ambitious for a Tuesday."
+      "text": "Clear all day at {temp}. Heat builds through the afternoon with nothing to blunt it."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "hot"
       },
-      "text": "Clear all day at {temp}. The sky is committing to the bit."
+      "text": "{temp}, not a cloud in sight. Outdoor plans suit morning or evening better than midday."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "hot"
       },
-      "text": "{temp}, not a cloud to hide behind. Plan the shade accordingly."
+      "text": "Clear and {temp}. Close to the seasonal ceiling for this area."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "hot"
       },
-      "text": "Clear and {temp}. Confident, borderline reckless."
+      "text": "{temp} and sunny. UV exposure runs highest under skies this clear."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "hot"
       },
-      "text": "{temp} and sunny. The kind of clear that means business."
+      "text": "Feels like {feelsLike}, actual {temp}. Humidity is adding several degrees to how it feels."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "hot"
       },
-      "text": "Feels like {feelsLike}, actual {temp}. The heat index isn't being subtle."
+      "text": "Clear skies, {temp}. Worth front-loading errands before midday heat sets in."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "cold"
       },
-      "text": "Cloudy, {temp}. The sky couldn't commit to a mood either."
+      "text": "Cloudy and {temp}. The cloud layer is actually helping, trapping a little warmth overnight."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "cold"
       },
-      "text": "{temp} under a gray lid. Not dramatic, just gray."
+      "text": "{temp} under a gray sky. No sun breaks expected; temperatures hold fairly steady."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "cold"
       },
-      "text": "Overcast and {temp}. The sun sent its regrets."
+      "text": "Overcast and {temp}. Flat light today, but the clouds keep it from getting much colder."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "cold"
       },
-      "text": "Cloudy skies, {temp}. A day best described as adequate."
+      "text": "Cloudy skies, {temp}. A stable, unremarkable day, temperature-wise."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "cold"
       },
-      "text": "{temp}, clouds holding steady. Nothing's happening up there, on purpose."
+      "text": "{temp}, clouds holding steady. Little change expected through the day."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "cold"
       },
-      "text": "Gray and {temp}. The middle setting of weather."
+      "text": "Gray and {temp}. Cloud cover all day, with no clearing in the forecast."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "cold"
       },
-      "text": "Cloud cover, {temp}. The sky is keeping its opinions to itself."
+      "text": "Cloud cover, {temp}. Overcast nights like this often trap more heat than clear ones."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "cold"
       },
-      "text": "{temp} and overcast. Flat light, flatter mood."
+      "text": "{temp} and overcast. Flat light, steady temperatures."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "mild"
       },
-      "text": "Cloudy, {temp}. Perfectly fine, perfectly forgettable."
+      "text": "Cloudy and {temp}. Comfortable temperatures, just without much direct sun."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "mild"
       },
-      "text": "{temp} under clouds. Nothing to plan around, nothing to complain about."
+      "text": "{temp} under clouds. Good conditions for being outside, even without sunshine."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "mild"
       },
-      "text": "Overcast and {temp}. The sky's version of a shrug."
+      "text": "Overcast and {temp}. Mild and steady, with no real surprises in the forecast."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "mild"
       },
-      "text": "Gray skies, {temp}. A day that keeps its head down."
+      "text": "Gray skies, {temp}. Comfortable weather, just filtered light."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "mild"
       },
-      "text": "{temp}, mostly clouds. The safest forecast there is."
+      "text": "{temp}, mostly clouds. A calm, easy day."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "mild"
       },
-      "text": "Cloudy at {temp}. Not a highlight, not a problem."
+      "text": "Cloudy at {temp}. Nothing dramatic, comfortable temperatures throughout."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "mild"
       },
-      "text": "Overcast, {temp}. The weather equivalent of beige."
+      "text": "Overcast, {temp}. A dependable, mild day."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "mild"
       },
-      "text": "{temp} and cloudy. Reliable, in the way that oatmeal is reliable."
+      "text": "{temp} and cloudy. Steady conditions from morning through evening."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "mild"
       },
-      "text": "{chance} chance of rain later. Could go either way; plan accordingly, or don't."
+      "text": "{chance} chance of rain later. Thick enough cloud cover that a shower is plausible; worth carrying an umbrella."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "mild"
       },
-      "text": "Rain's a {chance} maybe today. Bring the umbrella just in case."
+      "text": "Rain's a {chance} chance today. Keep an umbrella nearby in case the clouds tip over."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "hot"
       },
-      "text": "Cloudy but {temp}. The clouds showed up; the heat didn't get the memo."
+      "text": "Cloudy but {temp}. Cloud cover isn't cutting the heat much today."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "hot"
       },
-      "text": "{temp} under cloud cover. Muggy is doing the real work here."
+      "text": "{temp} under cloud cover. Humidity is likely doing more to how it feels than the clouds are."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "hot"
       },
-      "text": "Overcast and {temp}. Somehow that isn't cooling anything down."
+      "text": "Overcast and {temp}. Cloud cover today without much cooling effect."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "hot"
       },
-      "text": "Gray skies, {temp} anyway. The sun didn't need to show up to make its point."
+      "text": "Gray skies, {temp} anyway. Heat is building despite the lack of direct sun."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "hot"
       },
-      "text": "{temp}, mostly clouds. Feels like the sky is holding a grudge."
+      "text": "{temp}, mostly clouds. Humid air under cloud cover tends to feel heavier."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "hot"
       },
-      "text": "Cloudy at {temp}. The lid is on and it's still an oven."
+      "text": "Cloudy at {temp}. Warm and humid, with the cloud layer holding moisture close to the ground."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "hot"
       },
-      "text": "Overcast, {temp}. No sunburn risk, full heat risk."
+      "text": "Overcast, {temp}. Lower sunburn risk today, but the underlying heat is unchanged."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "hot"
       },
-      "text": "{temp} and cloudy. Proof that clouds and cool are not the same thing."
+      "text": "{temp} and cloudy. Clouds and cooler air don't always go together, and today's an example."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "cold"
       },
-      "text": "Rain and {temp}. The kind that gets into your shoes."
+      "text": "Rain and {temp}. Cold rain soaks through faster than warm rain; waterproof layers matter today."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "cold"
       },
-      "text": "{temp} with rain coming down. Cold rain: the worst rain."
+      "text": "{temp} with rain coming down. This combination tends to feel colder than the number alone suggests."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "cold"
       },
-      "text": "Rain, {temp}. Bring the good umbrella, not the one that flips."
+      "text": "Rain, {temp}. A sturdy umbrella and a warm layer underneath handle this well."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "cold"
       },
-      "text": "{temp} and wet. The sky's found its one setting for today."
+      "text": "{temp} and wet. Rain at this temperature chills quickly."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "cold"
       },
-      "text": "Rain at {temp}. Everything outside is now also cold, and wet."
+      "text": "Rain at {temp}. Wet and cold together pull body heat away faster than either alone."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "cold"
       },
-      "text": "Cold rain, {temp}. A day for staying exactly where you are."
+      "text": "Cold rain, {temp}. Good conditions for staying dry and layered rather than braving it."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "cold"
       },
-      "text": "{temp}, steady rain. No thunder, just persistence."
+      "text": "{temp}, steady rain. No thunder in this one, just a long, soaking rain."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "cold"
       },
-      "text": "Rain and {temp}. The sky is uninterested in helping the temperature."
+      "text": "Rain and {temp}. Even a short walk outside calls for real rain gear today."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "mild"
       },
-      "text": "Rain moving in around {time}. The sky planned this days ago."
+      "text": "Rain moving in around {time}. Plan outdoor time before then if you can."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "mild"
       },
-      "text": "{temp} and raining. Nothing dramatic, just wet."
+      "text": "{temp} and raining. Comfortable temperatures, just wet; an umbrella covers most of it."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "mild"
       },
-      "text": "Rain, {temp}. Umbrella weather, not disaster weather."
+      "text": "Rain, {temp}. Mild enough that a light jacket and umbrella are all this needs."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "mild"
       },
-      "text": "{temp} with showers. The kind of rain that doesn't ask permission."
+      "text": "{temp} with showers. Steady rain rather than anything severe."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "mild"
       },
-      "text": "Raining, {temp}. A perfectly ordinary reason to stay in."
+      "text": "Raining, {temp}. An ordinary rainy day, nothing more."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "mild"
       },
-      "text": "{temp} and wet out. The grass isn't complaining."
+      "text": "{temp} and wet out. Mild temperatures mean the rain won't feel especially cold."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "mild"
       },
-      "text": "Showers expected by {time}. Not the whole day, just enough of it."
+      "text": "Showers expected by {time}. The rest of the day should stay dry."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "mild"
       },
-      "text": "{temp}, steady rain. Bring a jacket, skip the debate."
+      "text": "{temp}, steady rain. Bring a jacket; the temperature itself isn't the issue today."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "hot"
       },
-      "text": "Rain at {temp}. Muggy just leveled up."
+      "text": "Rain at {temp}. Warm rain like this raises humidity rather than lowering it."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "hot"
       },
-      "text": "{temp} and raining. The humidity brought reinforcements."
+      "text": "{temp} and raining. The added moisture makes the air feel heavier than the temperature alone suggests."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "hot"
       },
-      "text": "Warm rain, {temp}. Doesn't cool much, cools something."
+      "text": "Warm rain, {temp}. It won't cool things down much."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "hot"
       },
-      "text": "Rain, {temp} out. The air's basically soup now."
+      "text": "Rain, {temp} out. Humidity climbs when rain falls into already-warm air."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "hot"
       },
-      "text": "{temp} with showers. Steam rising off the sidewalk isn't a metaphor."
+      "text": "{temp} with showers. Expect visible steam or mist rising off warm pavement as it rains."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "hot"
       },
-      "text": "Raining and {temp}. The air stays humid even while it's helping."
+      "text": "Raining and {temp}. The air stays humid through the rain, not just after it."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "hot"
       },
-      "text": "{temp}, wet out. A shower that costs you nothing and cools you less."
+      "text": "{temp}, wet out. A warm shower like this cools the ground more than the air."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "hot"
       },
-      "text": "Rain at {temp}. Somehow still sticky."
+      "text": "Rain at {temp}. Humidity stays high even with rain falling."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "hot"
       },
-      "text": "{temp} but feels like {feelsLike}. The rain isn't cooling anything down."
+      "text": "{temp} but feels like {feelsLike}. The rain is adding humidity, not relief."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "cold"
       },
-      "text": "Snow and {temp}. About as advertised for the season."
+      "text": "Snow and {temp}. Cold enough that snow will stick and accumulate rather than melt."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "cold"
       },
-      "text": "{temp} and snowing. The kind of cold that snow actually sticks to."
+      "text": "{temp} and snowing. Typical conditions for accumulating snow this time of year."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "cold"
       },
-      "text": "Snow, {temp}. Pretty from indoors, that's the deal."
+      "text": "Snow, {temp}. Cold pavement means snow settles quickly rather than melting on contact."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "cold"
       },
-      "text": "{temp} with snow coming down. Scrape the car early; it isn't stopping soon."
+      "text": "{temp} with snow coming down. Give yourself extra time; roads may need clearing before you head out."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "cold"
       },
-      "text": "Snowing at {temp}. The ground's not winning this argument."
+      "text": "Snowing at {temp}. Temperatures well below freezing mean this snow isn't going anywhere fast."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "cold"
       },
-      "text": "{temp}, steady snow. A good day to have somewhere to be later, not now."
+      "text": "{temp}, steady snow. A good day to check road conditions before heading out later."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "cold"
       },
-      "text": "Snow and {temp}. The view's better than the commute."
+      "text": "Snow and {temp}. Cold enough for accumulation to build through the day."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "cold"
       },
-      "text": "{temp}, snow falling. Textbook, honestly."
+      "text": "{temp}, snow falling. Typical winter conditions for the season."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "cold"
       },
-      "text": "High of {high} today, low of {low} tonight. Bundle up regardless."
+      "text": "High of {high} today, low of {low} tonight. Bundle up; temperatures stay well below freezing."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "mild"
       },
-      "text": "Snow at {temp}. Not committing to sticking around."
+      "text": "Snow at {temp}. Warm enough that it likely won't stick around long."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "mild"
       },
-      "text": "{temp} with snow falling. It won't last, but it's trying."
+      "text": "{temp} with snow falling. Expect it to melt on contact given the temperature."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "mild"
       },
-      "text": "Snow, {temp} out. The kind that melts on contact and on principle."
+      "text": "Snow, {temp} out. This close to freezing, snow and light rain can trade places quickly."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "mild"
       },
-      "text": "{temp}, light snow. More performance than accumulation."
+      "text": "{temp}, light snow. Accumulation is unlikely at this temperature."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "mild"
       },
-      "text": "Snowing at {temp}. The ground's not cold enough to care."
+      "text": "Snowing at {temp}. The ground isn't cold enough for much of it to stick."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "mild"
       },
-      "text": "{temp} with flurries. Blink and it's rain again."
+      "text": "{temp} with flurries. Could easily turn to rain if temperatures tick up slightly."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "mild"
       },
-      "text": "Snow at {temp}. A weak argument for winter."
+      "text": "Snow at {temp}. A borderline temperature for snow to hold."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "mild"
       },
-      "text": "{temp}, snow that can't decide what it wants to be."
+      "text": "{temp}, snow that may not last. Watch for it turning to rain later."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "hot"
       },
-      "text": "Snow in the forecast at {temp}. Unusual combination; the forecast stands."
+      "text": "Snow in the forecast at {temp}. An unusual combination worth double-checking closer to the time."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "hot"
       },
-      "text": "{temp} with snow showing. Not a typo."
+      "text": "{temp} with snow showing in the data. Uncommon for this temperature range."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "hot"
       },
-      "text": "Snow, {temp} out. Rare pairing, reported as-is."
+      "text": "Snow, {temp} out. A rare pairing; elevation or timing differences can explain readings like this."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "hot"
       },
-      "text": "{temp}, snow appearing in the data. Trust the instruments."
+      "text": "{temp}, snow appearing in the forecast. Worth confirming with a closer look before relying on it."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "hot"
       },
-      "text": "Snow at {temp}. Uncommon, but here it is."
+      "text": "Snow at {temp}. Uncommon, but the forecast data is reporting it as-is."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "hot"
       },
-      "text": "{temp} with snow forecast. Worth double-checking the window."
+      "text": "{temp} with snow forecast. Worth checking again as the timing gets closer."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "hot"
       },
-      "text": "Snow reported at {temp}. The numbers are the numbers."
+      "text": "Snow reported at {temp}. An unusual reading; treat it as provisional until it's nearer."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "hot"
       },
-      "text": "{temp}, snow on the forecast. Unusual today."
+      "text": "{temp}, snow on the forecast. Not typical for this temperature."
     },
     {
       "tags": {
         "condition": "fog"
       },
-      "text": "Foggy out there. The horizon called in sick."
+      "text": "Foggy out there. Visibility is reduced, especially on the roads."
     },
     {
       "tags": {
         "condition": "fog"
       },
-      "text": "Fog this morning. Visibility: negotiable."
+      "text": "Fog this morning. It typically burns off as the sun warms the air later."
     },
     {
       "tags": {
         "condition": "fog"
       },
-      "text": "Foggy. The world's gone soft-focus for a bit."
+      "text": "Foggy conditions. Visibility can drop to a few hundred feet or less in dense patches."
     },
     {
       "tags": {
         "condition": "fog"
       },
-      "text": "Fog rolling through. Headlights on, patience up."
+      "text": "Fog rolling through. Headlights on and extra following distance help today."
     },
     {
       "tags": {
         "condition": "fog"
       },
-      "text": "Foggy out. Everything past the driveway is a rumor."
+      "text": "Foggy out. Visibility is the main thing to plan around, not temperature."
     },
     {
       "tags": {
         "condition": "fog"
       },
-      "text": "Fog today. The view's on a break."
+      "text": "Fog today. Usually clears by midmorning as temperatures rise."
     },
     {
       "tags": {
         "condition": "fog"
       },
-      "text": "Foggy conditions. Nothing's gone, it's just hiding."
+      "text": "Foggy conditions. Nothing's changed on the ground, just how far you can see it."
     },
     {
       "tags": {
         "condition": "fog"
       },
-      "text": "Fog out there. Slow down; the road hasn't changed, you just can't see it."
+      "text": "Fog out there. Slow down on the roads until it lifts."
     },
     {
       "tags": {
         "condition": "wind"
       },
-      "text": "Windy out there. Hold onto anything you like."
+      "text": "Windy out there. Loose outdoor items are worth securing today."
     },
     {
       "tags": {
         "condition": "wind"
       },
-      "text": "Breezy today. The trash cans are having a rough one."
+      "text": "Breezy today. Strong enough to notice, not strong enough for a warning."
     },
     {
       "tags": {
         "condition": "wind"
       },
-      "text": "Windy. Not storm-windy, just rude."
+      "text": "Windy. Expect some sway in trees and power lines, nothing severe."
     },
     {
       "tags": {
         "condition": "wind"
       },
-      "text": "Breezy out. Everything loose is now in motion."
+      "text": "Breezy out. Good day to check that nothing's loose on a porch or balcony."
     },
     {
       "tags": {
         "condition": "wind"
       },
-      "text": "Windy today. Your hair has other plans."
+      "text": "Windy today. Cycling and umbrellas are both harder than usual."
     },
     {
       "tags": {
         "condition": "wind"
       },
-      "text": "Gusty out there. Umbrellas are not going to help."
+      "text": "Gusty out there. Umbrellas tend to turn inside out in gusts like this."
     },
     {
       "tags": {
         "condition": "wind"
       },
-      "text": "Windy. The flags are working overtime."
+      "text": "Windy. Flags and branches are visibly moving; sustained gusts are likely."
     },
     {
       "tags": {
         "condition": "wind"
       },
-      "text": "Breezy today. Nothing dramatic, just persistent."
+      "text": "Breezy today. Steady wind rather than short gusts."
     },
     {
       "tags": {
         "condition": "storm"
       },
-      "text": "Thunderstorms today. The sky's got something to say."
+      "text": "Thunderstorms today. Expect lightning and heavy rain in bursts rather than all day."
     },
     {
       "tags": {
         "condition": "storm"
       },
-      "text": "Storms rolling in. Best day to stay indoors on purpose."
+      "text": "Storms rolling in. Indoor plans are the safer call while they pass through."
     },
     {
       "tags": {
         "condition": "storm"
       },
-      "text": "Thunder and rain. Loud, but it'll pass."
+      "text": "Thunder and rain. Loud but typically brief, passing within an hour or two."
     },
     {
       "tags": {
         "condition": "storm"
       },
-      "text": "Storms today. The kind that means it, briefly."
+      "text": "Storms today. Short-lived but intense while they last."
     },
     {
       "tags": {
         "condition": "storm"
       },
-      "text": "Thunderstorms in the forecast. Unplug the good electronics."
+      "text": "Thunderstorms in the forecast. Unplugging sensitive electronics is a reasonable precaution."
     },
     {
       "tags": {
         "condition": "storm"
       },
-      "text": "Storms coming through. Front-row seats from the window."
+      "text": "Storms coming through. Best watched from indoors, away from windows during the worst of it."
     },
     {
       "tags": {
         "condition": "storm"
       },
-      "text": "Thunder expected. The sky's clearing its throat."
+      "text": "Thunder expected. Conditions can turn quickly once storms develop."
     },
     {
       "tags": {
         "condition": "storm"
       },
-      "text": "Storms today. Dramatic for an afternoon, then done."
+      "text": "Storms today. Brief but capable of heavy rain and lightning while active."
     },
     {
       "tags": {},
@@ -864,15 +864,15 @@
     },
     {
       "tags": {},
-      "text": "The weather's doing something. See above for specifics."
+      "text": "Full conditions for today are shown above."
     },
     {
       "tags": {},
-      "text": "Conditions today: whatever the numbers above say."
+      "text": "Today's numbers are in; temperature, conditions, and the rest are above."
     },
     {
       "tags": {},
-      "text": "Today's weather, summarized above."
+      "text": "Forecast loaded. See above for today's specifics."
     }
   ],
   "doodleCaption": [
@@ -881,371 +881,371 @@
         "condition": "clear",
         "tempBand": "cold"
       },
-      "text": "{temp}. Clear, and it's lying about the warmth."
+      "text": "{temp}. Clear skies, but the air stays cold."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "cold"
       },
-      "text": "Clear and cold. The sun's just for show today."
+      "text": "Clear and cold today. Full sun, little warmth."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "cold"
       },
-      "text": "{temp}, blue sky. Look, don't touch."
+      "text": "{temp}, blue sky. Bright, but bring a coat."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "cold"
       },
-      "text": "Cloudless, {temp}. Bright doesn't mean warm."
+      "text": "Cloudless, {temp}. Sun's up; the temperature isn't."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "cold"
       },
-      "text": "{temp} and clear. All that light, none of the heat."
+      "text": "{temp} and clear. All light, not much heat."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "cold"
       },
-      "text": "Clear skies, {temp}. A nice-looking trap."
+      "text": "Clear skies, {temp}. Looks bright, feels cold."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "cold"
       },
-      "text": "{temp}, sunny. Coat weather in disguise."
+      "text": "{temp}, sunny. Coat weather despite the sun."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "cold"
       },
-      "text": "Clear and {temp}. Deceptive, but pretty."
+      "text": "Clear and {temp}. Deceptive brightness, real cold."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "mild"
       },
-      "text": "{temp}, clear. About as good as it gets."
+      "text": "{temp}, clear. Comfortable conditions today."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "mild"
       },
-      "text": "Clear all day, {temp}. Take the hint."
+      "text": "Clear all day, {temp}. Good day to be outside."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "mild"
       },
-      "text": "{temp} and sunny. No notes."
+      "text": "{temp} and sunny. Easy, pleasant weather."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "mild"
       },
-      "text": "Clear skies, {temp}. Go outside."
+      "text": "Clear skies, {temp}. A good day for it."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "mild"
       },
-      "text": "{temp}, blue sky. Nothing to add."
+      "text": "{temp}, blue sky. Nothing to plan around."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "mild"
       },
-      "text": "Clear and {temp}. A day that behaves."
+      "text": "Clear and {temp}. Steady and mild."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "mild"
       },
-      "text": "{temp} out, clear. Simple, and fine with it."
+      "text": "{temp} out, clear. Simple and comfortable."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "mild"
       },
-      "text": "Clear, {temp}. Exactly what it looks like."
+      "text": "Clear, {temp}. About as easy as forecasts get."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "hot"
       },
-      "text": "{temp} again. Bold choice, the sky."
+      "text": "{temp} today. Clear skies, full sun exposure."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "hot"
       },
-      "text": "Clear and {temp}. Committing hard today."
+      "text": "Clear and {temp}. Direct heat all day."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "hot"
       },
-      "text": "{temp}, not a cloud. No shade, no apologies."
+      "text": "{temp}, not a cloud. Shade helps today."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "hot"
       },
-      "text": "Sunny, {temp}. Ambitious."
+      "text": "Sunny, {temp}. Plan for the afternoon peak."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "hot"
       },
-      "text": "{temp} and clear. The sky means it."
+      "text": "{temp} and clear. Sun at full strength."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "hot"
       },
-      "text": "Clear skies, {temp}. All in on the heat."
+      "text": "Clear skies, {temp}. Hydration matters today."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "hot"
       },
-      "text": "{temp}, cloudless. Find shade early."
+      "text": "{temp}, cloudless. Find shade in the afternoon."
     },
     {
       "tags": {
         "condition": "clear",
         "tempBand": "hot"
       },
-      "text": "Clear and {temp}. Confident to a fault."
+      "text": "Clear and {temp}. Near the day's seasonal ceiling."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "cold"
       },
-      "text": "{temp}, gray out. The sky's staying neutral."
+      "text": "{temp}, gray out. Cloud cover holds steady."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "cold"
       },
-      "text": "Cloudy, {temp}. Nothing to see, nothing to fear."
+      "text": "Cloudy, {temp}. Flat light, stable temperature."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "cold"
       },
-      "text": "{temp} under clouds. Flat, as planned."
+      "text": "{temp} under clouds. Little change expected."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "cold"
       },
-      "text": "Overcast, {temp}. The sky shrugged."
+      "text": "Overcast, {temp}. Cloud layer all day."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "cold"
       },
-      "text": "{temp}, gray lid. About what you'd expect."
+      "text": "{temp}, gray sky. Steady, unremarkable."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "cold"
       },
-      "text": "Cloudy and {temp}. Uneventful, on purpose."
+      "text": "Cloudy and {temp}. No breaks in the clouds."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "cold"
       },
-      "text": "{temp} out, overcast. No opinions today."
+      "text": "{temp} out, overcast. Consistent through the day."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "cold"
       },
-      "text": "Gray, {temp}. The sky's keeping it simple."
+      "text": "Gray, {temp}. Cloud cover trapping some warmth."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "mild"
       },
-      "text": "{temp}, cloudy. Perfectly fine."
+      "text": "{temp}, cloudy. Comfortable despite the clouds."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "mild"
       },
-      "text": "Overcast, {temp}. No complaints filed."
+      "text": "Overcast, {temp}. Mild and steady."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "mild"
       },
-      "text": "{temp} under clouds. Forgettable, comfortably."
+      "text": "{temp} under clouds. Good conditions, less sun."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "mild"
       },
-      "text": "Cloudy and {temp}. The middle of the road."
+      "text": "Cloudy and {temp}. An easy, mild day."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "mild"
       },
-      "text": "{temp}, gray skies. Nothing's wrong here."
+      "text": "{temp}, gray skies. Nothing dramatic today."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "mild"
       },
-      "text": "Overcast, {temp}. Steady as ever."
+      "text": "Overcast, {temp}. Comfortable temperatures hold."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "mild"
       },
-      "text": "{temp} out, clouds. Unremarkable, and that's fine."
+      "text": "{temp} out, clouds. Steady through the day."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "mild"
       },
-      "text": "Cloudy, {temp}. Just a Tuesday."
+      "text": "Cloudy, {temp}. Mild with filtered light."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "mild"
       },
-      "text": "{chance} chance of rain. Flip a coin; the sky basically did."
+      "text": "{chance} chance of rain. Worth keeping an umbrella on hand."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "hot"
       },
-      "text": "{temp}, cloudy. Muggy's doing the heavy lifting."
+      "text": "{temp}, cloudy. Humidity, not sun, driving the heat."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "hot"
       },
-      "text": "Overcast and {temp}. Somehow still an oven."
+      "text": "Overcast and {temp}. Clouds aren't cooling this down."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "hot"
       },
-      "text": "{temp} under clouds. The heat didn't need the sun."
+      "text": "{temp} under clouds. Warm air trapped below."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "hot"
       },
-      "text": "Cloudy, {temp}. No sunburn, plenty of sweat."
+      "text": "Cloudy, {temp}. Lower sunburn risk, same heat."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "hot"
       },
-      "text": "{temp}, gray and heavy. Feels like more."
+      "text": "{temp}, gray and heavy. Feels warmer than it looks."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "hot"
       },
-      "text": "Overcast at {temp}. The lid's staying on."
+      "text": "Overcast at {temp}. Humid beneath the cloud layer."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "hot"
       },
-      "text": "{temp} out, clouds. Heat with the windows closed."
+      "text": "{temp} out, clouds. Heat without direct sun."
     },
     {
       "tags": {
         "condition": "cloudy",
         "tempBand": "hot"
       },
-      "text": "Cloudy and {temp}. Sticky regardless."
+      "text": "Cloudy and {temp}. Warm regardless of cover."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "cold"
       },
-      "text": "{temp}, raining. Miserable, efficiently."
+      "text": "{temp}, raining. Cold rain; dress for both."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "cold"
       },
-      "text": "Cold rain, {temp}. Stay in if you can."
+      "text": "Cold rain, {temp}. Waterproof layers help most."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "cold"
       },
-      "text": "{temp} and wet. The bad kind of rain."
+      "text": "{temp} and wet. Chills faster than warm rain."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "cold"
       },
-      "text": "Rain, {temp} out. Everything's soaked and cold about it."
+      "text": "Rain, {temp} out. Bring real rain gear."
     },
     {
       "tags": {
@@ -1259,280 +1259,280 @@
         "condition": "rain",
         "tempBand": "cold"
       },
-      "text": "Cold and wet, {temp}. A day for staying put."
+      "text": "Cold and wet, {temp}. Layer up before heading out."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "cold"
       },
-      "text": "{temp} out, raining. Bring the real umbrella."
+      "text": "{temp} out, raining. A sturdy umbrella earns its keep."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "cold"
       },
-      "text": "Rain and {temp}. Nothing about this is cozy."
+      "text": "Rain and {temp}. Cold rain soaks in fast."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "mild"
       },
-      "text": "Rain by {time}. The sky planned ahead."
+      "text": "Rain by {time}. Plan around it if you can."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "mild"
       },
-      "text": "{temp}, raining. Ordinary, and wet."
+      "text": "{temp}, raining. Mild temperatures, just wet."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "mild"
       },
-      "text": "Showers, {temp} out. Umbrella, not alarm."
+      "text": "Showers, {temp} out. An umbrella covers it."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "mild"
       },
-      "text": "{temp} and rain. The grass isn't complaining."
+      "text": "{temp} and rain. Comfortable despite the wet."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "mild"
       },
-      "text": "Rain moving in by {time}. Bring it up top."
+      "text": "Rain moving in by {time}. Dry before then."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "mild"
       },
-      "text": "{temp}, wet out. Nothing dramatic."
+      "text": "{temp}, wet out. Ordinary rain, nothing severe."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "mild"
       },
-      "text": "Showers today, {temp}. Business as usual."
+      "text": "Showers today, {temp}. Steady, not heavy."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "mild"
       },
-      "text": "{temp} and rain. Mild enough to shrug at."
+      "text": "{temp} and rain. Mild enough that a light jacket covers it."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "hot"
       },
-      "text": "{temp}, raining. Muggy just leveled up."
+      "text": "{temp}, raining. Humidity rising with the rain."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "hot"
       },
-      "text": "Warm rain, {temp}. Cools very little."
+      "text": "Warm rain, {temp}. Little cooling effect."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "hot"
       },
-      "text": "{temp} and wet out. The air's basically soup."
+      "text": "{temp} and wet out. Air feels heavier now."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "hot"
       },
-      "text": "Raining at {temp}. Still sticky, somehow."
+      "text": "Raining at {temp}. Still warm, still humid."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "hot"
       },
-      "text": "{temp}, showers. A shower that doesn't help."
+      "text": "{temp}, showers. Rain adding moisture, not relief."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "hot"
       },
-      "text": "Warm and wet, {temp}. No relief in this one."
+      "text": "Warm and wet, {temp}. No real cooling here."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "hot"
       },
-      "text": "{temp} out, rain. Steam off the sidewalk, not a metaphor."
+      "text": "{temp} out, rain. Steam visible off warm pavement."
     },
     {
       "tags": {
         "condition": "rain",
         "tempBand": "hot"
       },
-      "text": "Rain, {temp}. Humidity brought backup."
+      "text": "Rain, {temp}. Humidity climbing as it falls."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "cold"
       },
-      "text": "Snow, {temp}. About as advertised."
+      "text": "Snow, {temp}. Cold enough for it to stick."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "cold"
       },
-      "text": "{temp} and snowing. Textbook, honestly."
+      "text": "{temp} and snowing. Typical for the season."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "cold"
       },
-      "text": "Snow falling, {temp} out. Pretty from indoors."
+      "text": "Snow falling, {temp} out. Accumulating steadily."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "cold"
       },
-      "text": "{temp}, steady snow. Scrape early."
+      "text": "{temp}, steady snow. Give roads extra time."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "cold"
       },
-      "text": "Snowing, {temp}. The season's doing its job."
+      "text": "Snowing, {temp}. Well below freezing today."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "cold"
       },
-      "text": "{temp} out, snow. Good day to stay put."
+      "text": "{temp} out, snow. Check road conditions later."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "cold"
       },
-      "text": "Snow and {temp}. The view earns its keep."
+      "text": "Snow and {temp}. Building through the day."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "cold"
       },
-      "text": "{temp}, snow coming down. As expected."
+      "text": "{temp}, snow coming down. As expected for winter."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "mild"
       },
-      "text": "Snow at {temp}. Not committing to it."
+      "text": "Snow at {temp}. Likely melting on contact."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "mild"
       },
-      "text": "{temp}, flurries. Won't last long."
+      "text": "{temp}, flurries. Won't stick around long."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "mild"
       },
-      "text": "Snow, {temp} out. Melting on contact."
+      "text": "Snow, {temp} out. Close to the melting point."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "mild"
       },
-      "text": "{temp} and light snow. More show than substance."
+      "text": "{temp} and light snow. Little accumulation expected."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "mild"
       },
-      "text": "Snowing at {temp}. The ground isn't cold enough."
+      "text": "Snowing at {temp}. Ground too warm to hold it."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "mild"
       },
-      "text": "{temp}, snow that can't decide."
+      "text": "{temp}, snow that may turn to rain."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "mild"
       },
-      "text": "Flurries, {temp} out. Blink and it's rain."
+      "text": "Flurries, {temp} out. Borderline temperature."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "mild"
       },
-      "text": "{temp}, snow. A weak case for winter."
+      "text": "{temp}, snow. Unlikely to last long."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "hot"
       },
-      "text": "Snow at {temp}. Unusual pairing, reported as-is."
+      "text": "Snow at {temp}. Unusual reading; worth confirming."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "hot"
       },
-      "text": "{temp}, snow showing. Not a typo."
+      "text": "{temp}, snow showing. Uncommon for this range."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "hot"
       },
-      "text": "Snow forecast, {temp} out. Rare, but here it is."
+      "text": "Snow forecast, {temp} out. Rare pairing, reported as-is."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "hot"
       },
-      "text": "{temp} with snow. Trust the instruments."
+      "text": "{temp} with snow. Data reported directly."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "hot"
       },
-      "text": "Snow at {temp}. Worth a look outside."
+      "text": "Snow at {temp}. Worth a second check later."
     },
     {
       "tags": {
@@ -1546,32 +1546,32 @@
         "condition": "snow",
         "tempBand": "hot"
       },
-      "text": "Snow reported, {temp} out. The numbers are the numbers."
+      "text": "Snow reported, {temp} out. Numbers as measured."
     },
     {
       "tags": {
         "condition": "snow",
         "tempBand": "hot"
       },
-      "text": "{temp}, snow. Double-check the window."
+      "text": "{temp}, snow. Confirm closer to the time."
     },
     {
       "tags": {
         "condition": "fog"
       },
-      "text": "Foggy. The horizon's on a break."
+      "text": "Foggy. Visibility reduced this morning."
     },
     {
       "tags": {
         "condition": "fog"
       },
-      "text": "Fog today. Visibility: negotiable."
+      "text": "Fog today. Usually clears by midmorning."
     },
     {
       "tags": {
         "condition": "fog"
       },
-      "text": "Foggy out. Soft-focus, whole town."
+      "text": "Foggy out. Slower going on the roads."
     },
     {
       "tags": {
@@ -1583,137 +1583,137 @@
       "tags": {
         "condition": "fog"
       },
-      "text": "Foggy. Everything past the yard is a rumor."
+      "text": "Foggy. Distance is hard to judge right now."
     },
     {
       "tags": {
         "condition": "fog"
       },
-      "text": "Fog today. The view's hiding, not gone."
+      "text": "Fog today. Should lift as temperatures rise."
     },
     {
       "tags": {
         "condition": "fog"
       },
-      "text": "Foggy out there. Slow down."
+      "text": "Foggy out there. Extra following distance helps."
     },
     {
       "tags": {
         "condition": "fog"
       },
-      "text": "Fog. The road's fine, you just can't see it."
+      "text": "Fog. Ground conditions unchanged, just harder to see."
     },
     {
       "tags": {
         "condition": "wind"
       },
-      "text": "Windy. Hold onto your hat, literally."
+      "text": "Windy. Secure anything loose outside."
     },
     {
       "tags": {
         "condition": "wind"
       },
-      "text": "Breezy today. The trash cans are struggling."
+      "text": "Breezy today. Noticeable, not severe."
     },
     {
       "tags": {
         "condition": "wind"
       },
-      "text": "Windy out. Not storm-windy, just rude."
+      "text": "Windy out. Steady wind through the day."
     },
     {
       "tags": {
         "condition": "wind"
       },
-      "text": "Breezy. Everything loose is airborne now."
+      "text": "Breezy. Umbrellas struggle in gusts like this."
     },
     {
       "tags": {
         "condition": "wind"
       },
-      "text": "Windy today. Your hair has plans of its own."
+      "text": "Windy today. Cycling is harder than usual."
     },
     {
       "tags": {
         "condition": "wind"
       },
-      "text": "Gusty out there. Umbrellas won't help."
+      "text": "Gusty out there. Watch for loose branches."
     },
     {
       "tags": {
         "condition": "wind"
       },
-      "text": "Windy. The flags are earning their pay."
+      "text": "Windy. Trees and lines visibly moving."
     },
     {
       "tags": {
         "condition": "wind"
       },
-      "text": "Breezy today. Persistent, not dramatic."
+      "text": "Breezy today. Persistent rather than gusty."
     },
     {
       "tags": {
         "condition": "storm"
       },
-      "text": "Thunderstorms today. The sky's got something to say."
+      "text": "Thunderstorms today. Brief bursts of heavy rain."
     },
     {
       "tags": {
         "condition": "storm"
       },
-      "text": "Storms rolling in. Good day to stay in on purpose."
+      "text": "Storms rolling in. Best time to stay indoors."
     },
     {
       "tags": {
         "condition": "storm"
       },
-      "text": "Thunder and rain. Loud, then gone."
+      "text": "Thunder and rain. Loud, then it passes."
     },
     {
       "tags": {
         "condition": "storm"
       },
-      "text": "Storms today. Brief, but it means it."
+      "text": "Storms today. Short-lived but intense."
     },
     {
       "tags": {
         "condition": "storm"
       },
-      "text": "Thunderstorms ahead. Unplug the good electronics."
+      "text": "Thunderstorms ahead. Unplug sensitive electronics."
     },
     {
       "tags": {
         "condition": "storm"
       },
-      "text": "Storms coming through. Front-row seats from the window."
+      "text": "Storms coming through. Stay clear of windows."
     },
     {
       "tags": {
         "condition": "storm"
       },
-      "text": "Thunder expected. The sky's clearing its throat."
+      "text": "Thunder expected. Conditions can shift quickly."
     },
     {
       "tags": {
         "condition": "storm"
       },
-      "text": "Storms today. Dramatic, then done."
+      "text": "Storms today. Heavy while active, then clear."
     },
     {
       "tags": {},
-      "text": "Today's forecast, illustrated above."
+      "text": "Today's forecast, shown above."
     },
     {
       "tags": {},
-      "text": "Weather's happening. Look up for specifics."
+      "text": "Conditions for today are above."
     },
     {
       "tags": {},
-      "text": "See above for today's conditions."
+      "text": "Today's weather is summarized above."
     },
     {
       "tags": {},
-      "text": "Today, weather-wise: check the numbers."
+      "text": "See above for today's numbers."
     }
   ],
   "comparison": [
@@ -1722,245 +1722,245 @@
         "direction": "warmer",
         "magnitude": "slight"
       },
-      "text": "{delta} warmer than yesterday. Progress, technically."
+      "text": "{delta} warmer than yesterday. A small, easy-to-miss change."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "slight"
       },
-      "text": "Up {delta} from yesterday. Barely worth mentioning, but here we are."
+      "text": "Up {delta} from yesterday. Not quite enough to change what you'd wear."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "slight"
       },
-      "text": "{delta} warmer today. Small win, still a win."
+      "text": "{delta} warmer today. A modest shift."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "slight"
       },
-      "text": "A {delta} bump from yesterday. Notice it or don't."
+      "text": "A {delta} rise from yesterday. Barely noticeable outside."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "slight"
       },
-      "text": "Warmer by {delta}. Nothing to plan a wardrobe around."
+      "text": "Warmer by {delta}. Small enough that most people won't feel it."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "slight"
       },
-      "text": "{delta} up from yesterday. Modest, but moving."
+      "text": "{delta} up from yesterday. A gentle nudge, nothing more."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "slight"
       },
-      "text": "Today runs {delta} warmer. Marginal, on the record."
+      "text": "Today runs {delta} warmer. A minor difference."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "slight"
       },
-      "text": "{delta} warmer than yesterday. Take the credit anyway."
+      "text": "{delta} warmer than yesterday. Close enough to call it steady."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "moderate"
       },
-      "text": "{delta} warmer than yesterday. That one you'll feel."
+      "text": "{delta} warmer than yesterday. Enough that you'll likely feel it."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "moderate"
       },
-      "text": "Up {delta} from yesterday. Enough to change the jacket math."
+      "text": "Up {delta} from yesterday. Worth reconsidering the jacket."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "moderate"
       },
-      "text": "{delta} warmer today. A real step, not a shuffle."
+      "text": "{delta} warmer today. A real, noticeable step up."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "moderate"
       },
-      "text": "Today's running {delta} above yesterday. Noticeable, in a good way."
+      "text": "Today's running {delta} above yesterday. A meaningful change."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "moderate"
       },
-      "text": "Warmer by {delta} since yesterday. Worth the shorts debate."
+      "text": "Warmer by {delta} since yesterday. Enough to shift what's comfortable."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "moderate"
       },
-      "text": "{delta} up from yesterday. That's a whole different day."
+      "text": "{delta} up from yesterday. A clearly different day."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "moderate"
       },
-      "text": "{delta} warmer than yesterday. The kind of jump you dress for."
+      "text": "{delta} warmer than yesterday. The kind of jump worth dressing for."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "moderate"
       },
-      "text": "Today beats yesterday by {delta}. Enjoy the upgrade."
+      "text": "Today beats yesterday by {delta}. A solid improvement."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "large"
       },
-      "text": "{delta} warmer than yesterday. That's not a rounding error."
+      "text": "{delta} warmer than yesterday. A significant jump."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "large"
       },
-      "text": "Up {delta} from yesterday. Different season, practically."
+      "text": "Up {delta} from yesterday. A big swing for one day."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "large"
       },
-      "text": "{delta} warmer today. Yesterday's coat just became a liability."
+      "text": "{delta} warmer today. Yesterday's coat is likely too much now."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "large"
       },
-      "text": "Today's running {delta} above yesterday. Whiplash weather."
+      "text": "Today's running {delta} above yesterday. A sharp change worth planning around."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "large"
       },
-      "text": "Warmer by {delta}. Someone owes the weather an explanation."
+      "text": "Warmer by {delta}. A large day-over-day swing."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "large"
       },
-      "text": "{delta} up from yesterday. That's a full wardrobe change."
+      "text": "{delta} up from yesterday. Close to a full wardrobe change."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "large"
       },
-      "text": "{delta} warmer than yesterday. Ambitious swing for one day."
+      "text": "{delta} warmer than yesterday. One of the bigger swings this week."
     },
     {
       "tags": {
         "direction": "warmer",
         "magnitude": "large"
       },
-      "text": "Today beats yesterday by {delta}. The thermostat had a big night."
+      "text": "Today beats yesterday by {delta}. A substantial rise."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "slight"
       },
-      "text": "{delta} cooler than yesterday. Barely worth the footnote."
+      "text": "{delta} cooler than yesterday. A small, easy-to-miss dip."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "slight"
       },
-      "text": "Down {delta} from yesterday. You'd need to be paying attention."
+      "text": "Down {delta} from yesterday. Barely enough to notice."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "slight"
       },
-      "text": "{delta} cooler today. A rounding error with a jacket."
+      "text": "{delta} cooler today. A minor change."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "slight"
       },
-      "text": "A {delta} dip from yesterday. Nothing to reorganize your day over."
+      "text": "A {delta} dip from yesterday. Nothing to plan around."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "slight"
       },
-      "text": "Cooler by {delta}. Small enough to ignore, if you'd like."
+      "text": "Cooler by {delta}. Small enough that most people won't dress differently for it."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "slight"
       },
-      "text": "{delta} down from yesterday. Modest, but it's something."
+      "text": "{delta} down from yesterday. A modest shift."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "slight"
       },
-      "text": "Today runs {delta} cooler. Minor, for the record."
+      "text": "Today runs {delta} cooler. A slight difference, for the record."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "slight"
       },
-      "text": "{delta} cooler than yesterday. Blink and you'd miss it."
+      "text": "{delta} cooler than yesterday. Close to unchanged."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "moderate"
       },
-      "text": "{delta} cooler than yesterday. That one you'll notice."
+      "text": "{delta} cooler than yesterday. Enough that you'll likely feel it."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "moderate"
       },
-      "text": "Down {delta} from yesterday. The shorts might sit this one out."
+      "text": "Down {delta} from yesterday. Worth adding a layer."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "moderate"
       },
-      "text": "{delta} cooler today. A real step back, not just a breeze."
+      "text": "{delta} cooler today. A real step back from yesterday."
     },
     {
       "tags": {
@@ -1974,21 +1974,21 @@
         "direction": "cooler",
         "magnitude": "moderate"
       },
-      "text": "Cooler by {delta} since yesterday. Enough to change plans."
+      "text": "Cooler by {delta} since yesterday. Enough to change plans a little."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "moderate"
       },
-      "text": "{delta} down from yesterday. That's a different kind of day."
+      "text": "{delta} down from yesterday. A clearly different day."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "moderate"
       },
-      "text": "{delta} cooler than yesterday. The kind of drop you dress for."
+      "text": "{delta} cooler than yesterday. The kind of drop worth dressing for."
     },
     {
       "tags": {
@@ -2002,80 +2002,80 @@
         "direction": "cooler",
         "magnitude": "large"
       },
-      "text": "{delta} cooler than yesterday. That's not a rounding error either."
+      "text": "{delta} cooler than yesterday. A significant drop."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "large"
       },
-      "text": "Down {delta} from yesterday. Different season, abruptly."
+      "text": "Down {delta} from yesterday. A big swing for one day."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "large"
       },
-      "text": "{delta} cooler today. Yesterday's shorts just became optimistic."
+      "text": "{delta} cooler today. Yesterday's shorts are likely too optimistic now."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "large"
       },
-      "text": "Today's running {delta} below yesterday. A real gut punch of a swing."
+      "text": "Today's running {delta} below yesterday. A sharp swing worth planning around."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "large"
       },
-      "text": "Cooler by {delta}. The thermostat changed its mind overnight."
+      "text": "Cooler by {delta}. A large day-over-day drop."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "large"
       },
-      "text": "{delta} down from yesterday. That's a full wardrobe reversal."
+      "text": "{delta} down from yesterday. Close to a full wardrobe reversal."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "large"
       },
-      "text": "{delta} cooler than yesterday. Steep drop for one day."
+      "text": "{delta} cooler than yesterday. One of the steeper drops this week."
     },
     {
       "tags": {
         "direction": "cooler",
         "magnitude": "large"
       },
-      "text": "Today trails yesterday by {delta}. Dress like it, not like yesterday."
+      "text": "Today trails yesterday by {delta}. Dress for today, not yesterday."
     },
     {
       "tags": {
         "direction": "same"
       },
-      "text": "Same as yesterday. The sky's not changing its answer."
+      "text": "Same as yesterday. No change in temperature."
     },
     {
       "tags": {
         "direction": "same"
       },
-      "text": "No change from yesterday. Consistency, if nothing else."
+      "text": "No change from yesterday. Consistent conditions."
     },
     {
       "tags": {
         "direction": "same"
       },
-      "text": "Same temperature as yesterday. Reruns, weather edition."
+      "text": "Same temperature as yesterday, day over day."
     },
     {
       "tags": {
         "direction": "same"
       },
-      "text": "Matching yesterday exactly. The sky's on autopilot."
+      "text": "Matching yesterday exactly. Steady conditions continue."
     },
     {
       "tags": {
@@ -2087,23 +2087,23 @@
       "tags": {
         "direction": "same"
       },
-      "text": "Same as yesterday, again. The forecast found a groove and stayed."
+      "text": "Same as yesterday, again. Consistent for a second day."
     },
     {
       "tags": {
         "direction": "same"
       },
-      "text": "Identical to yesterday. Nothing new to report, on purpose."
+      "text": "Identical to yesterday. Nothing new to report."
     },
     {
       "tags": {
         "direction": "same"
       },
-      "text": "Same as yesterday. Some days just repeat themselves."
+      "text": "Same as yesterday. A repeat, temperature-wise."
     },
     {
       "tags": {},
-      "text": "Compared to yesterday: results above."
+      "text": "Compared to yesterday: details above."
     },
     {
       "tags": {},
@@ -2111,7 +2111,7 @@
     },
     {
       "tags": {},
-      "text": "A comparison is in; details above."
+      "text": "A day-over-day comparison is shown above."
     }
   ],
   "rankingVerdict": [
@@ -2120,526 +2120,526 @@
         "position": "top",
         "pleasantness": "great"
       },
-      "text": "{city} takes the top spot today. Not everywhere can say that."
+      "text": "{city} has today's most comfortable weather of your cities."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "great"
       },
-      "text": "{city} leads the pack, {temp} and easy about it."
+      "text": "{city} leads today at {temp}, the best conditions among your saved cities."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "great"
       },
-      "text": "{city} ranks first today. Deservedly, for once."
+      "text": "{city} ranks first today, and the weather backs it up: {temp} and comfortable."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "great"
       },
-      "text": "Top of the list: {city}, {temp} and pleasant."
+      "text": "Top of the list: {city}, {temp}. The clear best day among your cities."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "great"
       },
-      "text": "{city} wins today, {temp}. No real competition."
+      "text": "{city} takes the top spot today, {temp}. Genuinely the most pleasant option."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "great"
       },
-      "text": "First place goes to {city}. {temp} will do that."
+      "text": "First place goes to {city} at {temp}, comfortable across the board."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "great"
       },
-      "text": "{city} at the top today, {temp}. Everyone else is catching up."
+      "text": "{city} ranks highest today, {temp}. The most agreeable weather of the group."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "great"
       },
-      "text": "{city} leads today. {temp} and comfortable, no notes."
+      "text": "{city} leads today, {temp} and easy conditions all around."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "great"
       },
-      "text": "{city} scores a {score} today. Top of the list, deservedly."
+      "text": "{city} scores a {score} today, the top mark among your cities."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "fine"
       },
-      "text": "{city} tops the list today, {temp}. Fine, not spectacular."
+      "text": "{city} tops the list today, {temp}. Solid, if unremarkable, conditions."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "fine"
       },
-      "text": "{city} ranks first, {temp}. A quiet kind of winning."
+      "text": "{city} ranks first, {temp}. The best of an otherwise ordinary group."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "fine"
       },
-      "text": "Top spot: {city}, {temp}. Nothing to brag about, but first is first."
+      "text": "Top spot: {city}, {temp}. Comfortable enough to lead, nothing more."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "fine"
       },
-      "text": "{city} leads today at {temp}. Modest victory, still a victory."
+      "text": "{city} leads today at {temp}. A modest first place."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "fine"
       },
-      "text": "{city} takes first, {temp}. Unremarkable weather, remarkable ranking."
+      "text": "{city} takes first, {temp}. Fine weather, slightly ahead of the rest."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "fine"
       },
-      "text": "First place, {city}, {temp}. The bar was apparently low today."
+      "text": "First place, {city}, {temp}. The rest of your cities are close behind."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "fine"
       },
-      "text": "{city} at the top, {temp}. Everyone else just had it worse."
+      "text": "{city} at the top, {temp}. A small edge over the others today."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "fine"
       },
-      "text": "{city} ranks highest today, {temp}. Winning by default, mostly."
+      "text": "{city} ranks highest today, {temp}. Comfortable, without much separation from second."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "rough"
       },
-      "text": "{city} tops today's list, {temp}. Everyone else is worse off."
+      "text": "{city} tops today's list, {temp}, even though conditions are rough everywhere."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "rough"
       },
-      "text": "First place: {city}, {temp}. A low bar, cleared."
+      "text": "First place: {city}, {temp}. The least difficult day among a tough group."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "rough"
       },
-      "text": "{city} ranks first, {temp}. Winning by not losing as badly."
+      "text": "{city} ranks first, {temp}. Every saved city is having a rough day; this one's mildest."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "rough"
       },
-      "text": "Top spot goes to {city}, {temp}. Faint praise, but praise."
+      "text": "Top spot goes to {city}, {temp}. Rough conditions, but the mildest of the set."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "rough"
       },
-      "text": "{city} leads today, {temp}. Least bad, technically first."
+      "text": "{city} leads today, {temp}. Not comfortable, just less uncomfortable than the rest."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "rough"
       },
-      "text": "{city} at the top, {temp}. Everyone else had it rougher."
+      "text": "{city} at the top, {temp}. Every city on your list is struggling today."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "rough"
       },
-      "text": "First place: {city}, {temp}. Not good, just better than the rest."
+      "text": "First place: {city}, {temp}. A tough day across the board; this one edges out."
     },
     {
       "tags": {
         "position": "top",
         "pleasantness": "rough"
       },
-      "text": "{city} ranks highest, {temp}. Damning with faint weather."
+      "text": "{city} ranks highest, {temp}. The best of a difficult set."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "great"
       },
-      "text": "{city} sits mid-pack today, {temp}. Good weather, modest ranking."
+      "text": "{city} sits mid-pack today, {temp}. Good weather, just outdone by others."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "great"
       },
-      "text": "{city} lands in the middle, {temp}. The forecast just had stiff competition."
+      "text": "{city} lands in the middle, {temp}. Comfortable conditions across most of your cities today."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "great"
       },
-      "text": "Middle of the list: {city}, {temp}. Fine company either way."
+      "text": "Middle of the list: {city}, {temp}. A genuinely nice day, ranked behind better ones."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "great"
       },
-      "text": "{city} ranks in the middle, {temp}. Nothing wrong with the weather, just the math."
+      "text": "{city} ranks in the middle, {temp}. The weather's fine; the competition is strong."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "great"
       },
-      "text": "{city} sits in the middle today, {temp}. Everyone else is also having a good day."
+      "text": "{city} sits in the middle today, {temp}. Most of your cities are having a good day."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "great"
       },
-      "text": "Mid-table for {city}, {temp}. A perfectly good day, ranked accordingly."
+      "text": "Mid-table for {city}, {temp}. Pleasant weather, middling rank."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "great"
       },
-      "text": "{city} lands mid-pack, {temp}. Good weather, tough field."
+      "text": "{city} lands mid-pack, {temp}. Good conditions, tough field today."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "great"
       },
-      "text": "{city} in the middle today, {temp}. Nothing to complain about, nothing to boast either."
+      "text": "{city} in the middle today, {temp}. Comfortable, just not the day's best."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "fine"
       },
-      "text": "{city} sits squarely in the middle, {temp}. About as expected."
+      "text": "{city} sits squarely in the middle, {temp}. Typical conditions for the group."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "fine"
       },
-      "text": "Middle of the pack: {city}, {temp}. Unremarkable, comfortably."
+      "text": "Middle of the pack: {city}, {temp}. Comparable to most of your other cities."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "fine"
       },
-      "text": "{city} ranks mid-table, {temp}. Fine, in the least interesting way."
+      "text": "{city} ranks mid-table, {temp}. Unremarkable weather across the board today."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "fine"
       },
-      "text": "{city} lands in the middle today, {temp}. Right where you'd guess."
+      "text": "{city} lands in the middle today, {temp}. Right in line with the rest."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "fine"
       },
-      "text": "Mid-pack for {city}, {temp}. Nothing to see here."
+      "text": "Mid-pack for {city}, {temp}. Ordinary conditions, ordinary rank."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "fine"
       },
-      "text": "{city} sits in the middle, {temp}. Perfectly average, on purpose."
+      "text": "{city} sits in the middle, {temp}. Similar weather to your other saved cities."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "fine"
       },
-      "text": "{city} ranks in the middle today, {temp}. The forecast shrugged."
+      "text": "{city} ranks in the middle today, {temp}. Nothing separating it much from the group."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "fine"
       },
-      "text": "{city} in the middle, {temp}. Splitting the difference."
+      "text": "{city} in the middle, {temp}. About what you'd expect for the day."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "fine"
       },
-      "text": "{city} lands {rank} today, {temp}. Right where you'd guess."
+      "text": "{city} lands {rank} today, {temp}. A typical showing for the group."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "rough"
       },
-      "text": "{city} lands mid-pack, {temp}. Could be worse, evidently is for some."
+      "text": "{city} lands mid-pack, {temp}. A rough day, but others have it worse."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "rough"
       },
-      "text": "Middle of the list: {city}, {temp}. Not great, not last."
+      "text": "Middle of the list: {city}, {temp}. Difficult conditions, not the worst on your list."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "rough"
       },
-      "text": "{city} sits mid-table, {temp}. Rough day, average ranking."
+      "text": "{city} sits mid-table, {temp}. A tough day, average among the group."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "rough"
       },
-      "text": "{city} ranks in the middle, {temp}. Someone's having it worse, barely."
+      "text": "{city} ranks in the middle, {temp}. Rough weather, with some cities faring worse."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "rough"
       },
-      "text": "Mid-pack for {city}, {temp}. Small comfort, technically comfort."
+      "text": "Mid-pack for {city}, {temp}. Not the hardest day on the list, but close."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "rough"
       },
-      "text": "{city} in the middle today, {temp}. Not the worst news, not good news."
+      "text": "{city} in the middle today, {temp}. A difficult day, roughly average for the group."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "rough"
       },
-      "text": "{city} lands in the middle, {temp}. A rough day, cushioned by ranking."
+      "text": "{city} lands in the middle, {temp}. Tough conditions, shared with several other cities."
     },
     {
       "tags": {
         "position": "middle",
         "pleasantness": "rough"
       },
-      "text": "{city} sits mid-table, {temp}. Middling weather, honestly reported."
+      "text": "{city} sits mid-table, {temp}. Rough weather, middling by comparison."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "great"
       },
-      "text": "{city} lands last today, {temp}. Still good weather, just outclassed."
+      "text": "{city} lands last today, {temp}. Still a genuinely nice day, just outdone."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "great"
       },
-      "text": "Bottom of the list: {city}, {temp}. A fine day, tough crowd."
+      "text": "Bottom of the list: {city}, {temp}. Good weather, tough competition."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "great"
       },
-      "text": "{city} ranks last, {temp}. Nothing wrong with it, just outdone."
+      "text": "{city} ranks last, {temp}. Nothing wrong with the day, just outclassed by the rest."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "great"
       },
-      "text": "Last place for {city}, {temp}. The competition brought its best."
+      "text": "Last place for {city}, {temp}. Your other cities simply have even better weather today."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "great"
       },
-      "text": "{city} sits last today, {temp}. Good weather, worse timing."
+      "text": "{city} sits last today, {temp}. A good day, just not the best on your list."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "great"
       },
-      "text": "Bottom spot: {city}, {temp}. Everyone else just got lucky too."
+      "text": "Bottom spot: {city}, {temp}. Every one of your cities is having a good day today."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "great"
       },
-      "text": "{city} finishes last, {temp}. No shame in a good day that lost to a better one."
+      "text": "{city} finishes last, {temp}. A pleasant day, edged out by better ones."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "great"
       },
-      "text": "{city} ranks lowest today, {temp}. Fine weather, stacked field."
+      "text": "{city} ranks lowest today, {temp}. Fine weather across a strong field."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "fine"
       },
-      "text": "{city} lands last today, {temp}. Fine, just not fine enough."
+      "text": "{city} lands last today, {temp}. Ordinary conditions, just behind the rest."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "fine"
       },
-      "text": "Bottom of the list: {city}, {temp}. Unremarkable, and ranked for it."
+      "text": "Bottom of the list: {city}, {temp}. Unremarkable, and ranked accordingly."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "fine"
       },
-      "text": "{city} ranks last, {temp}. Nothing dramatic, just outpaced."
+      "text": "{city} ranks last, {temp}. Nothing dramatic, just the least favorable of the group."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "fine"
       },
-      "text": "Last place, {city}, {temp}. Everyone else had a slightly better day."
+      "text": "Last place, {city}, {temp}. The rest of your cities have a slight edge today."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "fine"
       },
-      "text": "{city} sits at the bottom, {temp}. Ordinary weather, ordinary result."
+      "text": "{city} sits at the bottom, {temp}. Ordinary weather, lowest of your saved cities."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "fine"
       },
-      "text": "Bottom spot: {city}, {temp}. Not bad, just not enough."
+      "text": "Bottom spot: {city}, {temp}. Comparable weather, ranked last by a small margin."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "fine"
       },
-      "text": "{city} finishes last today, {temp}. A quiet way to end up here."
+      "text": "{city} finishes last today, {temp}. A typical day that just ranks lowest."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "fine"
       },
-      "text": "{city} ranks lowest, {temp}. The rest of the list simply did better."
+      "text": "{city} ranks lowest, {temp}. The rest of the list is faring slightly better."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "rough"
       },
-      "text": "{city} takes last place today, {temp}. Not a surprise, given the numbers."
+      "text": "{city} takes last place today, {temp}. Conditions are difficult here."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "rough"
       },
-      "text": "Bottom of the list: {city}, {temp}. Someone has to be."
+      "text": "Bottom of the list: {city}, {temp}. The most challenging weather on your list today."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "rough"
       },
-      "text": "{city} ranks last, {temp}. Rough day, honestly reported."
+      "text": "{city} ranks last, {temp}, mainly the wind."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "rough"
       },
-      "text": "Last place for {city}, {temp}. The forecast isn't doing anyone favors here."
+      "text": "Last place for {city}, {temp}. The toughest conditions among your saved cities."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "rough"
       },
-      "text": "{city} sits at the bottom, {temp}. Tomorrow's a low bar to clear."
+      "text": "{city} sits at the bottom, {temp}. A genuinely rough day."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "rough"
       },
-      "text": "Bottom spot goes to {city}, {temp}. No sugarcoating this one."
+      "text": "Bottom spot goes to {city}, {temp}. Clearly the hardest weather today."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "rough"
       },
-      "text": "{city} finishes last today, {temp}. It happens; today it happened here."
+      "text": "{city} finishes last today, {temp}. A difficult day, worst of the group."
     },
     {
       "tags": {
         "position": "bottom",
         "pleasantness": "rough"
       },
-      "text": "{city} ranks lowest, {temp}. Rough, but not a surprise."
+      "text": "{city} ranks lowest, {temp}. The most uncomfortable conditions on your list."
     },
     {
       "tags": {},
-      "text": "{city} is ranked today; see above for specifics."
+      "text": "{city} is ranked today; see above for details."
     },
     {
       "tags": {},
-      "text": "{city}'s placement is set for today."
+      "text": "{city}'s placement for today is shown above."
     },
     {
       "tags": {},
@@ -2651,163 +2651,163 @@
       "tags": {
         "context": "noLocations"
       },
-      "text": "No city on the books yet. Add one to see what it's doing out there."
+      "text": "No city added yet. Add one to see its forecast."
     },
     {
       "tags": {
         "context": "noLocations"
       },
-      "text": "Nothing saved yet. Search for a city; the sky's been waiting."
+      "text": "Nothing saved yet. Search for a city to get started."
     },
     {
       "tags": {
         "context": "noLocations"
       },
-      "text": "No location added. Pick a city and the forecast follows."
+      "text": "No location added. Add a city to see today's forecast there."
     },
     {
       "tags": {
         "context": "noLocations"
       },
-      "text": "Empty so far. Add a city to find out what today looks like there."
+      "text": "Empty so far. Add a city to see what today looks like there."
     },
     {
       "tags": {
         "context": "noLocations"
       },
-      "text": "No saved cities yet. The weather's happening somewhere; tell it where."
+      "text": "No saved cities yet. Add one to begin."
     },
     {
       "tags": {
         "context": "noLocations"
       },
-      "text": "Nothing here yet. Search for a city to get started."
+      "text": "Nothing here yet. Search for a city to add it."
     },
     {
       "tags": {
         "context": "noLocations"
       },
-      "text": "No location yet. The forecast can't guess where you are."
+      "text": "No location yet. Add a city so the forecast has somewhere to point to."
     },
     {
       "tags": {
         "context": "noLocations"
       },
-      "text": "Empty list. Add a city; the sky's ready whenever you are."
+      "text": "Empty list. Add a city to see its current conditions."
     },
     {
       "tags": {
         "context": "rankingsNeedOneMore"
       },
-      "text": "One city isn't a ranking, it's just a city. Add a rival."
+      "text": "One city isn't enough to rank. Add a second to compare."
     },
     {
       "tags": {
         "context": "rankingsNeedOneMore"
       },
-      "text": "Ranking needs at least two. Right now it's just {city}, unopposed."
+      "text": "Ranking needs at least two cities. Right now it's just {city}."
     },
     {
       "tags": {
         "context": "rankingsNeedOneMore"
       },
-      "text": "One saved city. Add another to see who actually wins."
+      "text": "One saved city. Add another to see how they compare."
     },
     {
       "tags": {
         "context": "rankingsNeedOneMore"
       },
-      "text": "Can't rank a field of one. {city} needs some competition."
+      "text": "Rankings need two or more cities. {city} is the only one saved."
     },
     {
       "tags": {
         "context": "rankingsNeedOneMore"
       },
-      "text": "Just {city} so far. A ranking needs a second entry."
+      "text": "Just {city} so far. Add a second city for a ranking."
     },
     {
       "tags": {
         "context": "rankingsNeedOneMore"
       },
-      "text": "One city, no ranking. Add another to make it a contest."
+      "text": "One city, no ranking possible yet. Add another."
     },
     {
       "tags": {
         "context": "rankingsNeedOneMore"
       },
-      "text": "{city} is alone on this list. Bring in a challenger."
+      "text": "{city} is the only saved city right now. Add one more to compare."
     },
     {
       "tags": {
         "context": "rankingsNeedOneMore"
       },
-      "text": "Rankings need two or more. {city}'s currently running unopposed."
+      "text": "Rankings need two or more. {city} is currently the only entry."
     },
     {
       "tags": {
         "context": "rankingsNoCities"
       },
-      "text": "No cities to rank yet. Add a couple and let them compete."
+      "text": "No cities to rank yet. Add at least two to compare."
     },
     {
       "tags": {
         "context": "rankingsNoCities"
       },
-      "text": "Nothing to rank. Save at least two cities to get a leaderboard."
+      "text": "Nothing to rank yet. Save two or more cities to see a ranking."
     },
     {
       "tags": {
         "context": "rankingsNoCities"
       },
-      "text": "No entries yet. Rankings need cities first."
+      "text": "No entries yet. Rankings need at least two saved cities."
     },
     {
       "tags": {
         "context": "rankingsNoCities"
       },
-      "text": "Empty leaderboard. Add some cities and the sky will sort itself out."
+      "text": "Empty leaderboard. Add a couple of cities to populate it."
     },
     {
       "tags": {
         "context": "rankingsNoCities"
       },
-      "text": "No cities saved. Add a few to see who's actually having a better day."
+      "text": "No cities saved. Add a few to compare their weather."
     },
     {
       "tags": {
         "context": "rankingsNoCities"
       },
-      "text": "Nothing here yet. Rankings start once there's something to compare."
+      "text": "Nothing here yet. Rankings start once cities are saved."
     },
     {
       "tags": {
         "context": "rankingsNoCities"
       },
-      "text": "No competitors yet. Save a couple of cities to get this going."
+      "text": "No cities yet. Save at least two to see them ranked."
     },
     {
       "tags": {
         "context": "rankingsNoCities"
       },
-      "text": "Empty for now. Add cities and let the weather pick a winner."
+      "text": "Empty for now. Add cities to generate a ranking."
     },
     {
       "tags": {
         "context": "searchOffline"
       },
-      "text": "Search is offline right now. Saved cities still work fine."
+      "text": "Search is offline right now. Saved cities still load normally."
     },
     {
       "tags": {
         "context": "searchOffline"
       },
-      "text": "No connection, no search. Everything already saved still loads."
+      "text": "No connection, so search is unavailable. Saved cities are unaffected."
     },
     {
       "tags": {
         "context": "searchOffline"
       },
-      "text": "Search needs a connection it doesn't currently have. Saved cities are unaffected."
+      "text": "Search needs a connection it doesn't currently have. Saved cities still work."
     },
     {
       "tags": {
@@ -2819,25 +2819,25 @@
       "tags": {
         "context": "searchOffline"
       },
-      "text": "Can't search without a connection. The saved list isn't going anywhere."
+      "text": "Can't search without a connection. The saved list still loads."
     },
     {
       "tags": {
         "context": "searchOffline"
       },
-      "text": "Search is out until the connection's back. Saved cities are still here."
+      "text": "Search is unavailable until the connection returns. Saved cities are fine."
     },
     {
       "tags": {
         "context": "searchOffline"
       },
-      "text": "No network, so no search. Everything already added still shows fine."
+      "text": "No network, so search is off. Everything already added still loads."
     },
     {
       "tags": {
         "context": "searchOffline"
       },
-      "text": "Offline. Search will come back with the connection; saved cities didn't leave."
+      "text": "Offline. Search will return with the connection; saved cities are unaffected."
     },
     {
       "tags": {},
@@ -2853,79 +2853,79 @@
       "tags": {
         "context": "weatherFetchFailed"
       },
-      "text": "The sky isn't answering right now. Try again in a moment."
+      "text": "Couldn't load the forecast. Check your connection and try again."
     },
     {
       "tags": {
         "context": "weatherFetchFailed"
       },
-      "text": "Couldn't reach the forecast this time. Nothing else is wrong."
+      "text": "The forecast didn't load this time. Try again in a moment."
     },
     {
       "tags": {
         "context": "weatherFetchFailed"
       },
-      "text": "Weather data didn't come through. Give it another shot."
+      "text": "Weather data didn't come through. Retry when ready."
     },
     {
       "tags": {
         "context": "weatherFetchFailed"
       },
-      "text": "No forecast to show right now. Retry when ready."
+      "text": "No forecast available right now. Check your connection and retry."
     },
     {
       "tags": {
         "context": "weatherFetchFailed"
       },
-      "text": "The forecast didn't load. Not a verdict on the weather, just the connection."
+      "text": "The forecast failed to load. This is a connection issue, not a weather one."
     },
     {
       "tags": {
         "context": "weatherFetchFailed"
       },
-      "text": "Couldn't get today's forecast. Try again shortly."
+      "text": "Couldn't reach the forecast. Try again shortly."
     },
     {
       "tags": {
         "context": "weatherFetchFailed"
       },
-      "text": "The sky's not picking up. One more try usually does it."
+      "text": "Forecast unavailable right now. A retry usually resolves it."
     },
     {
       "tags": {
         "context": "weatherFetchFailed"
       },
-      "text": "Forecast unavailable right now. That's on the connection, not the weather."
+      "text": "Couldn't get today's forecast. Check your connection and try again."
     },
     {
       "tags": {
         "context": "locationRowFailed"
       },
-      "text": "Couldn't load this one. Tap to retry."
+      "text": "Couldn't load this city. Tap to retry."
     },
     {
       "tags": {
         "context": "locationRowFailed"
       },
-      "text": "No data for this city right now. Retry available."
+      "text": "No data for this city right now. Retry available below."
     },
     {
       "tags": {
         "context": "locationRowFailed"
       },
-      "text": "This city didn't come through. Try again."
+      "text": "This city didn't load. Try again."
     },
     {
       "tags": {
         "context": "locationRowFailed"
       },
-      "text": "Fetch failed here. A retry usually fixes it."
+      "text": "Fetch failed for this city. A retry usually fixes it."
     },
     {
       "tags": {
         "context": "locationRowFailed"
       },
-      "text": "No forecast for this one yet. Tap to try again."
+      "text": "No forecast for this city yet. Tap to try again."
     },
     {
       "tags": {
@@ -2937,31 +2937,31 @@
       "tags": {
         "context": "locationRowFailed"
       },
-      "text": "This one's not answering. Give it another tap."
+      "text": "This city isn't responding right now. Try again."
     },
     {
       "tags": {
         "context": "locationRowFailed"
       },
-      "text": "No data here right now. Retry's just below."
+      "text": "No data here right now. Retry is available."
     },
     {
       "tags": {
         "context": "rankingRowFailed"
       },
-      "text": "{city} didn't check in. Ranked without it for now."
+      "text": "{city} didn't load. Ranked without it for now."
     },
     {
       "tags": {
         "context": "rankingRowFailed"
       },
-      "text": "No data for {city} today. The rest of the list carries on."
+      "text": "No data for {city} today. The rest of the list is unaffected."
     },
     {
       "tags": {
         "context": "rankingRowFailed"
       },
-      "text": "{city}'s forecast didn't load. Everyone else still ranks normally."
+      "text": "{city}'s forecast didn't load. Other cities still rank normally."
     },
     {
       "tags": {
@@ -2973,25 +2973,25 @@
       "tags": {
         "context": "rankingRowFailed"
       },
-      "text": "{city} is sitting this ranking out. Data didn't come through."
+      "text": "{city} is missing from this ranking. Data didn't come through."
     },
     {
       "tags": {
         "context": "rankingRowFailed"
       },
-      "text": "No numbers for {city} right now. The list moves on regardless."
+      "text": "No numbers for {city} right now. The rest of the list is unaffected."
     },
     {
       "tags": {
         "context": "rankingRowFailed"
       },
-      "text": "{city} failed to load. Ranked around, not ranked out."
+      "text": "{city} failed to load. Ranked around, not excluded permanently."
     },
     {
       "tags": {
         "context": "rankingRowFailed"
       },
-      "text": "{city}'s data is missing today. The rest of the leaderboard stands."
+      "text": "{city}'s data is missing today. The rest of the leaderboard is unaffected."
     },
     {
       "tags": {
@@ -3003,13 +3003,13 @@
       "tags": {
         "context": "generic"
       },
-      "text": "That didn't come through. Give it another try."
+      "text": "That didn't come through. Try again."
     },
     {
       "tags": {
         "context": "generic"
       },
-      "text": "No data right now. A retry usually sorts it."
+      "text": "No data right now. A retry usually resolves it."
     },
     {
       "tags": {
@@ -3021,13 +3021,13 @@
       "tags": {
         "context": "generic"
       },
-      "text": "Something's not answering. One more attempt should do it."
+      "text": "Something isn't responding. Try again."
     },
     {
       "tags": {
         "context": "generic"
       },
-      "text": "That request didn't land. Try again."
+      "text": "That request didn't complete. Try again."
     },
     {
       "tags": {
@@ -3039,7 +3039,7 @@
       "tags": {
         "context": "generic"
       },
-      "text": "No luck this time. Try again in a bit."
+      "text": "No data this time. Try again in a bit."
     },
     {
       "tags": {},
@@ -3051,275 +3051,275 @@
       "tags": {
         "planet": "mercury"
       },
-      "text": "Mercury's out tonight, low and brief. It has places to be."
+      "text": "Mercury is out tonight, low near the horizon just after sunset; it never strays far from the Sun's glare."
     },
     {
       "tags": {
         "planet": "mercury"
       },
-      "text": "Mercury: visible for a narrow window, gone before the eyes adjust."
+      "text": "Mercury's visible for a narrow window tonight, close to the horizon, before it sets shortly after the Sun."
     },
     {
       "tags": {
         "planet": "mercury"
       },
-      "text": "Mercury tonight, the solar system's fastest planet, in the least amount of your evening."
+      "text": "Mercury tonight: the closest planet to the Sun, which is why it only ever shows up briefly at dawn or dusk."
     },
     {
       "tags": {
         "planet": "mercury"
       },
-      "text": "Mercury's up. It orbits the Sun in 88 days and still finds time to duck out early."
+      "text": "Mercury's up tonight. It orbits the Sun in just 88 days, the fastest of any planet."
     },
     {
       "tags": {
         "planet": "mercury"
       },
-      "text": "Mercury again, hugging the horizon. Overachiever, low commitment."
+      "text": "Mercury tonight, low on the horizon. Being this close to the Sun makes it one of the harder planets to catch."
     },
     {
       "tags": {
         "planet": "mercury"
       },
-      "text": "Mercury's showing tonight. Look now; it won't repeat itself."
+      "text": "Mercury's showing tonight; look right after sunset, low in the west, before it drops below the horizon."
     },
     {
       "tags": {
         "planet": "mercury"
       },
-      "text": "Mercury's up tonight, near the Sun as always. Loyal to a fault."
+      "text": "Mercury's up tonight, never far from the Sun in the sky, which is why it's only visible in twilight."
     },
     {
       "tags": {
         "planet": "mercury"
       },
-      "text": "Mercury's visible briefly tonight. Consider it a courtesy appearance."
+      "text": "Mercury's visible briefly tonight, close to where the Sun just set."
     },
     {
       "tags": {
         "planet": "venus"
       },
-      "text": "Venus is out, doing its usual job of being the brightest thing up there."
+      "text": "Venus is out tonight, the brightest point in the sky after the Moon, and hard to mistake for a star."
     },
     {
       "tags": {
         "planet": "venus"
       },
-      "text": "Venus tonight, unmissable, as it tends to be."
+      "text": "Venus tonight, unmissable: it reflects more sunlight than any other planet, which is why it outshines everything nearby."
     },
     {
       "tags": {
         "planet": "venus"
       },
-      "text": "Venus is up, outshining everything except the Moon, as scheduled."
+      "text": "Venus is up, brighter than any star in the sky. Second planet from the Sun, first in brightness."
     },
     {
       "tags": {
         "planet": "venus"
       },
-      "text": "Venus tonight. If you can only find one planet, this is the one that finds you."
+      "text": "Venus tonight. If you can only find one planet with the naked eye, this is usually it."
     },
     {
       "tags": {
         "planet": "venus"
       },
-      "text": "Venus is visible. Second planet from the Sun, first in the sky's pecking order."
+      "text": "Venus is visible, often called the evening star, though it's a planet, not a star at all."
     },
     {
       "tags": {
         "planet": "venus"
       },
-      "text": "Venus, blazing away as usual. No effort required to spot it."
+      "text": "Venus, steady and brilliant tonight. Its thick cloud cover reflects sunlight exceptionally well."
     },
     {
       "tags": {
         "planet": "venus"
       },
-      "text": "Venus tonight, the brilliant point you've probably already noticed."
+      "text": "Venus tonight, the brightest point you'll see low in the sky after sunset."
     },
     {
       "tags": {
         "planet": "venus"
       },
-      "text": "Venus is up there being conspicuous, same as every clear night it shows."
+      "text": "Venus is up there, as bright as it gets; nothing else in the evening sky competes with it."
     },
     {
       "tags": {
         "planet": "mars"
       },
-      "text": "Mars is out tonight, with its usual faint rust-colored glow."
+      "text": "Mars is out tonight, with a faint rust-colored glow; the color comes from iron oxide dust on its surface."
     },
     {
       "tags": {
         "planet": "mars"
       },
-      "text": "Mars tonight, steady, reddish, unbothered."
+      "text": "Mars tonight: steady and reddish, and unlike stars, planets don't twinkle."
     },
     {
       "tags": {
         "planet": "mars"
       },
-      "text": "Mars is visible. Not the brightest thing up there, but recognizably itself."
+      "text": "Mars is visible tonight. Not the brightest object up there, but its reddish tint makes it easy to identify."
     },
     {
       "tags": {
         "planet": "mars"
       },
-      "text": "Mars tonight, holding its quiet orange point without any fuss."
+      "text": "Mars tonight, holding a quiet orange-red point, the same iron-rich dust that gives it its nickname, the Red Planet."
     },
     {
       "tags": {
         "planet": "mars"
       },
-      "text": "Mars is up there, doing its slow lap same as always."
+      "text": "Mars is up there tonight, completing its own slow orbit roughly every 687 days."
     },
     {
       "tags": {
         "planet": "mars"
       },
-      "text": "Mars tonight, modest brightness, distinctive color."
+      "text": "Mars tonight, modest in brightness but distinctive in color."
     },
     {
       "tags": {
         "planet": "mars"
       },
-      "text": "Mars is out. Look for the reddish one that isn't twinkling like a star."
+      "text": "Mars is out. Look for the steady reddish point that doesn't flicker the way stars do."
     },
     {
       "tags": {
         "planet": "mars"
       },
-      "text": "Mars tonight, unremarkable in brightness, easy to pick out anyway."
+      "text": "Mars tonight, easy to pick out by color even though it isn't especially bright."
     },
     {
       "tags": {
         "planet": "jupiter"
       },
-      "text": "Jupiter's out tonight, throwing its weight around as the brightest planet up there."
+      "text": "Jupiter is out tonight, the second-brightest planet in the sky and the largest in the solar system."
     },
     {
       "tags": {
         "planet": "jupiter"
       },
-      "text": "Jupiter tonight, hard to miss, easy to admire."
+      "text": "Jupiter tonight, bright and steady, hard to miss even without binoculars."
     },
     {
       "tags": {
         "planet": "jupiter"
       },
-      "text": "Jupiter is visible. Biggest planet in the solar system, acting like it."
+      "text": "Jupiter is visible. It's the biggest planet in the solar system, more than 11 times Earth's diameter."
     },
     {
       "tags": {
         "planet": "jupiter"
       },
-      "text": "Jupiter's up there, steady and bright, same as it's been for 4.6 billion years."
+      "text": "Jupiter's up there, steady and bright, light that's taken over 30 minutes to reach Earth tonight."
     },
     {
       "tags": {
         "planet": "jupiter"
       },
-      "text": "Jupiter tonight, a good pair of binoculars might even show its own moons."
+      "text": "Jupiter tonight: a decent pair of binoculars can reveal its four largest moons as tiny points of light nearby."
     },
     {
       "tags": {
         "planet": "jupiter"
       },
-      "text": "Jupiter is out. Confidently bright, per usual."
+      "text": "Jupiter is out, consistently one of the brightest objects in the night sky."
     },
     {
       "tags": {
         "planet": "jupiter"
       },
-      "text": "Jupiter tonight, doing the heavy lifting for anyone's first stargazing attempt."
+      "text": "Jupiter tonight, an easy target for a first attempt at spotting a planet."
     },
     {
       "tags": {
         "planet": "jupiter"
       },
-      "text": "Jupiter's visible tonight. It's not competing with Venus, but it's not trying to."
+      "text": "Jupiter's visible tonight, not as bright as Venus, but far larger and further away."
     },
     {
       "tags": {
         "planet": "saturn"
       },
-      "text": "Saturn is out tonight. The rings won't show without a telescope, but it's there."
+      "text": "Saturn is out tonight. The rings won't show without a telescope, but the planet itself is visible as a steady point."
     },
     {
       "tags": {
         "planet": "saturn"
       },
-      "text": "Saturn tonight, a modest gold point, quietly wearing the best accessory in the solar system."
+      "text": "Saturn tonight, a modest gold-toned point of light; its famous rings need at least a small telescope to see."
     },
     {
       "tags": {
         "planet": "saturn"
       },
-      "text": "Saturn is visible. No rings to the naked eye, just take the astronomers' word for it."
+      "text": "Saturn is visible tonight, though its rings are invisible to the naked eye; binoculars barely hint at them."
     },
     {
       "tags": {
         "planet": "saturn"
       },
-      "text": "Saturn's up there tonight, understated as ever."
+      "text": "Saturn's up there tonight, dimmer than Jupiter but still steady and identifiable."
     },
     {
       "tags": {
         "planet": "saturn"
       },
-      "text": "Saturn tonight, steady and pale gold, rings implied rather than seen."
+      "text": "Saturn tonight, pale gold and easy to confuse with a star at a glance."
     },
     {
       "tags": {
         "planet": "saturn"
       },
-      "text": "Saturn is out. It looks like a star; it's been fooling people that way for millennia."
+      "text": "Saturn is out. It looks like an ordinary star to the naked eye; the rings only appear through a telescope."
     },
     {
       "tags": {
         "planet": "saturn"
       },
-      "text": "Saturn tonight, going about its 29-year orbit without comment."
+      "text": "Saturn tonight, moving through its roughly 29-year orbit around the Sun."
     },
     {
       "tags": {
         "planet": "saturn"
       },
-      "text": "Saturn's visible. The rings are real; you'll just have to trust the pamphlet."
+      "text": "Saturn's visible tonight. Its rings are real and enormous, just too fine a detail for unaided eyes."
     }
   ],
   "skyNoPlanets": [
     {
       "tags": {},
-      "text": "No naked-eye planets tonight. The sky's keeping this one simple."
+      "text": "No naked-eye planets are up tonight; their orbits simply haven't lined up with a clear view from here."
     },
     {
       "tags": {},
-      "text": "Nothing planetary visible tonight. The stars still showed up."
+      "text": "Nothing planetary is visible tonight. Planet visibility depends on where each one sits in its orbit relative to Earth and the Sun."
     },
     {
       "tags": {},
-      "text": "No planets in view tonight. Check back tomorrow; orbits keep moving."
+      "text": "No planets are in view tonight. Check back tomorrow; their positions shift slightly every night."
     },
     {
       "tags": {},
-      "text": "None of the five visible tonight. The Moon's still doing its job, though."
+      "text": "None of the five naked-eye planets are up tonight. The stars are still there to look at."
     },
     {
       "tags": {},
-      "text": "No planet sightings tonight. An off night for the neighbors."
+      "text": "No planet sightings tonight; this happens periodically as planets pass too close to the Sun's glare to see."
     },
     {
       "tags": {},
-      "text": "Tonight's naked-eye planet count: zero. Nobody's fault, just orbital timing."
+      "text": "Tonight's naked-eye planet count is zero, simply due to current orbital positions."
     },
     {
       "tags": {},
-      "text": "No planets up tonight. The rest of the sky carries on regardless."
+      "text": "No planets are visible tonight. The rest of the night sky is unaffected."
     },
     {
       "tags": {},
-      "text": "Zero visible planets tonight. Try again tomorrow; the solar system doesn't hold grudges."
+      "text": "Zero visible planets tonight. Orbital timing varies night to night, so this changes regularly."
     }
   ],
   "skyAurora": [
@@ -3327,229 +3327,229 @@
       "tags": {
         "band": "none"
       },
-      "text": "Aurora: not tonight. The usual quiet sky."
+      "text": "No aurora expected tonight; the Sun has been quiet this week, so there isn't enough solar wind to trigger one."
     },
     {
       "tags": {
         "band": "none"
       },
-      "text": "No aurora expected tonight. Geomagnetically uneventful."
+      "text": "Aurora forecast: none tonight. Geomagnetic activity is low, which is what auroras depend on."
     },
     {
       "tags": {
         "band": "none"
       },
-      "text": "Aurora chances: essentially none tonight. Standard dark sky, nothing else."
+      "text": "No aurora tonight. Auroras need a disturbance in Earth's magnetic field, and none is expected."
     },
     {
       "tags": {
         "band": "none"
       },
-      "text": "No aurora tonight. The Sun's behaving itself for now."
+      "text": "No aurora expected tonight; the Sun's current activity level is too low to spark one."
     },
     {
       "tags": {
         "band": "none"
       },
-      "text": "Aurora outlook: quiet. Nothing to reschedule your evening around."
+      "text": "Aurora odds are essentially zero tonight. A calm solar wind means nothing to light up the sky."
     },
     {
       "tags": {
         "band": "none"
       },
-      "text": "No northern lights tonight. The forecast, not a verdict on you."
+      "text": "No northern lights expected tonight. The geomagnetic conditions simply aren't there."
     },
     {
       "tags": {
         "band": "none"
       },
-      "text": "Aurora: unlikely tonight. Same sky as most nights."
+      "text": "Aurora: unlikely tonight, tied to the Sun's currently low activity."
     },
     {
       "tags": {
         "band": "none"
       },
-      "text": "Nothing auroral expected tonight. The Sun's having a calm week."
+      "text": "Nothing auroral expected tonight; the Sun has had a quiet week overall."
     },
     {
       "tags": {
         "band": "low"
       },
-      "text": "Aurora: a faint outside chance tonight, low on the horizon if anything."
+      "text": "Aurora: a faint outside chance tonight, and even then, only low on the northern horizon."
     },
     {
       "tags": {
         "band": "low"
       },
-      "text": "Slight aurora possibility tonight; don't reroute plans around it."
+      "text": "Slight aurora possibility tonight; geomagnetic activity is elevated just enough to matter a little."
     },
     {
       "tags": {
         "band": "low"
       },
-      "text": "Aurora: low odds tonight. Worth a glance north, not a special trip."
+      "text": "Aurora: low odds tonight. Worth a glance north if you're already outside, not a special trip."
     },
     {
       "tags": {
         "band": "low"
       },
-      "text": "A modest aurora chance tonight, mostly theoretical."
+      "text": "A modest aurora chance tonight, tied to a minor uptick in geomagnetic activity."
     },
     {
       "tags": {
         "band": "low"
       },
-      "text": "Aurora: unlikely but not impossible tonight. Manage expectations."
+      "text": "Aurora: unlikely but not impossible tonight, given the current activity level."
     },
     {
       "tags": {
         "band": "low"
       },
-      "text": "Low aurora activity forecast tonight. A long shot, technically a shot."
+      "text": "Low aurora activity forecast tonight; a real possibility, just a small one."
     },
     {
       "tags": {
         "band": "low"
       },
-      "text": "Aurora odds are thin tonight. Bring low expectations along with binoculars."
+      "text": "Aurora odds are thin tonight. Even if it appears, expect a faint glow near the horizon, not overhead color."
     },
     {
       "tags": {
         "band": "low"
       },
-      "text": "Aurora: a near miss tonight, per the forecast. Emphasis on near."
+      "text": "Aurora: a near miss tonight, per the current geomagnetic forecast."
     },
     {
       "tags": {
         "band": "fair"
       },
-      "text": "Aurora: fair chance tonight, worth a look if you're already outside."
+      "text": "Aurora: fair chance tonight, worth a look if you're already outside and away from city lights."
     },
     {
       "tags": {
         "band": "fair"
       },
-      "text": "Fair aurora odds tonight. Low on the horizon, but real."
+      "text": "Fair aurora odds tonight; a genuine, if modest, chance near the northern horizon."
     },
     {
       "tags": {
         "band": "fair"
       },
-      "text": "Aurora: a decent chance tonight. Find a dark spot and be patient."
+      "text": "Aurora: a decent chance tonight. Find a dark spot and give your eyes a few minutes to adjust."
     },
     {
       "tags": {
         "band": "fair"
       },
-      "text": "Fair chance of aurora tonight, modest, but genuinely possible."
+      "text": "Fair chance of aurora tonight, tied to moderately elevated geomagnetic activity."
     },
     {
       "tags": {
         "band": "fair"
       },
-      "text": "Aurora tonight: fair odds, low in the sky. Worth stepping outside for."
+      "text": "Aurora tonight: fair odds, most visible low on the horizon rather than overhead."
     },
     {
       "tags": {
         "band": "fair"
       },
-      "text": "Fair aurora chance tonight. Not guaranteed, not nothing either."
+      "text": "Fair aurora chance tonight; not guaranteed, but a real possibility."
     },
     {
       "tags": {
         "band": "fair"
       },
-      "text": "Aurora: fair tonight. A reasonable excuse to look north for a minute."
+      "text": "Aurora: fair tonight, a reasonable reason to look north for a few minutes."
     },
     {
       "tags": {
         "band": "fair"
       },
-      "text": "Tonight's aurora odds: fair. Better than most nights, no promises."
+      "text": "Tonight's aurora odds are fair, better than an average night, with no guarantee."
     },
     {
       "tags": {
         "band": "good"
       },
-      "text": "Aurora: good chance tonight. This one's worth stepping outside for."
+      "text": "Aurora: good chance tonight; this one's worth stepping outside for."
     },
     {
       "tags": {
         "band": "good"
       },
-      "text": "Good aurora odds tonight, actually worth checking the sky for."
+      "text": "Good aurora odds tonight, tied to a notable rise in geomagnetic activity."
     },
     {
       "tags": {
         "band": "good"
       },
-      "text": "Aurora tonight: good chance, well up in the sky if it shows."
+      "text": "Aurora tonight: good chance, with a real possibility of color higher in the sky, not just near the horizon."
     },
     {
       "tags": {
         "band": "good"
       },
-      "text": "Good chance of aurora tonight. Tonight's the night to actually look."
+      "text": "Good chance of aurora tonight; worth checking a few times over the evening."
     },
     {
       "tags": {
         "band": "good"
       },
-      "text": "Aurora: good odds tonight. Uncommon enough to be worth the walk outside."
+      "text": "Aurora: good odds tonight, uncommon enough to be worth a short trip somewhere darker."
     },
     {
       "tags": {
         "band": "good"
       },
-      "text": "Tonight's aurora forecast: good. Don't sleep on this one, so to speak."
+      "text": "Tonight's aurora forecast is good; a stronger night than most."
     },
     {
       "tags": {
         "band": "good"
       },
-      "text": "Aurora: good chance tonight, higher up than the usual near-miss."
+      "text": "Aurora: good chance tonight, with activity levels higher than a typical night."
     },
     {
       "tags": {
         "band": "good"
       },
-      "text": "Good aurora activity expected tonight. Worth the trip to somewhere dark."
+      "text": "Good aurora activity expected tonight, worth the walk to somewhere dark if you can."
     },
     {
       "tags": {
         "band": "strong"
       },
-      "text": "Aurora: strong activity expected tonight. This is the good one."
+      "text": "Aurora: strong activity expected tonight; a rare, genuinely notable display is possible."
     },
     {
       "tags": {
         "band": "strong"
       },
-      "text": "Strong aurora tonight, likely overhead, not just a horizon glow."
+      "text": "Strong aurora tonight, likely visible well overhead rather than just as a horizon glow."
     },
     {
       "tags": {
         "band": "strong"
       },
-      "text": "Aurora: strong tonight. Rare enough to actually set an alarm for."
+      "text": "Aurora: strong tonight, tied to significant geomagnetic activity. Worth staying up for."
     },
     {
       "tags": {
         "band": "strong"
       },
-      "text": "Tonight's aurora forecast: strong. Worth losing some sleep over."
+      "text": "Tonight's aurora forecast is strong; among the best conditions this app will show all year."
     },
     {
       "tags": {
         "band": "strong"
       },
-      "text": "Strong aurora activity tonight, the kind people drive somewhere dark for."
+      "text": "Strong aurora activity tonight, the kind worth driving somewhere dark for."
     },
     {
       "tags": {
         "band": "strong"
       },
-      "text": "Aurora: strong tonight, genuinely notable. Look up, not just north."
+      "text": "Aurora: strong tonight, genuinely notable. Look up, not just toward the northern horizon."
     },
     {
       "tags": {
@@ -3561,75 +3561,75 @@
       "tags": {
         "band": "strong"
       },
-      "text": "Aurora: strong tonight. This is the rare one worth telling people about."
+      "text": "Aurora: strong tonight, a rare night worth telling people about before it happens."
     }
   ],
   "skyISSPass": [
     {
       "tags": {},
-      "text": "The ISS passes over tonight. Six astronauts, one very punctual orbit."
+      "text": "The ISS passes over tonight; it crosses the sky in a few minutes, looking like a bright star moving steadily, with no blinking and no sound."
     },
     {
       "tags": {},
-      "text": "Station's overhead tonight, moving fast and saying nothing."
+      "text": "Station's overhead tonight, orbiting at about 17,500 mph roughly 250 miles up."
     },
     {
       "tags": {},
-      "text": "The ISS is due over tonight, no sound, no blinking, just steady motion."
+      "text": "The ISS is due over tonight. It reflects sunlight, which is why it's visible even though it has no lights of its own."
     },
     {
       "tags": {},
-      "text": "ISS pass tonight. It's not a star, it's not a plane, it's a spacecraft with a good view."
+      "text": "ISS pass tonight; it moves in a smooth, steady line across the sky, unlike a plane's blinking lights or a star's fixed position."
     },
     {
       "tags": {},
-      "text": "The space station crosses tonight, gone in a few minutes flat."
+      "text": "The space station crosses tonight, taking just a few minutes to travel from horizon to horizon."
     },
     {
       "tags": {},
-      "text": "ISS overhead tonight. 17,500 mph, and somehow still looks unhurried from here."
+      "text": "ISS overhead tonight, home to a full crew, moving fast enough to circle the Earth every 90 minutes."
     },
     {
       "tags": {},
-      "text": "The ISS swings by tonight, the fastest thing you can see with your own eyes."
+      "text": "The ISS swings by tonight, among the brightest and fastest-moving objects visible to the naked eye."
     },
     {
       "tags": {},
-      "text": "Tonight's ISS pass: brief, bright, and entirely uninterested in your schedule."
+      "text": "Tonight's ISS pass is brief: a steady bright point crossing the sky in a few minutes, then gone."
     }
   ],
   "skyNoISS": [
     {
       "tags": {},
-      "text": "No visible ISS pass tonight. It's still up there, just not over you."
+      "text": "No visible ISS pass tonight; its orbit just doesn't bring it overhead in daylight-lit conditions from here right now."
     },
     {
       "tags": {},
-      "text": "The station's orbiting somewhere else tonight. Try again tomorrow."
+      "text": "The station is orbiting elsewhere tonight. Its path shifts by a few degrees with each 90-minute orbit."
     },
     {
       "tags": {},
-      "text": "No ISS pass tonight. Its schedule, not a snub."
+      "text": "No ISS pass tonight; visibility depends on the station being lit by the Sun while the sky here is dark, and tonight the timing doesn't line up."
     },
     {
       "tags": {},
-      "text": "Nothing overhead from the station tonight. The orbit just didn't line up."
+      "text": "Nothing overhead from the station tonight. Check back; its ground track changes daily."
     },
     {
       "tags": {},
-      "text": "No ISS visibility tonight. It'll swing back around eventually."
+      "text": "No ISS visibility tonight. It orbits the Earth roughly every 90 minutes regardless, just not over this location right now."
     },
     {
       "tags": {},
-      "text": "The ISS skips tonight's sky. Nothing personal, just geometry."
+      "text": "The ISS isn't visible tonight; a matter of orbital geometry, not a change in the station itself."
     },
     {
       "tags": {},
-      "text": "No station pass tonight. Check back; it circles the planet every 90 minutes anyway."
+      "text": "No station pass tonight. It circles the planet continuously; the next visible pass will come as its orbit shifts."
     },
     {
       "tags": {},
-      "text": "ISS: no pass tonight. Somewhere else is getting the view instead."
+      "text": "ISS: no pass tonight. Another location is getting the current viewing window instead."
     }
   ],
   "skyMoon": [
@@ -3637,193 +3637,193 @@
       "tags": {
         "phase": "new"
       },
-      "text": "New moon tonight, mostly absent, which is its whole job this week."
+      "text": "New moon tonight; the Moon sits between Earth and the Sun, so its near side isn't lit at all from here."
     },
     {
       "tags": {
         "phase": "new"
       },
-      "text": "New moon: the Moon's there, just not lit from here. Best dark-sky night of the month."
+      "text": "New moon: the darkest sky of the month, which makes it the best night for spotting faint stars and the Milky Way."
     },
     {
       "tags": {
         "phase": "new"
       },
-      "text": "New moon tonight. Invisible by design, not by malfunction."
+      "text": "New moon tonight. It isn't visible, not because anything's wrong, but because sunlight is hitting its far side."
     },
     {
       "tags": {
         "phase": "new"
       },
-      "text": "New moon: darkest sky of the cycle. The stars get top billing tonight."
+      "text": "New moon: the darkest sky of the lunar cycle. Good conditions for stargazing without moonlight washing things out."
     },
     {
       "tags": {
         "phase": "new"
       },
-      "text": "New moon tonight. Nothing to see, which is the point."
+      "text": "New moon tonight; nothing to see of the Moon itself, but the darkest skies of the month for everything else."
     },
     {
       "tags": {
         "phase": "new"
       },
-      "text": "New moon: the Moon's taking the night off, visually speaking."
+      "text": "New moon: the Moon is up during the day and sets with the Sun, invisible against the daytime sky."
     },
     {
       "tags": {
         "phase": "new"
       },
-      "text": "New moon tonight, a good excuse to actually notice the stars."
+      "text": "New moon tonight, a good night to look for fainter stars that moonlight usually drowns out."
     },
     {
       "tags": {
         "phase": "new"
       },
-      "text": "New moon: barely there. The sky's darkest, least distracted version of itself."
+      "text": "New moon: the start of a roughly 29.5-day cycle back to the next new moon."
     },
     {
       "tags": {
         "phase": "waxing"
       },
-      "text": "Waxing moon tonight, filling in a little more than yesterday."
+      "text": "Waxing moon tonight; a bit more illuminated than last night, on its way toward full."
     },
     {
       "tags": {
         "phase": "waxing"
       },
-      "text": "The Moon's waxing tonight, gaining ground, one night at a time."
+      "text": "The Moon is waxing tonight, growing a little each night as it moves from new toward full."
     },
     {
       "tags": {
         "phase": "waxing"
       },
-      "text": "Waxing moon tonight. Slow and steady, per the usual month."
+      "text": "Waxing moon tonight, roughly halfway or less through its 29.5-day cycle."
     },
     {
       "tags": {
         "phase": "waxing"
       },
-      "text": "The Moon's on its way to full tonight, incrementally as ever."
+      "text": "The Moon's on its way to full tonight, growing steadily night by night."
     },
     {
       "tags": {
         "phase": "waxing"
       },
-      "text": "Waxing tonight. The Moon's build-up phase, no rush."
+      "text": "Waxing tonight; the illuminated portion increases each night until the Moon reaches full."
     },
     {
       "tags": {
         "phase": "waxing"
       },
-      "text": "The Moon's growing tonight, the way it always does on this half of the month."
+      "text": "The Moon is growing tonight, the first half of its monthly cycle from new to full."
     },
     {
       "tags": {
         "phase": "waxing"
       },
-      "text": "Waxing moon tonight, more of it than last night, less than tomorrow."
+      "text": "Waxing moon tonight, visible for a longer stretch each evening as it brightens."
     },
     {
       "tags": {
         "phase": "waxing"
       },
-      "text": "The Moon's filling out tonight, right on its usual schedule."
+      "text": "The Moon is filling out tonight, a predictable stage on its way to full."
     },
     {
       "tags": {
         "phase": "full"
       },
-      "text": "Full moon tonight, the whole disc, lit up and unmissable."
+      "text": "Full moon tonight; the entire near side is lit, making it the brightest the night sky gets without help."
     },
     {
       "tags": {
         "phase": "full"
       },
-      "text": "Full moon tonight. Bright enough to cast a shadow if you look for one."
+      "text": "Full moon tonight. It's bright enough to see by outdoors, even without other light sources."
     },
     {
       "tags": {
         "phase": "full"
       },
-      "text": "Full moon tonight, the Moon's one night a month to really show off."
+      "text": "Full moon tonight, the point in its cycle where the Sun, Earth, and Moon roughly line up."
     },
     {
       "tags": {
         "phase": "full"
       },
-      "text": "Full moon tonight. Fully lit, fully visible, fully on schedule."
+      "text": "Full moon tonight; fully illuminated and visible essentially all night, rising around sunset."
     },
     {
       "tags": {
         "phase": "full"
       },
-      "text": "Full moon tonight, the brightest the night sky gets without help."
+      "text": "Full moon tonight, the brightest natural light in the night sky."
     },
     {
       "tags": {
         "phase": "full"
       },
-      "text": "Full moon tonight. The tides notice; you probably will too."
+      "text": "Full moon tonight. Its gravity has a measurable effect on ocean tides, at its strongest around now."
     },
     {
       "tags": {
         "phase": "full"
       },
-      "text": "Full moon tonight, doing the one thing it does best: being seen."
+      "text": "Full moon tonight, lighting the sky enough to wash out all but the brightest stars nearby."
     },
     {
       "tags": {
         "phase": "full"
       },
-      "text": "Full moon tonight, round, bright, and hard to ignore."
+      "text": "Full moon tonight, round and fully lit from horizon to horizon."
     },
     {
       "tags": {
         "phase": "waning"
       },
-      "text": "Waning moon tonight, giving a little back each night now."
+      "text": "Waning moon tonight, a little less illuminated than yesterday as it heads back toward new."
     },
     {
       "tags": {
         "phase": "waning"
       },
-      "text": "The Moon's waning tonight, past its peak, taking it slow."
+      "text": "The Moon is waning tonight, past its full point and shrinking night by night."
     },
     {
       "tags": {
         "phase": "waning"
       },
-      "text": "Waning moon tonight. Less of it than last night, on schedule."
+      "text": "Waning moon tonight, the second half of its roughly 29.5-day cycle."
     },
     {
       "tags": {
         "phase": "waning"
       },
-      "text": "The Moon's shrinking tonight, the second half of its usual routine."
+      "text": "The Moon's illuminated portion is shrinking tonight, on its way back to new."
     },
     {
       "tags": {
         "phase": "waning"
       },
-      "text": "Waning tonight. The Moon's quiet retreat toward new moon."
+      "text": "Waning tonight; this is the stretch of the month with progressively darker skies each night."
     },
     {
       "tags": {
         "phase": "waning"
       },
-      "text": "The Moon's tapering off tonight, same as every month after full."
+      "text": "The Moon is tapering off tonight, the mirror image of its earlier waxing phase."
     },
     {
       "tags": {
         "phase": "waning"
       },
-      "text": "Waning moon tonight, still up, just less of it each night."
+      "text": "Waning moon tonight, still visible but illuminated less each night."
     },
     {
       "tags": {
         "phase": "waning"
       },
-      "text": "The Moon's on its way back down tonight, unhurried as always."
+      "text": "The Moon is heading back toward new tonight, shrinking steadily as it goes."
     }
   ],
   "skyMeteor": [
@@ -3831,67 +3831,67 @@
       "tags": {
         "interference": "none"
       },
-      "text": "The {shower} are near peak tonight, and the Moon is staying out of the way."
+      "text": "The {shower} are near peak tonight, and with little moonlight, expect close to their full advertised rate."
     },
     {
       "tags": {
         "interference": "none"
       },
-      "text": "Dark sky, active shower — about as good as meteor-watching gets."
+      "text": "Dark sky, active shower; close to the best conditions meteor-watching gets."
     },
     {
       "tags": {
         "interference": "none"
       },
-      "text": "The Moon's mostly absent tonight, so the {shower} get a clean shot at showing off."
+      "text": "The Moon is mostly absent tonight, so faint {shower} meteors that would otherwise wash out should be visible."
     },
     {
       "tags": {
         "interference": "none"
       },
-      "text": "No moonlight to speak of tonight — the best chance the {shower} get to impress."
+      "text": "No real moonlight tonight; the best chance the {shower} get to show their full rate."
     },
     {
       "tags": {
         "interference": "none"
       },
-      "text": "The sky's dark and the {shower} are active. Rare alignment; worth the late night."
+      "text": "The sky is dark and the {shower} are active tonight; worth the late night if you can manage it."
     },
     {
       "tags": {
         "interference": "none"
       },
-      "text": "Moon's out of the picture tonight, which is the best news a meteor shower gets."
+      "text": "Moon's out of the way tonight, which matters more for a meteor shower than clear skies alone."
     },
     {
       "tags": {
         "interference": "none"
       },
-      "text": "The {shower} peak under a properly dark sky tonight — no asterisks required."
+      "text": "The {shower} peak under a properly dark sky tonight, with no moonlight cutting into the count."
     },
     {
       "tags": {
         "interference": "none"
       },
-      "text": "Clear conditions, no moon competing for attention. The {shower} get the whole sky."
+      "text": "Clear, dark conditions with no moon competing. The {shower} get the whole sky tonight."
     },
     {
       "tags": {
         "interference": "some"
       },
-      "text": "The {shower} are active tonight, though some moonlight is cutting into the count."
+      "text": "The {shower} are active tonight, though some moonlight is cutting into how many you'll see."
     },
     {
       "tags": {
         "interference": "some"
       },
-      "text": "Partial moonlight tonight — the {shower} are still worth a look, just dimmer than the brochure."
+      "text": "Partial moonlight tonight; the {shower} are still worth a look, just at a somewhat reduced rate."
     },
     {
       "tags": {
         "interference": "some"
       },
-      "text": "The Moon's up for part of the night, quietly trimming the {shower} count."
+      "text": "The Moon is up for part of the night, trimming the {shower} count during that stretch."
     },
     {
       "tags": {
@@ -3903,239 +3903,287 @@
       "tags": {
         "interference": "some"
       },
-      "text": "The {shower} are peaking, with a half-hearted assist from the Moon working against them."
+      "text": "The {shower} are peaking, with the Moon's brightness working against the fainter meteors."
     },
     {
       "tags": {
         "interference": "some"
       },
-      "text": "Moonlight's taking a modest bite out of tonight's {shower} count. Still active, just tempered."
+      "text": "Moonlight is taking a modest bite out of tonight's {shower} count. Still active, just reduced."
     },
     {
       "tags": {
         "interference": "some"
       },
-      "text": "The {shower} are up there tonight; the Moon's just bright enough to matter, not enough to ruin it."
+      "text": "The {shower} are up there tonight; the Moon is bright enough to matter, not enough to erase it."
     },
     {
       "tags": {
         "interference": "some"
       },
-      "text": "A partly-lit sky tonight — the {shower} are active, moon-taxed but not moon-beaten."
+      "text": "A partly-lit sky tonight; the {shower} are active, with rates lower than a moonless night."
     },
     {
       "tags": {
         "interference": "severe"
       },
-      "text": "The {shower} are peaking; the Moon is peaking harder."
+      "text": "The bright moon will wash out fainter meteors tonight; expect closer to a handful an hour, and look away from the moon."
     },
     {
       "tags": {
         "interference": "severe"
       },
-      "text": "Tonight's {shower} numbers are real, on paper. In practice, the Moon has other plans."
+      "text": "Tonight's {shower} numbers are real on paper, but a bright Moon will cut deeply into what's actually visible."
     },
     {
       "tags": {
         "interference": "severe"
       },
-      "text": "A bright Moon is doing its best to outshine the {shower} tonight, and mostly succeeding."
+      "text": "A bright Moon is significantly reducing visible {shower} meteors tonight; expect only the brightest ones."
     },
     {
       "tags": {
         "interference": "severe"
       },
-      "text": "The {shower} are active tonight, buried under more moonlight than meteor-watching prefers."
+      "text": "The {shower} are active tonight, but heavy moonlight will wash out most of the fainter meteors."
     },
     {
       "tags": {
         "interference": "severe"
       },
-      "text": "The Moon's out in force tonight, which is the one thing a meteor shower can't out-argue."
+      "text": "The Moon is near full or close to it tonight, which sharply reduces how many {shower} meteors you'll actually see."
     },
     {
       "tags": {
         "interference": "severe"
       },
-      "text": "Technically, tonight's the {shower} peak. Practically, it's the Moon's peak too, and the Moon's winning."
+      "text": "Technically tonight is the {shower} peak, but strong moonlight will hide all but the brightest streaks; face away from the Moon for the best chance."
     },
     {
       "tags": {
         "interference": "severe"
       },
-      "text": "The {shower} are up there tonight; you'll just be sharing the sky with a very bright Moon."
+      "text": "The {shower} are up there tonight, but you'll be watching under a very bright Moon; expect a much lower rate than the shower's peak number."
     },
     {
       "tags": {
         "interference": "severe"
       },
-      "text": "Bright moonlight tonight — the {shower} are active, but most of the show is getting washed out."
+      "text": "Bright moonlight tonight is washing out most of the {shower}; only the brightest fireballs are likely to cut through."
     }
   ],
   "skyPairing": [
     {
       "tags": {},
-      "text": "Two bright objects, one small patch of sky — tonight's pairing is hard to miss."
+      "text": "Two bright objects share a small patch of sky tonight; a conjunction, where they appear close from our line of sight even though they're vastly far apart."
     },
     {
       "tags": {},
-      "text": "The sky doesn't usually crowd its brightest objects together. Tonight, it did."
+      "text": "Tonight's pairing puts two bright objects side by side in the sky; an alignment of positions, not actual proximity in space."
     },
     {
       "tags": {},
-      "text": "A close pairing tonight — coincidence of orbits, not of intent, but a good one."
+      "text": "A close pairing tonight: two objects that happen to line up as seen from Earth, though they're nowhere near each other in reality."
     },
     {
       "tags": {},
-      "text": "Tonight's pairing won't repeat exactly like this again for a while. Worth the glance."
+      "text": "Tonight's pairing won't repeat in exactly this configuration for a while; worth a glance while it lasts."
     },
     {
       "tags": {},
-      "text": "Two objects, one line of sight tonight — no telescope required to appreciate it."
+      "text": "Two objects share one line of sight tonight, close enough together to take in with the naked eye, no telescope needed."
     },
     {
       "tags": {},
-      "text": "The sky's version of a coincidence: two bright points, briefly, almost touching."
+      "text": "Tonight's pairing is a conjunction; an apparent closeness caused by orbital timing, not any real connection between the two."
     },
     {
       "tags": {},
-      "text": "Nothing physically connects them, but tonight they'll share the same patch of sky anyway."
+      "text": "Nothing physically connects these two, but tonight they'll appear side by side from where you're standing."
     },
     {
       "tags": {},
-      "text": "A tight pairing tonight — the kind that makes strangers point and ask what that is."
+      "text": "A tight pairing tonight, close enough that the two objects will be visible together in the same small area of sky."
     }
   ],
   "skyLaunch": [
     {
       "tags": {},
-      "text": "Rockets keep schedules the way weather keeps promises."
+      "text": "Launch dates often shift due to weather, hardware checks, or range availability; treat the listed date as the current best estimate."
     },
     {
       "tags": {},
-      "text": "A launch window is a promise with an asterisk."
+      "text": "A launch window is the specific time range during which a rocket can lift off to reach its intended orbit."
     },
     {
       "tags": {},
-      "text": "Every T-0 below survives contact with weather, hardware, and a review board first."
+      "text": "Scrubs, or postponed launches, are common; a delay doesn't mean a mission is in trouble."
     },
     {
       "tags": {},
-      "text": "Scrubs outnumber launches most weeks. This week hasn't declared which one it is."
+      "text": "Countdown holds can be scheduled or unscheduled; either way, they're a normal part of most launches."
     },
     {
       "tags": {},
-      "text": "The countdown clock is precise to the second. The date next to it is more of an estimate."
+      "text": "T-0 marks the moment of liftoff; times before that are counting down, not the launch itself."
     },
     {
       "tags": {},
-      "text": "Somewhere on this list, a date will move. Statistically, it usually does."
+      "text": "Launch schedules update frequently as providers firm up weather and technical readiness closer to the date."
     },
     {
       "tags": {},
-      "text": "Nobody's ever early to a rocket launch. On time counts as the ambitious outcome."
+      "text": "A launch can be delayed by hours or by weeks; the reasons range from weather to last-minute technical checks."
     },
     {
       "tags": {},
-      "text": "Liftoff is the easy part to predict. Everything before it is the hard part."
+      "text": "Liftoff itself takes seconds; the review process behind each scheduled date takes considerably longer."
     }
   ],
   "skySolar": [
     {
-      "tags": { "level": "quiet" },
-      "text": "The Sun is having a quiet week. So is everyone downstream of it."
+      "tags": {
+        "level": "quiet"
+      },
+      "text": "The Sun is having a quiet week; solar activity is low, with no notable flares."
     },
     {
-      "tags": { "level": "quiet" },
-      "text": "No flares worth mentioning. The Sun's taking the day off, technically several."
+      "tags": {
+        "level": "quiet"
+      },
+      "text": "No flares worth mentioning right now. Solar activity is at a seasonal or cyclical low."
     },
     {
-      "tags": { "level": "quiet" },
-      "text": "Quiet sun, quiet skies — the least dramatic thing in this app today."
+      "tags": {
+        "level": "quiet"
+      },
+      "text": "Quiet sun, quiet skies; low solar activity means minimal effect on radio or satellites."
     },
     {
-      "tags": { "level": "quiet" },
-      "text": "Nothing on the Sun is trying to get your attention right now."
+      "tags": {
+        "level": "quiet"
+      },
+      "text": "Nothing on the Sun is generating notable activity right now."
     },
     {
-      "tags": { "level": "quiet" },
-      "text": "Solar activity: low. Radios, satellites, and GPS remain unbothered."
+      "tags": {
+        "level": "quiet"
+      },
+      "text": "Solar activity: low. Radios, satellites, and GPS remain unaffected."
     },
     {
-      "tags": { "level": "quiet" },
-      "text": "The Sun is behaving itself. Enjoy the novelty."
+      "tags": {
+        "level": "quiet"
+      },
+      "text": "The Sun is calm right now; sunspot activity is minimal."
     },
     {
-      "tags": { "level": "quiet" },
-      "text": "A calm stretch on the Sun — the sunspots are there, just not doing much."
+      "tags": {
+        "level": "quiet"
+      },
+      "text": "A calm stretch on the Sun; sunspots are present, but flare activity is low."
     },
     {
-      "tags": { "level": "quiet" },
-      "text": "Nothing to report from 93 million miles away today."
+      "tags": {
+        "level": "quiet"
+      },
+      "text": "Solar activity is quiet today, roughly 93 million miles away."
     },
     {
-      "tags": { "level": "active" },
-      "text": "An M-class flare went off recently — enough to notice, not enough to worry."
+      "tags": {
+        "level": "active"
+      },
+      "text": "An M-class flare occurred recently; moderate in strength, enough to cause minor radio interference."
     },
     {
-      "tags": { "level": "active" },
-      "text": "The Sun's a bit more active than usual. Radios might pick up some static, nothing more."
+      "tags": {
+        "level": "active"
+      },
+      "text": "The Sun is a bit more active than usual. Radios may pick up brief static, nothing more."
     },
     {
-      "tags": { "level": "active" },
-      "text": "Some flaring today. Satellites shrugged; GPS barely blinked."
+      "tags": {
+        "level": "active"
+      },
+      "text": "Some flaring today, moderate in scale. Satellites and GPS are largely unaffected at this level."
     },
     {
-      "tags": { "level": "active" },
-      "text": "Activity's up a notch — the kind of solar weather that mostly just looks good on paper."
+      "tags": {
+        "level": "active"
+      },
+      "text": "Activity is up a notch; moderate solar weather that mostly shows up in radio data, not everyday effects."
     },
     {
-      "tags": { "level": "active" },
-      "text": "A moderate flare came and went. HF radio noticed; you probably didn't."
+      "tags": {
+        "level": "active"
+      },
+      "text": "A moderate flare came and went. HF radio operators may have noticed a brief disruption."
     },
     {
-      "tags": { "level": "active" },
-      "text": "The Sun's stirring. Not a storm, just more than its usual quiet self."
+      "tags": {
+        "level": "active"
+      },
+      "text": "The Sun is more active than its recent baseline, though not at storm level."
     },
     {
-      "tags": { "level": "active" },
-      "text": "Elevated activity today — worth a glance, not worth rearranging plans."
+      "tags": {
+        "level": "active"
+      },
+      "text": "Elevated activity today; worth noting, though not disruptive to most day-to-day technology."
     },
     {
-      "tags": { "level": "active" },
-      "text": "Something happened on the Sun recently. Mildly, but it happened."
+      "tags": {
+        "level": "active"
+      },
+      "text": "A moderate event occurred on the Sun recently, within the range considered normal, elevated activity."
     },
     {
-      "tags": { "level": "stormy" },
-      "text": "An X-class flare peaked recently — strong enough to disrupt HF radio and some GPS signals."
+      "tags": {
+        "level": "stormy"
+      },
+      "text": "An X-class flare peaked recently; the strongest category, capable of disrupting HF radio and some GPS signals."
     },
     {
-      "tags": { "level": "stormy" },
-      "text": "Geomagnetic storm levels are elevated. Radio blackouts and GPS hiccups are possible, not guaranteed."
+      "tags": {
+        "level": "stormy"
+      },
+      "text": "Geomagnetic storm levels are elevated. Radio blackouts and GPS accuracy issues are possible."
     },
     {
-      "tags": { "level": "stormy" },
-      "text": "The Sun had a genuinely disruptive day. Expect radio static before you expect anything scenic."
+      "tags": {
+        "level": "stormy"
+      },
+      "text": "The Sun had a genuinely disruptive event. Expect potential radio static and reduced GPS precision."
     },
     {
-      "tags": { "level": "stormy" },
-      "text": "Storm-level activity right now — real effects on radio and navigation systems, no exaggeration needed."
+      "tags": {
+        "level": "stormy"
+      },
+      "text": "Storm-level activity is happening right now; real effects on radio communication and navigation systems."
     },
     {
-      "tags": { "level": "stormy" },
-      "text": "This is an actual solar storm, not a marketing term. Radio and GPS may take the hit."
+      "tags": {
+        "level": "stormy"
+      },
+      "text": "This is an active solar storm. Radio and GPS systems may be affected for a period."
     },
     {
-      "tags": { "level": "stormy" },
-      "text": "Strong flare activity today. HF radio blackouts are a real possibility, not just a technicality."
+      "tags": {
+        "level": "stormy"
+      },
+      "text": "Strong flare activity today. HF radio blackouts are a realistic possibility during this window."
     },
     {
-      "tags": { "level": "stormy" },
-      "text": "The Sun is doing the thing that reroutes polar flights. That thing, today."
+      "tags": {
+        "level": "stormy"
+      },
+      "text": "The Sun is producing the kind of activity that can affect polar flight routes and satellite operations."
     },
     {
-      "tags": { "level": "stormy" },
-      "text": "High storm levels right now — the disruptive kind, not the decorative kind."
+      "tags": {
+        "level": "stormy"
+      },
+      "text": "High storm levels right now; strong enough to cause measurable disruption to radio and GPS systems."
     }
   ]
 }
