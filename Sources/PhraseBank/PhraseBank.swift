@@ -58,6 +58,9 @@ enum PhraseBank {
         // Sky-intelligence rows (work package WP-F):
         case skyMeteor
         case skyPairing
+        // Space tab (work package WP-K):
+        case skyLaunch
+        case skySolar
     }
 
     /// The condition groups `summary`/`doodleCaption` content is authored against. WeatherKit's
@@ -152,6 +155,8 @@ enum PhraseBank {
         .skyMoon: "Tonight's moon, as shown above.",
         .skyMeteor: "Meteor activity tonight, as shown above.",
         .skyPairing: "A close pairing tonight, as shown above.",
+        .skyLaunch: "Launch schedule, as shown above.",
+        .skySolar: "Solar activity, as shown above.",
     ]
 
     // MARK: - Public API
@@ -391,6 +396,34 @@ enum PhraseBank {
     /// separation, so this line is deliberately generic enough to sit under any pairing.
     static func skyPairing(date: Date, locationId: UUID, tokens: [String: String] = [:]) -> String {
         render(slot: .skyPairing, queries: [[:]], date: date, locationId: locationId, tokens: tokens)
+    }
+
+    // MARK: - Space tab (work package WP-K)
+
+    /// A dry-wit line about the Launch Schedule card. Untagged (one shared pool) — rockets and
+    /// schedules in general, not any specific mission, so it works underneath whichever launches
+    /// happen to be next.
+    static func skyLaunch(date: Date, locationId: UUID, tokens: [String: String] = [:]) -> String {
+        render(slot: .skyLaunch, queries: [[:]], date: date, locationId: locationId, tokens: tokens)
+    }
+
+    /// A dry-wit line for the Sun card, keyed by `SolarActivityLevel` (reused directly from
+    /// `Sources/Sky/Solar` — quiet/active/stormy). Stormy lines lead with the real-world
+    /// disruption (radio/GPS) before any wit, per work order: a genuine X-class flare is useful
+    /// information the joke must never undercut.
+    static func skySolar(
+        level: SolarActivityLevel,
+        date: Date,
+        locationId: UUID,
+        tokens: [String: String] = [:]
+    ) -> String {
+        render(
+            slot: .skySolar,
+            queries: [["level": level.description], [:]],
+            date: date,
+            locationId: locationId,
+            tokens: tokens
+        )
     }
 
     // MARK: - WeatherKit condition-code -> ConditionGroup mapping

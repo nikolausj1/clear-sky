@@ -4005,5 +4005,137 @@
       "tags": {},
       "text": "A tight pairing tonight — the kind that makes strangers point and ask what that is."
     }
+  ],
+  "skyLaunch": [
+    {
+      "tags": {},
+      "text": "Rockets keep schedules the way weather keeps promises."
+    },
+    {
+      "tags": {},
+      "text": "A launch window is a promise with an asterisk."
+    },
+    {
+      "tags": {},
+      "text": "Every T-0 below survives contact with weather, hardware, and a review board first."
+    },
+    {
+      "tags": {},
+      "text": "Scrubs outnumber launches most weeks. This week hasn't declared which one it is."
+    },
+    {
+      "tags": {},
+      "text": "The countdown clock is precise to the second. The date next to it is more of an estimate."
+    },
+    {
+      "tags": {},
+      "text": "Somewhere on this list, a date will move. Statistically, it usually does."
+    },
+    {
+      "tags": {},
+      "text": "Nobody's ever early to a rocket launch. On time counts as the ambitious outcome."
+    },
+    {
+      "tags": {},
+      "text": "Liftoff is the easy part to predict. Everything before it is the hard part."
+    }
+  ],
+  "skySolar": [
+    {
+      "tags": { "level": "quiet" },
+      "text": "The Sun is having a quiet week. So is everyone downstream of it."
+    },
+    {
+      "tags": { "level": "quiet" },
+      "text": "No flares worth mentioning. The Sun's taking the day off, technically several."
+    },
+    {
+      "tags": { "level": "quiet" },
+      "text": "Quiet sun, quiet skies — the least dramatic thing in this app today."
+    },
+    {
+      "tags": { "level": "quiet" },
+      "text": "Nothing on the Sun is trying to get your attention right now."
+    },
+    {
+      "tags": { "level": "quiet" },
+      "text": "Solar activity: low. Radios, satellites, and GPS remain unbothered."
+    },
+    {
+      "tags": { "level": "quiet" },
+      "text": "The Sun is behaving itself. Enjoy the novelty."
+    },
+    {
+      "tags": { "level": "quiet" },
+      "text": "A calm stretch on the Sun — the sunspots are there, just not doing much."
+    },
+    {
+      "tags": { "level": "quiet" },
+      "text": "Nothing to report from 93 million miles away today."
+    },
+    {
+      "tags": { "level": "active" },
+      "text": "An M-class flare went off recently — enough to notice, not enough to worry."
+    },
+    {
+      "tags": { "level": "active" },
+      "text": "The Sun's a bit more active than usual. Radios might pick up some static, nothing more."
+    },
+    {
+      "tags": { "level": "active" },
+      "text": "Some flaring today. Satellites shrugged; GPS barely blinked."
+    },
+    {
+      "tags": { "level": "active" },
+      "text": "Activity's up a notch — the kind of solar weather that mostly just looks good on paper."
+    },
+    {
+      "tags": { "level": "active" },
+      "text": "A moderate flare came and went. HF radio noticed; you probably didn't."
+    },
+    {
+      "tags": { "level": "active" },
+      "text": "The Sun's stirring. Not a storm, just more than its usual quiet self."
+    },
+    {
+      "tags": { "level": "active" },
+      "text": "Elevated activity today — worth a glance, not worth rearranging plans."
+    },
+    {
+      "tags": { "level": "active" },
+      "text": "Something happened on the Sun recently. Mildly, but it happened."
+    },
+    {
+      "tags": { "level": "stormy" },
+      "text": "An X-class flare peaked recently — strong enough to disrupt HF radio and some GPS signals."
+    },
+    {
+      "tags": { "level": "stormy" },
+      "text": "Geomagnetic storm levels are elevated. Radio blackouts and GPS hiccups are possible, not guaranteed."
+    },
+    {
+      "tags": { "level": "stormy" },
+      "text": "The Sun had a genuinely disruptive day. Expect radio static before you expect anything scenic."
+    },
+    {
+      "tags": { "level": "stormy" },
+      "text": "Storm-level activity right now — real effects on radio and navigation systems, no exaggeration needed."
+    },
+    {
+      "tags": { "level": "stormy" },
+      "text": "This is an actual solar storm, not a marketing term. Radio and GPS may take the hit."
+    },
+    {
+      "tags": { "level": "stormy" },
+      "text": "Strong flare activity today. HF radio blackouts are a real possibility, not just a technicality."
+    },
+    {
+      "tags": { "level": "stormy" },
+      "text": "The Sun is doing the thing that reroutes polar flights. That thing, today."
+    },
+    {
+      "tags": { "level": "stormy" },
+      "text": "High storm levels right now — the disruptive kind, not the decorative kind."
+    }
   ]
 }

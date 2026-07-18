@@ -28,7 +28,9 @@ Top-level object, one key per slot:
   "skyNoISS": [ ... ],
   "skyMoon": [ ... ],
   "skyMeteor": [ ... ],
-  "skyPairing": [ ... ]
+  "skyPairing": [ ... ],
+  "skyLaunch": [ ... ],
+  "skySolar": [ ... ]
 }
 ```
 
@@ -54,6 +56,8 @@ structs, so all twelve slots share one lookup/fallback implementation.
 | `skyMoon` | `phase` | `new`, `waxing`, `full`, `waning` — coarser than the Moon row's own 8-phase name/symbol, which `TonightSkyCard` computes directly from the engine's `phaseFraction`/`illuminatedPercent` |
 | `skyMeteor` | `interference` | `none`, `some`, `severe` (mirrors `MeteorShowers.MoonInterference`). Every variant uses the `{shower}` token (see below) rather than naming a shower directly, since the same pool backs whichever shower is active tonight |
 | `skyPairing` | none | untagged only — shown alongside tonight's closest visible pairing; deliberately generic since the row's own text already names the specific bodies/separation |
+| `skyLaunch` | none | untagged only — shown at the bottom of the Space tab's Launch Schedule card; general about rockets/schedules, not any specific mission |
+| `skySolar` | `level` | `quiet`, `active`, `stormy` (mirrors `SolarActivityLevel.description`). `stormy` lines lead with the real disruption (radio/GPS) before any wit — a genuine X-class flare is useful information the joke must never undercut |
 
 A missing tag key on an entry (or the literal fallback entries with fewer tags — see
 "Fallback" below) means "matches anything for that key." The universal safety-net entries
@@ -86,6 +90,18 @@ has no tag dimension to bucket on, just a single large rotation pool — so it's
 rotated by a separate small loader, `Sources/PhraseBank/SkyFacts.swift`, which reuses this
 file's `PhraseBank.pick(from:bucketKey:locationId:date:)` rotation primitive directly rather
 than reimplementing the FNV/Fisher-Yates machinery.
+
+### Space tab content (work package WP-K)
+
+`skyLaunch` and `skySolar` back the Space tab's LAUNCH SCHEDULE and THE SUN cards
+(`Sources/Space/SpaceView.swift`), fed by the on-device Launch Library 2 and NOAA solar-activity
+engines (`Sources/Sky/Launches`, `Sources/Sky/Solar`). Same "fact first, wit as a tail" register
+as the rest of the file: each card's own text carries the facts (mission/provider/vehicle/T-0/
+status; activity level/sunspot number/flare/aurora tie-in), and the phrase-bank line underneath
+is the wit only. `skyLaunch` uses `PhraseBank.universalLocationId`-or-active-location seeding like
+everywhere else that isn't inherently location-specific — the launch schedule itself doesn't vary
+by location, but seeding on the active location still gives different saved cities variety on the
+same day.
 
 ### Template tokens
 

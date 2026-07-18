@@ -1,7 +1,7 @@
 import SwiftData
 import SwiftUI
 
-/// Root container for Phase 3+. Hosts the floating bottom bar (Forecast | Rankings)
+/// Root container for Phase 3+. Hosts the floating bottom bar (Forecast | Space | Rankings)
 /// plus a search/locations button that presents the Locations screen as a sheet, per PRD Section
 /// 6's "Navigation structure." The Forecast screen's top-right ellipsis (wired via
 /// `onOpenSettings`) presents Settings as a sheet. Also the home for this phase's sim-verify
@@ -11,6 +11,7 @@ import SwiftUI
 /// - `-showSettings` presents the Settings sheet at launch.
 /// - `-showRankings` selects the Rankings tab at launch (mirrors `-showLocations`; `simctl`
 ///   can't tap the floating bottom bar for a screenshot of the non-default tab).
+/// - `-showSpace` selects the Space tab at launch (work package WP-K).
 /// - `-locationDenied` forces `CurrentLocationManager` to report a denied permission status.
 /// - `-locationGranted` forces `CurrentLocationManager` to report an already-authorized status
 ///   with a canned coordinate — works around a Simulator limitation where `simctl privacy grant
@@ -24,6 +25,7 @@ import SwiftUI
 struct NavigationShell: View {
     private enum Tab {
         case forecast
+        case space
         case rankings
     }
 
@@ -32,6 +34,7 @@ struct NavigationShell: View {
     @State private var forecastViewModel: ForecastViewModel?
     @State private var locationsViewModel: LocationsViewModel?
     @State private var rankingsViewModel: RankingsViewModel?
+    @State private var spaceViewModel: SpaceViewModel?
     @State private var unitsSettings = UnitsSettings()
     @State private var selectedTab: Tab = .forecast
     @State private var isPresentingLocations = false
@@ -50,6 +53,16 @@ struct NavigationShell: View {
                             scrollToSky: Self.launchArgsContain("-scrollToSky"),
                             onOpenSettings: { isPresentingSettings = true },
                             onOpenLocations: { isPresentingLocations = true }
+                        )
+                    } else {
+                        ProgressView()
+                    }
+                case .space:
+                    if let spaceViewModel {
+                        SpaceView(
+                            viewModel: spaceViewModel,
+                            location: spaceLocation,
+                            scrollTarget: Self.scrollSpaceTargetFromLaunchArgs()
                         )
                     } else {
                         ProgressView()
@@ -131,6 +144,11 @@ struct NavigationShell: View {
             forcedDate: Self.forcedDateFromLaunchArgs()
         )
 
+        let spaceVM = SpaceViewModel(
+            overrides: Self.spaceOverridesFromLaunchArgs(),
+            forcedDate: Self.forcedDateFromLaunchArgs()
+        )
+
         let locationsVM = LocationsViewModel(
             store: locationsStore,
             weatherStore: weatherStore,
@@ -154,6 +172,7 @@ struct NavigationShell: View {
         forecastViewModel = vm
         locationsViewModel = locationsVM
         rankingsViewModel = rankingsVM
+        spaceViewModel = spaceVM
 
         if Self.launchArgsContain("-showLocations") {
             isPresentingLocations = true
@@ -163,6 +182,9 @@ struct NavigationShell: View {
         }
         if Self.launchArgsContain("-showRankings") {
             selectedTab = .rankings
+        }
+        if Self.launchArgsContain("-showSpace") {
+            selectedTab = .space
         }
     }
 
@@ -174,12 +196,30 @@ struct NavigationShell: View {
         }
     }
 
+    // MARK: - Space tab location context
+
+    /// The location the Space tab's Sky Calendar computes meteor-peak/pairing rows from: the
+    /// active Forecast location (same source `TonightSkyCard` uses), falling back to the first
+    /// saved location, falling back to `nil` (which hides those location-dependent rows entirely
+    /// -- see `SkyCalendar.events(...)`'s doc comment). Reading `forecastViewModel.activeIndex`/
+    /// `.locations` here means SwiftUI's observation tracking re-evaluates this whenever either
+    /// changes while the Space tab is on screen, same mechanism `RankedRowView`'s `onSelectCity`
+    /// callback already relies on elsewhere in this file.
+    private var spaceLocation: SavedLocation? {
+        guard let forecastViewModel else { return nil }
+        if forecastViewModel.locations.indices.contains(forecastViewModel.activeIndex) {
+            return forecastViewModel.locations[forecastViewModel.activeIndex]
+        }
+        return forecastViewModel.locations.first
+    }
+
     // MARK: - Floating bottom bar
 
     private var floatingBar: some View {
         HStack(spacing: 12) {
             HStack(spacing: 0) {
                 tabButton(title: "Forecast", systemImage: "sun.max.fill", tab: .forecast)
+                tabButton(title: "Space", systemImage: "moon.stars", tab: .space)
                 tabButton(title: "Rankings", systemImage: "list.number", tab: .rankings)
             }
             .padding(.horizontal, 6)
@@ -340,5 +380,30 @@ struct NavigationShell: View {
         let args = CommandLine.arguments
         guard let flagIndex = args.firstIndex(of: "-forceMeteorPeak"), flagIndex + 1 < args.count else { return nil }
         return MeteorShowers.MoonInterference(launchArgValue: args[flagIndex + 1])
+    }
+
+    // MARK: - Space tab hooks (work package WP-K)
+
+    /// `-forceSolarLevel quiet|active|stormy` (synthesizes a notable flare + G2 3-day forecast for
+    /// active/stormy), `-forceLaunchesSample` (3 synthetic launches, one of each status chip,
+    /// bypassing the network), `-forceSpaceOffline` (simulates no-network for the Launch Schedule
+    /// card and a stale cache for the Sun card in one flag) — see `SpaceViewModel.ForcedOverrides`.
+    private static func spaceOverridesFromLaunchArgs() -> SpaceViewModel.ForcedOverrides {
+        let args = CommandLine.arguments
+        var overrides = SpaceViewModel.ForcedOverrides()
+        if let flagIndex = args.firstIndex(of: "-forceSolarLevel"), flagIndex + 1 < args.count {
+            overrides.solarLevel = SolarActivityLevel.allCases.first { $0.description == args[flagIndex + 1] }
+        }
+        overrides.launchesSample = launchArgsContain("-forceLaunchesSample")
+        overrides.offline = launchArgsContain("-forceSpaceOffline")
+        return overrides
+    }
+
+    /// `-scrollSpaceTo sun|calendar` — sim-verify only, scrolls the Space tab straight to a card
+    /// below the fold at launch (`simctl` can't scroll). See `SpaceView.ScrollTarget`.
+    private static func scrollSpaceTargetFromLaunchArgs() -> SpaceView.ScrollTarget? {
+        let args = CommandLine.arguments
+        guard let flagIndex = args.firstIndex(of: "-scrollSpaceTo"), flagIndex + 1 < args.count else { return nil }
+        return SpaceView.ScrollTarget(rawValue: args[flagIndex + 1])
     }
 }
