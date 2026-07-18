@@ -79,6 +79,11 @@ struct DoodleHeaderView: View {
     /// fetch of its own — same sourcing `HourlySkyEvents`' launch icons already use (see
     /// `loadLaunchCacheOnly()` below).
     @State private var fetchedGoLaunchToday: Bool = false
+    /// Scroll-jank fix: see `resolvedScene`'s doc comment. `cachedSceneKey` is the `sceneCacheKey`
+    /// value `cachedScene` was resolved from — a mismatch means the cache is stale (or not yet
+    /// populated).
+    @State private var cachedScene: DoodleComposer.Scene? = nil
+    @State private var cachedSceneKey: String? = nil
 
     private var fetchedAuroraBand: AuroraBand? {
         fetchedSkyState.flatMap { SkyTonightService.availableValue($0.aurora) }?.band
@@ -217,6 +222,70 @@ struct DoodleHeaderView: View {
         )
     }
 
+    /// Scroll-jank fix (lead QC defect: "sluggish scrolling on the Forecast page"): `scene`
+    /// bundles genuinely expensive pure math — `currentPlanetPositions`' Meeus geocentric-position
+    /// solve for all five naked-eye planets, `tonightHeadline`'s `StargazingScore.hourlyScores`
+    /// pass over the full `hourly` array — that has no business re-running just because this
+    /// view's `body` was asked to re-evaluate. That used to happen on every render regardless of
+    /// whether any real input changed (the type-level doc comment called this "cheap enough to
+    /// call on every render," true in isolation, false once `body` is asked to run at 60-120Hz
+    /// during a scroll — see `ForecastPageView.ParallaxHero`, which now rebuilds this view every
+    /// scroll frame for the parallax offset). Measured ~52ms average per `scene` resolution
+    /// (sim-verify, 2s animated scroll) before this cache existed — see the commit message for
+    /// the full before/after numbers.
+    ///
+    /// `cachedScene`/`cachedSceneKey` below cache the resolved value, refreshed via
+    /// `.onChange(of: sceneCacheKey, initial: true)` in `body` — an effect, not a body-time
+    /// mutation, so it never trips "modifying state during view update." This computed property
+    /// stays side-effect-free (never mutates `@State`): when the cache is stale — before that
+    /// `onChange` has fired even once, or the vanishingly rare race where a real input changed in
+    /// the same instant the cache was read — it simply recomputes `scene` fresh inline, so the
+    /// rendered scene is never wrong or stale, just (in that rare case) not free.
+    private var resolvedScene: DoodleComposer.Scene {
+        if let cachedScene, cachedSceneKey == sceneCacheKey {
+            return cachedScene
+        }
+        return scene
+    }
+
+    /// `scene`'s full dependency set as a single joined-string key, mirroring the
+    /// `trueSkyTaskKey`/`launchCacheTaskKey`/`taskKey` "cache key as joined string" idiom already
+    /// used elsewhere in this file (and in `TonightSkyCard`). Every field `scene`'s resolution
+    /// actually reads (directly or via `currentPlanetPositions`/`tonightConditionCode`/
+    /// `terrainClass`/`tonightHeadline`) is represented here — `hourly`'s identity is
+    /// approximated by its count + first/last dates rather than a full per-element comparison,
+    /// which is deliberately cheap (this key is rebuilt every render) while still changing
+    /// whenever a genuinely new payload lands (a different fetch always shifts the hourly
+    /// window's bounds or length).
+    private var sceneCacheKey: String {
+        [
+            "\(representativeDate.timeIntervalSince1970)",
+            "\(date.timeIntervalSince1970)",
+            location?.id.uuidString ?? "none",
+            current?.conditionCode ?? "none",
+            "\(current?.temperature.value ?? -9999)",
+            "\(sunrise?.timeIntervalSince1970 ?? -1)",
+            "\(sunset?.timeIntervalSince1970 ?? -1)",
+            forcedCondition?.rawValue ?? "none",
+            forcedTimeOfDay?.rawValue ?? "none",
+            "\(hourly.count)",
+            "\(hourly.first?.date.timeIntervalSince1970 ?? -1)",
+            "\(hourly.last?.date.timeIntervalSince1970 ?? -1)",
+            fetchedAuroraBand?.description ?? "none",
+            "\(fetchedISSPasses.count)",
+            fetchedMeteorOutlook == nil ? "none" : "some",
+            fetchedConjunctionPairing == nil ? "none" : "some",
+            "\(fetchedMoonIlluminatedFraction ?? -1)",
+            fetchedMoonWaxing.map(String.init) ?? "none",
+            "\(fetchedGoLaunchToday)",
+            "\(forceTrueSkyPlanets)",
+            "\(forceISSStreakNow)",
+            "\(forceMeteorStreaks)",
+            "\(forceConjunctionScene)",
+            "\(forceLaunchContrail)",
+        ].joined(separator: "|")
+    }
+
     /// Synchronous, pure math (no network) — recomputed on every render just like
     /// `TonightSkyCard`'s own `SkyTonightService.astronomy(...)` call, so this never waits on
     /// the async aurora/ISS fetch below. Evaluated at `representativeDate` (not raw `date`) so a
@@ -328,7 +397,7 @@ struct DoodleHeaderView: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack(alignment: .bottom) {
-                DoodleSceneView(scene: scene)
+                DoodleSceneView(scene: resolvedScene)
 
                 VStack(spacing: 14) {
                     Spacer()
@@ -404,6 +473,14 @@ struct DoodleHeaderView: View {
         }
         .task(id: launchCacheTaskKey) {
             await loadLaunchCacheOnly()
+        }
+        // Scroll-jank fix: refreshes `cachedScene` as an effect (never during body evaluation —
+        // see `resolvedScene`'s doc comment) whenever a real input changes. `initial: true` also
+        // populates the cache once on first appearance, so the very next render already hits the
+        // fast path rather than relying solely on `resolvedScene`'s inline fallback.
+        .onChange(of: sceneCacheKey, initial: true) { _, newKey in
+            cachedScene = scene
+            cachedSceneKey = newKey
         }
     }
 

@@ -1,3 +1,4 @@
+import Observation
 import SwiftUI
 import UIKit
 
@@ -65,10 +66,32 @@ struct ForecastPageView: View {
     /// same "never blocks the rest of the page" spirit as `TonightSkyCard`'s own async rows.
     @State private var skyContext = HourlySkyContext()
     /// UX polish package ("Depth & motion" — hero parallax): the same content-scroll offset the
-    /// scroll-aware top bar already tracks (`onScrollOffsetChange`), mirrored into local state so
-    /// `heroHeader` can apply a parallax offset/overscroll scale to the hero without needing a
-    /// second scroll probe.
-    @State private var scrollOffset: CGFloat = 0
+    /// scroll-aware top bar already tracks (`onScrollOffsetChange`), mirrored here so `heroHeader`
+    /// can apply a parallax offset/overscroll scale to the hero without needing a second scroll
+    /// probe.
+    ///
+    /// Scroll-jank fix (lead QC defect: "sluggish scrolling on the Forecast page"): this used to
+    /// be a plain `@State private var scrollOffset: CGFloat`, written on every scroll frame (up to
+    /// 120 Hz) by `reportScrollOffset` below. Because `loadedView`'s body directly read that
+    /// `@State` value (via `heroHeader()`'s `.parallax(scrollOffset: scrollOffset)` call), EVERY
+    /// write re-evaluated `loadedView`'s ENTIRE body — hero, hourly list, daily list, Tonight's
+    /// Sky card, all of it — since `@State` invalidation isn't scoped to "was this particular
+    /// value actually used," only to "did the view that reads it get asked to re-render." Measured
+    /// impact (sim-verify, 2s animated scroll): `loadedView.body` re-evaluated ~29x and
+    /// `DoodleHeaderView.scene` alone burned ~1.3s of cumulative main-thread time recomputing
+    /// planet positions/tonight's headline that hadn't changed at all — see the commit message
+    /// for the full before/after numbers.
+    ///
+    /// `ScrollOffsetBox` (below) fixes this by moving the actual VALUE out of `@State` and into a
+    /// plain `@Observable` reference. `ForecastPageView`'s own body (including `loadedView`) never
+    /// reads `.y` — it only ever passes this box down — so mutating `.y` every frame doesn't
+    /// invalidate `ForecastPageView`'s body at all. The one place `.y` IS read is `ParallaxHero`'s
+    /// own `body`, a small dedicated wrapper around the hero (see its doc comment): the
+    /// Observation framework tracks property reads per-`View`-body, so that read only invalidates
+    /// `ParallaxHero`, never its ancestors. Kept as `@State` here (rather than a plain `let`) so
+    /// the SAME box instance persists across `ForecastPageView`'s own re-inits for this page's
+    /// lifetime, exactly like any other `@State`-held reference type.
+    @State private var scrollOffsetBox = ScrollOffsetBox()
     /// True-sky doodle QC fix (defect 1, "coordinate space regressed upward") — see `body`'s doc
     /// comment for the full investigation. The hero needs to be pulled up by however much the
     /// scroll content naturally rests below the true screen top at launch, but that amount
@@ -148,8 +171,12 @@ struct ForecastPageView: View {
     /// the scroll view's own top edge before it's clipped away, never past it. Shifting the
     /// `ScrollView`'s own frame is what actually reaches the missing space above it.
     private func heroHeader() -> some View {
-        DoodleHeaderView(current: nil, caption: nil)
-            .parallax(scrollOffset: scrollOffset)
+        // Scroll-jank fix: `.parallax` is applied inside `ParallaxHero`, not here — see
+        // `ScrollOffsetBox`'s and `ParallaxHero`'s doc comments for why the read has to live in
+        // its own small `View` for Observation's per-body invalidation tracking to help at all.
+        ParallaxHero(box: scrollOffsetBox) {
+            DoodleHeaderView(current: nil, caption: nil)
+        }
     }
 
     /// A zero-size sentinel meant to sit as the very first child of a scrolling `VStack`, right
@@ -170,11 +197,13 @@ struct ForecastPageView: View {
     }
 
     /// Forwards a scroll offset reading both up to `onScrollOffsetChange` (the scroll-aware top
-    /// bar's existing consumer) and into local `scrollOffset` state (the hero parallax's
-    /// consumer) — one probe, two readers.
+    /// bar's existing consumer, which already only writes its own `@State` on threshold
+    /// crossings — see `ForecastView.updateHeroScrolledAway`) and into `scrollOffsetBox` (the
+    /// hero parallax's consumer) — one probe, two readers. Mutating `scrollOffsetBox.y` here does
+    /// NOT invalidate `ForecastPageView`'s own body — see `ScrollOffsetBox`'s doc comment.
     private func reportScrollOffset(_ offset: CGFloat) {
         onScrollOffsetChange(offset)
-        scrollOffset = offset
+        scrollOffsetBox.y = offset
     }
 
     // MARK: - Loading
@@ -295,25 +324,31 @@ struct ForecastPageView: View {
                 ScrollView {
                 VStack(spacing: 0) {
                     heroTopOffsetSentinel()
-                    DoodleHeaderView(
-                        current: payload.currentConditions,
-                        caption: viewModel.doodleCaptionLine(location: location, payload: payload, unit: unitsSettings.unit),
-                        date: displayNow,
-                        sunrise: payload.daily.first?.sunrise,
-                        sunset: payload.daily.first?.sunset,
-                        forcedCondition: viewModel.forcedDoodleCondition,
-                        forcedTimeOfDay: viewModel.forcedDoodleTimeOfDay,
-                        location: location,
-                        skyForcedOverrides: viewModel.skyForcedOverrides,
-                        forceTrueSkyPlanets: viewModel.forceTrueSkyPlanets,
-                        forceISSStreakNow: viewModel.forceISSStreakNow,
-                        forceMeteorStreaks: viewModel.forceMeteorStreaks,
-                        forceConjunctionScene: viewModel.forceConjunctionScene,
-                        forceLaunchContrail: viewModel.forceLaunchContrail,
-                        hourly: payload.hourly,
-                        onCaptionTap: { scrollToSkyCard(proxy: proxy) }
-                    )
-                    .parallax(scrollOffset: scrollOffset)
+                    // Scroll-jank fix: wrapped in `ParallaxHero` so the per-frame parallax read
+                    // (`scrollOffsetBox.y`) is isolated to that small view's own body — see
+                    // `ScrollOffsetBox`'s doc comment. Everything below this (the sheet — hourly/
+                    // daily forecast, Tonight's Sky card) is a SIBLING of `ParallaxHero`, not a
+                    // descendant, so it no longer re-evaluates on every scroll frame at all.
+                    ParallaxHero(box: scrollOffsetBox) {
+                        DoodleHeaderView(
+                            current: payload.currentConditions,
+                            caption: viewModel.doodleCaptionLine(location: location, payload: payload, unit: unitsSettings.unit),
+                            date: displayNow,
+                            sunrise: payload.daily.first?.sunrise,
+                            sunset: payload.daily.first?.sunset,
+                            forcedCondition: viewModel.forcedDoodleCondition,
+                            forcedTimeOfDay: viewModel.forcedDoodleTimeOfDay,
+                            location: location,
+                            skyForcedOverrides: viewModel.skyForcedOverrides,
+                            forceTrueSkyPlanets: viewModel.forceTrueSkyPlanets,
+                            forceISSStreakNow: viewModel.forceISSStreakNow,
+                            forceMeteorStreaks: viewModel.forceMeteorStreaks,
+                            forceConjunctionScene: viewModel.forceConjunctionScene,
+                            forceLaunchContrail: viewModel.forceLaunchContrail,
+                            hourly: payload.hourly,
+                            onCaptionTap: { scrollToSkyCard(proxy: proxy) }
+                        )
+                    }
 
                     sheetSurface {
                         VStack(alignment: .leading, spacing: 20) {
@@ -563,6 +598,35 @@ struct ForecastPageView: View {
                 )
             )
             .padding(.top, -DoodleHeaderView.sheetOverlap)
+    }
+}
+
+/// Scroll-jank fix (lead QC defect: "sluggish scrolling on the Forecast page"). Carries the
+/// hero's live scroll offset as a plain `@Observable` reference, deliberately kept OUT of
+/// `ForecastPageView`'s own `@State` — see that property's doc comment for the full root-cause
+/// story. `ForecastPageView` only ever hands this box down; it never reads `.y` itself, so
+/// mutating `.y` on every scroll frame doesn't invalidate `ForecastPageView`'s body at all. The
+/// only place `.y` is actually read is `ParallaxHero.body` below, which is what makes Observation's
+/// per-`View`-body dependency tracking actually pay off: only that one small wrapper re-evaluates
+/// per scroll frame, not the whole page.
+@Observable
+final class ScrollOffsetBox {
+    var y: CGFloat = 0
+}
+
+/// Wraps the hero so the parallax offset read (`box.y`) happens inside THIS view's own `body`,
+/// not `ForecastPageView`'s — see `ScrollOffsetBox`'s doc comment for why that isolation is the
+/// entire point of this type existing. `content` is rebuilt every scroll frame (unavoidable — the
+/// parallax offset itself must update every frame for the hero to visibly track the scroll), but
+/// everything else on the page (the sheet: hourly/daily forecast, Tonight's Sky card) lives as
+/// `ForecastPageView.loadedView`'s OTHER children, siblings of this wrapper rather than
+/// descendants, so they no longer re-evaluate just because the hero moved.
+private struct ParallaxHero<Content: View>: View {
+    let box: ScrollOffsetBox
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        content().parallax(scrollOffset: box.y)
     }
 }
 
