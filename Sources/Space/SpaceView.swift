@@ -1,15 +1,18 @@
 import SwiftUI
 
-/// The Space tab (work package WP-K): launches, solar activity, and a 30-day sky calendar, three
-/// `SheetCard`s on a `.systemGroupedBackground` scroll surface -- the same grouped-card chrome as
-/// `RankingsView`, with a standard system nav bar (not Forecast's custom full-bleed chrome), per
-/// work order.
+/// The Space tab (work package WP-K, then the all-dark Space tab redesign): a next-launch hero,
+/// launch schedule, solar activity, and a 30-day sky calendar — four cards on the Space tab's own
+/// always-dark surface (`SpaceDarkBackground`), regardless of the device's system light/dark
+/// mode. This is the second surface in the app (after `TonightSkyCard`'s night panel) to commit
+/// to an inverted identity — here the WHOLE screen does it, not just one card, since a page about
+/// the night sky and rocket launches reads more like an observatory console than a grouped
+/// settings list.
 ///
-/// **Editor's-Choice sky-surfaces elevation:** these three cards stay ordinary `SheetCard`s (the
-/// inverted "night panel" treatment is `TonightSkyCard`'s alone, per that work package's spec) --
-/// this pass is about row-level polish: fixing the Launch Schedule's double-TBD bug, adding a
-/// T-minus countdown and "Unknown Payload" handling, restructuring THE SUN into a stat+gauge
-/// layout, and giving SKY CALENDAR rows a leading glyph column with same-day moon/meteor dedup.
+/// **Why every card here is a `SpacePanelCard`, not `SheetCard`:** `SheetCard` resolves its fill
+/// to `.secondarySystemGroupedBackground`, which is white in light mode — exactly the "flash of
+/// white" the redesign explicitly rules out ("Space tab still dark [in light mode], no white
+/// flashes"). `SpacePanelCard` uses an explicit `white.opacity(0.06)` fill instead, so it never
+/// depends on the system color scheme.
 struct SpaceView: View {
     /// Sim-verify only: `-scrollSpaceTo sun|calendar` (see `NavigationShell`) scrolls straight to
     /// a card below the fold at launch -- `simctl` can't scroll, mirroring `ForecastPageView`'s
@@ -26,41 +29,66 @@ struct SpaceView: View {
     /// those rows entirely; the Launch Schedule and Sun cards don't use this at all.
     var location: SavedLocation?
     var scrollTarget: ScrollTarget? = nil
+    /// Sim-verify only: `-showLaunchDetail` opens the detail sheet for the first available launch
+    /// at launch (`simctl` can't tap a row) — pairs naturally with `-forceLaunchesSample` so a
+    /// screenshot doesn't depend on a real schedule existing.
+    var showLaunchDetailAtLaunch: Bool = false
 
     @State private var hasScrolledToTarget = false
+    @State private var hasShownLaunchDetailHook = false
+    @State private var presentedLaunch: UpcomingLaunch?
+    @Environment(\.scenePhase) private var scenePhase
 
     private static let sunCardId = "spaceSunCard"
     private static let calendarCardId = "spaceCalendarCard"
 
     var body: some View {
         NavigationStack {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(spacing: 16) {
-                        launchScheduleCard
-                        sunCard.id(Self.sunCardId)
-                        skyCalendarCard.id(Self.calendarCardId)
+            ZStack {
+                SpaceDarkBackground()
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            nextLaunchHeroCard
+                            launchScheduleCard
+                            sunCard.id(Self.sunCardId)
+                            skyCalendarCard.id(Self.calendarCardId)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 16)
+                        // Extra clearance so the last card's content isn't flush against the
+                        // floating bottom bar (`NavigationShell.floatingBar`), which overlays this
+                        // screen -- same treatment `ForecastPageView.sheetSurface` gives its own
+                        // scroll content.
+                        .padding(.bottom, 70)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 16)
-                    // Extra clearance so the last card's content isn't flush against the floating
-                    // bottom bar (`NavigationShell.floatingBar`), which overlays this screen --
-                    // same treatment `ForecastPageView.sheetSurface` gives its own scroll content.
-                    .padding(.bottom, 70)
-                }
-                .onAppear {
-                    scrollToTargetIfNeeded(proxy: proxy)
+                    .scrollContentBackground(.hidden)
+                    .onAppear {
+                        scrollToTargetIfNeeded(proxy: proxy)
+                    }
                 }
             }
-            .background(Color(.systemGroupedBackground))
             .navigationTitle("Space")
             .navigationBarTitleDisplayMode(.inline)
+            // Dark-styled title/back-button ink regardless of the device's system appearance --
+            // this screen's own identity is always dark (work order: "Space tab still dark [in
+            // light mode], no white flashes").
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
         .task {
             await viewModel.refresh()
         }
         .task(id: location?.id) {
             await viewModel.updateLocationAndRecomputeCalendar(location)
+        }
+        .sheet(item: $presentedLaunch) { launch in
+            LaunchDetailSheet(launch: launch)
+        }
+        .onAppear {
+            showLaunchDetailHookIfNeeded()
+        }
+        .onChange(of: viewModel.launchesState) {
+            showLaunchDetailHookIfNeeded()
         }
     }
 
@@ -73,10 +101,123 @@ struct SpaceView: View {
         }
     }
 
+    /// `-showLaunchDetail` sim-verify hook: presents the soonest launch's detail sheet as soon as
+    /// the schedule has actually loaded (`simctl` can't tap a row to open it). Guarded so it only
+    /// ever fires once, whenever `launchesState` first resolves to `.loaded` with a launch to
+    /// show.
+    private func showLaunchDetailHookIfNeeded() {
+        guard showLaunchDetailAtLaunch, !hasShownLaunchDetailHook else { return }
+        guard case .loaded(let launches, _) = viewModel.launchesState, let first = launches.first else { return }
+        hasShownLaunchDetailHook = true
+        presentedLaunch = first
+    }
+
+    // MARK: - Card 0: Next Launch hero
+
+    /// The soonest `.go` launch, large -- mission name, provider/vehicle, pad location, a T-minus
+    /// countdown, and the class silhouette with a soft glow. Only ever considers a `.go` launch
+    /// (a Hold or TBD launch has no confident T-0 worth headlining); falls back to a quiet line
+    /// when none is cached, per work order ("no .go launch cached: quiet fallback").
+    private var nextGoLaunch: UpcomingLaunch? {
+        guard case .loaded(let launches, _) = viewModel.launchesState else { return nil }
+        return launches.first { $0.status == .go }
+    }
+
+    @ViewBuilder
+    private var nextLaunchHeroCard: some View {
+        SpacePanelCard(title: "NEXT LAUNCH") {
+            switch viewModel.launchesState {
+            case .loading:
+                cardSkeleton
+            case .unavailable:
+                quietLine("Launch schedule unavailable right now.")
+            case .loaded:
+                if let launch = nextGoLaunch {
+                    heroContent(launch)
+                } else {
+                    quietLine("Next launch times firm up closer to the day.")
+                }
+            }
+        }
+    }
+
+    @State private var heroCountdownText: String?
+
+    private func heroContent(_ launch: UpcomingLaunch) -> some View {
+        let vehicleClass = LaunchVehicleClass.classify(vehicle: launch.vehicle, provider: launch.provider)
+        return Button {
+            presentedLaunch = launch
+        } label: {
+            HStack(alignment: .top, spacing: 16) {
+                RocketSilhouette(vehicleClass: vehicleClass, size: 56, tint: .white.opacity(0.92))
+                    .shadow(color: .white.opacity(0.55), radius: 16)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(launch.missionName)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                    Text("\(launch.providerAbbrev) \u{00B7} \(launch.vehicle)")
+                        .font(.subheadline)
+                        .foregroundStyle(Color.white.opacity(0.65))
+                    Text(launch.locationDisplay)
+                        .font(.footnote)
+                        .foregroundStyle(Color.white.opacity(0.5))
+                    if let heroCountdownText {
+                        Text(heroCountdownText)
+                            .font(.system(.title2, design: .rounded).weight(.semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(Color.clearSkyAccentOnDark)
+                            .padding(.top, 4)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 4)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onAppear {
+            recomputeHeroCountdown(launch)
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                recomputeHeroCountdown(launch)
+            }
+        }
+    }
+
+    /// Recomputed on appear/foreground only -- spec: "no per-second live timer; minute precision
+    /// is fine." `viewModel.referenceDateForDisplay` is real `Date()` unless `-forceDate`
+    /// overrides it, matching every other "now" in this screen.
+    private func recomputeHeroCountdown(_ launch: UpcomingLaunch) {
+        heroCountdownText = Self.tMinusText(net: launch.net, now: viewModel.referenceDateForDisplay)
+    }
+
+    /// "T\u{2212}2d 4h" / "T\u{2212}3h 12m" -- largest two units, rounded to the minute. `nil`
+    /// once the countdown has reached (or passed) zero -- the hero simply stops showing a stale
+    /// countdown rather than displaying a negative one.
+    private static func tMinusText(net: Date, now: Date) -> String? {
+        let seconds = net.timeIntervalSince(now)
+        guard seconds > 0 else { return nil }
+        let totalMinutes = Int((seconds / 60).rounded())
+        let days = totalMinutes / (24 * 60)
+        let hours = (totalMinutes % (24 * 60)) / 60
+        let minutes = totalMinutes % 60
+        if days > 0 {
+            return hours > 0 ? "T\u{2212}\(days)d \(hours)h" : "T\u{2212}\(days)d"
+        } else if hours > 0 {
+            return minutes > 0 ? "T\u{2212}\(hours)h \(minutes)m" : "T\u{2212}\(hours)h"
+        } else if minutes > 0 {
+            return "T\u{2212}\(minutes)m"
+        }
+        return "T\u{2212}0m"
+    }
+
     // MARK: - Card 1: Launch Schedule
 
     private var launchScheduleCard: some View {
-        SheetCard(title: "LAUNCH SCHEDULE") {
+        SpacePanelCard(title: "LAUNCH SCHEDULE") {
             VStack(alignment: .leading, spacing: 0) {
                 switch viewModel.launchesState {
                 case .loading:
@@ -91,7 +232,7 @@ struct SpaceView: View {
                             staleCaption("Showing the last cached schedule -- network unavailable.")
                         }
                         launchRows(launches)
-                        Divider()
+                        SpaceHairlineDivider().padding(.vertical, 8)
                         witLine(PhraseBank.skyLaunch(date: viewModel.referenceDateForDisplay, locationId: launchWitLocationId))
                     }
                 }
@@ -106,17 +247,19 @@ struct SpaceView: View {
                 Text(Self.dayHeaderText(for: group.day).uppercased())
                     .font(.caption2.weight(.semibold))
                     .tracking(0.6)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.5))
                     .padding(.top, groupIndex == 0 ? 0 : 10)
                     .padding(.bottom, 4)
                 ForEach(Array(group.launches.enumerated()), id: \.element.id) { rowIndex, launch in
-                    LaunchRowView(launch: launch, referenceDate: viewModel.referenceDateForDisplay)
+                    LaunchRowView(launch: launch, referenceDate: viewModel.referenceDateForDisplay) {
+                        presentedLaunch = launch
+                    }
                     if rowIndex < group.launches.count - 1 {
-                        Divider()
+                        SpaceHairlineDivider()
                     }
                 }
                 if groupIndex < grouped.count - 1 {
-                    Divider().padding(.top, 6)
+                    SpaceHairlineDivider().padding(.top, 6)
                 }
             }
         }
@@ -132,7 +275,7 @@ struct SpaceView: View {
     // MARK: - Card 2: The Sun
 
     private var sunCard: some View {
-        SheetCard(title: "THE SUN") {
+        SpacePanelCard(title: "THE SUN") {
             VStack(alignment: .leading, spacing: 0) {
                 switch viewModel.solarState {
                 case .loading:
@@ -144,7 +287,7 @@ struct SpaceView: View {
                         staleCaption("Showing the last cached solar data -- network unavailable.")
                     }
                     sunRows(state)
-                    Divider()
+                    SpaceHairlineDivider().padding(.vertical, 8)
                     witLine(PhraseBank.skySolar(
                         level: state.outlook.activityLevel,
                         date: viewModel.referenceDateForDisplay,
@@ -155,11 +298,10 @@ struct SpaceView: View {
         }
     }
 
-    /// Stat row + gauge (Editor's-Choice restructure): a small activity gauge on the left (see
-    /// `SolarActivityGauge`) with the level word beneath it, a sunspot-count stat plus flare/
-    /// aurora-tie-in lines on the right. Status colors (green/orange/red) live ONLY on the gauge
-    /// arc -- every text label here stays plain secondary/primary ink, per the app's "text never
-    /// wears decoration colors" dataviz discipline.
+    /// Stat row + gauge: a small activity gauge on the left with the level word beneath it, a
+    /// sunspot-count stat plus flare/aurora-tie-in lines on the right. Status colors (green/
+    /// orange/red) live ONLY on the gauge arc -- every text label here stays plain white/white-
+    /// opacity ink, per the app's "text never wears decoration colors" dataviz discipline.
     private func sunRows(_ state: SpaceViewModel.SolarCardState) -> some View {
         let outlook = state.outlook
         return HStack(alignment: .top, spacing: 18) {
@@ -167,6 +309,7 @@ struct SpaceView: View {
                 SolarActivityGauge(level: outlook.activityLevel)
                 Text(outlook.activityLevel.description.capitalized)
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -174,23 +317,24 @@ struct SpaceView: View {
                     Text("SUNSPOTS")
                         .font(.caption2.weight(.semibold))
                         .tracking(0.5)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.white.opacity(0.5))
                     Text(outlook.sunspotNumber.map(String.init) ?? "\u{2014}")
                         .font(.title3.weight(.semibold))
                         .monospacedDigit()
+                        .foregroundStyle(.white)
                 }
 
                 if let flare = outlook.latestNotableFlare {
                     Text("\(flare.classString) flare peaked \(Self.timeFormatter.string(from: flare.peakTime))")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.white.opacity(0.65))
                         .monospacedDigit()
                 }
 
                 if outlook.gScaleForecastMax >= 1, let dayName = state.forecastDayName {
                     Text("G\(outlook.gScaleForecastMax) storm forecast \(dayName) \u{2014} aurora odds improve")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.white.opacity(0.65))
                 }
             }
 
@@ -202,7 +346,7 @@ struct SpaceView: View {
     // MARK: - Card 3: Sky Calendar
 
     private var skyCalendarCard: some View {
-        SheetCard(title: "SKY CALENDAR") {
+        SpacePanelCard(title: "SKY CALENDAR") {
             VStack(alignment: .leading, spacing: 0) {
                 let rows = Array(Self.dedupedCalendarEvents(viewModel.calendarEvents).prefix(12))
                 if rows.isEmpty {
@@ -211,7 +355,7 @@ struct SpaceView: View {
                     ForEach(Array(rows.enumerated()), id: \.element.id) { index, event in
                         calendarRow(event)
                         if index < rows.count - 1 {
-                            Divider()
+                            SpaceHairlineDivider()
                         }
                     }
                 }
@@ -219,12 +363,11 @@ struct SpaceView: View {
         }
     }
 
-    /// Same-day dedup (Editor's-Choice spec): when a meteor-peak row already exists for a
-    /// calendar day, that day's standalone "Full moon"/"New moon" row is dropped -- the peak
-    /// row's own conditions note (`SkyCalendar.conditionsNote`) already names the Moon phase, so
-    /// keeping both reads as a duplicate rather than two distinct events. Runs on the FULL event
-    /// list before `prefix(12)` truncates it, so a dedup never silently costs the calendar a row
-    /// it would otherwise have shown.
+    /// Same-day dedup: when a meteor-peak row already exists for a calendar day, that day's
+    /// standalone "Full moon"/"New moon" row is dropped -- the peak row's own conditions note
+    /// (`SkyCalendar.conditionsNote`) already names the Moon phase, so keeping both reads as a
+    /// duplicate rather than two distinct events. Runs on the FULL event list before `prefix(12)`
+    /// truncates it, so a dedup never silently costs the calendar a row it would otherwise show.
     private static func dedupedCalendarEvents(_ events: [SkyCalendar.Event]) -> [SkyCalendar.Event] {
         let calendar = Calendar(identifier: .gregorian)
         let meteorPeakDays = Set(
@@ -268,15 +411,16 @@ struct SpaceView: View {
             Text(event.date.formatted(.dateTime.month(.abbreviated).day()))
                 .font(.subheadline)
                 .monospacedDigit()
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.white.opacity(0.65))
                 .frame(width: 46, alignment: .leading)
             VStack(alignment: .leading, spacing: 2) {
                 Text(event.title)
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
                 if !event.note.isEmpty {
                     Text(event.note)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.white.opacity(0.65))
                 }
             }
             Spacer(minLength: 0)
@@ -290,19 +434,19 @@ struct SpaceView: View {
         case .meteorPeak:
             MeteorStreakGlyph()
         case .fullMoon:
-            MoonPhaseDisc(illumination: 1, waxing: true, diameter: 18, style: .light)
+            MoonPhaseDisc(illumination: 1, waxing: true, diameter: 18, style: .dark)
         case .newMoon:
-            MoonPhaseDisc(illumination: 0, waxing: true, diameter: 18, style: .light, showsRim: true)
+            MoonPhaseDisc(illumination: 0, waxing: true, diameter: 18, style: .dark, showsRim: true)
         case .pairing:
             PairingGlyph()
         case .solstice:
             Image(systemName: "sun.max")
                 .font(.system(size: 15))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.white.opacity(0.65))
         case .equinox:
             Image(systemName: "sun.min")
                 .font(.system(size: 15))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color.white.opacity(0.65))
         case .other:
             Color.clear
         }
@@ -313,21 +457,21 @@ struct SpaceView: View {
     private func quietLine(_ text: String) -> some View {
         Text(text)
             .font(.footnote)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.white.opacity(0.65))
             .padding(.vertical, 8)
     }
 
     private func staleCaption(_ text: String) -> some View {
         Text(text)
             .font(.caption2)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.white.opacity(0.5))
             .padding(.bottom, 6)
     }
 
     private func witLine(_ text: String) -> some View {
         Text(text)
             .font(.footnote)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.white.opacity(0.65))
             .padding(.top, 8)
     }
 
@@ -343,7 +487,7 @@ struct SpaceView: View {
         VStack(alignment: .leading, spacing: 10) {
             ForEach(0..<3, id: \.self) { _ in
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(Color(.tertiarySystemFill))
+                    .fill(Color.white.opacity(0.12))
                     .frame(height: 16)
             }
         }
@@ -363,61 +507,74 @@ struct SpaceView: View {
 /// One Launch Schedule row -- a `View` struct (not a free function like the rest of this file's
 /// row builders) so it can own the small piece of `@State` its T-minus countdown needs (spec:
 /// "recompute on appear, no live timer" -- computed once in `onAppear`, not a `TimelineView`/
-/// per-second refresh).
+/// per-second refresh). Wrapped in a `Button` (work item 4) so tapping the row opens the launch
+/// detail sheet.
 private struct LaunchRowView: View {
     let launch: UpcomingLaunch
     /// "Now" for the countdown math -- `SpaceViewModel.referenceDateForDisplay` (real `Date()`,
     /// or a `-forceDate` override for sim-verify), NOT re-read live, so a forced/sample launch
     /// schedule gets a deterministic, screenshot-stable countdown.
     let referenceDate: Date
+    let onSelect: () -> Void
 
     @State private var countdownText: String?
 
+    private var vehicleClass: LaunchVehicleClass {
+        LaunchVehicleClass.classify(vehicle: launch.vehicle, provider: launch.provider)
+    }
+
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: leadingGlyphName)
-                .font(.system(size: 16))
-                .foregroundStyle(.secondary)
-                .frame(width: 16, height: 20)
+        Button(action: onSelect) {
+            HStack(alignment: .top, spacing: 10) {
+                // Rocket-class silhouette (~30pt, white 0.85) replaces the old plain SF-Symbol
+                // status glyph -- work item 3's "Launch rows get the class glyph."
+                RocketSilhouette(vehicleClass: vehicleClass, size: 30, tint: .white.opacity(0.85))
+                    .frame(width: 30, height: 30)
 
-            VStack(alignment: .leading, spacing: 2) {
-                if isPlaceholderMissionName {
-                    // "Unknown Payload" rows: promote provider + vehicle to the primary line and
-                    // drop the placeholder name entirely, per spec -- a bare "Unknown Payload"
-                    // heading tells the reader nothing; "CASC · Long March" does.
-                    Text(providerVehicleLine)
-                        .font(.subheadline.weight(.semibold))
-                } else {
-                    Text(launch.missionName)
-                        .font(.subheadline.weight(.semibold))
-                    Text(providerVehicleLine)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-                Text(launch.locationDisplay)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer(minLength: 8)
-
-            VStack(alignment: .trailing, spacing: 4) {
-                if let timeText = Self.timeText(for: launch) {
-                    Text(timeText)
-                        .font(.subheadline)
-                        .monospacedDigit()
-                }
-                if let countdownText {
-                    Text(countdownText)
+                VStack(alignment: .leading, spacing: 2) {
+                    if isPlaceholderMissionName {
+                        // "Unknown Payload" rows: promote provider + vehicle to the primary line
+                        // and drop the placeholder name entirely, per spec -- a bare "Unknown
+                        // Payload" heading tells the reader nothing; "CASC · Long March" does.
+                        Text(providerVehicleLine)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.white)
+                    } else {
+                        Text(launch.missionName)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.white)
+                        Text(providerVehicleLine)
+                            .font(.caption)
+                            .foregroundStyle(Color.white.opacity(0.65))
+                            .lineLimit(1)
+                    }
+                    Text(launch.locationDisplay)
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
+                        .foregroundStyle(Color.white.opacity(0.5))
                 }
-                statusChip(launch.status)
+
+                Spacer(minLength: 8)
+
+                VStack(alignment: .trailing, spacing: 4) {
+                    if let timeText = Self.timeText(for: launch) {
+                        Text(timeText)
+                            .font(.subheadline)
+                            .monospacedDigit()
+                            .foregroundStyle(.white)
+                    }
+                    if let countdownText {
+                        Text(countdownText)
+                            .font(.caption2)
+                            .foregroundStyle(Color.white.opacity(0.65))
+                            .monospacedDigit()
+                    }
+                    LaunchStatusChip(status: launch.status)
+                }
             }
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
         }
-        .padding(.vertical, 8)
+        .buttonStyle(.plain)
         .onAppear {
             countdownText = Self.countdownText(
                 net: launch.net, now: referenceDate, status: launch.status, precision: launch.netPrecision
@@ -432,30 +589,6 @@ private struct LaunchRowView: View {
 
     private var providerVehicleLine: String {
         "\(Self.displayProviderAbbrev(launch)) \u{00B7} \(launch.vehicle)"
-    }
-
-    private var leadingGlyphName: String {
-        switch launch.status {
-        case .go: return "arrow.up.circle"
-        case .hold: return "pause.circle"
-        case .tbd: return "questionmark.circle"
-        }
-    }
-
-    private func statusChip(_ status: LaunchStatus) -> some View {
-        let (label, fill, foreground): (String, Color, Color) = {
-            switch status {
-            case .go: return ("GO", Color.clearSkyAccent, .white)
-            case .tbd: return ("TBD", Color(.tertiarySystemFill), .secondary)
-            case .hold: return ("HOLD", Color.orange.opacity(0.18), .orange)
-            }
-        }()
-        return Text(label)
-            .font(.caption2.weight(.bold))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(fill, in: Capsule())
-            .foregroundStyle(foreground)
     }
 
     /// The trailing time slot. `nil` (an empty slot, chip-only) exactly when it would otherwise
@@ -518,9 +651,11 @@ private struct LaunchRowView: View {
 
 // MARK: - Sun gauge
 
-/// A 270°-sweep activity gauge -- Editor's-Choice spec: "thin 4pt track (quaternary fill), filled
-/// portion by level ... in the RESERVED status colors ... never the accent." The 90° gap is
-/// centered at the bottom, standard speedometer orientation.
+/// A 270°-sweep activity gauge -- dark-surface pass: track uses an explicit `white.opacity(0.15)`
+/// (the old `.quaternaryLabel` resolves against the SYSTEM color scheme, which is wrong on a
+/// screen that forces a dark identity regardless of device appearance); the three status hues are
+/// brightened versions of the originals so they read clearly against the dark indigo fill (spec:
+/// "gauge colors re-tuned for dark: keep status hues but raise brightness").
 private struct SolarActivityGauge: View {
     let level: SolarActivityLevel
 
@@ -536,9 +671,9 @@ private struct SolarActivityGauge: View {
 
     private var color: Color {
         switch level {
-        case .quiet: return Color(.systemGreen).opacity(0.7)
-        case .active: return .orange
-        case .stormy: return .red
+        case .quiet: return Color(red: 0.40, green: 0.88, blue: 0.55)
+        case .active: return Color(red: 1.0, green: 0.66, blue: 0.26)
+        case .stormy: return Color(red: 1.0, green: 0.38, blue: 0.38)
         }
     }
 
@@ -546,7 +681,7 @@ private struct SolarActivityGauge: View {
         ZStack {
             Circle()
                 .trim(from: 0, to: Self.sweepDegrees / 360)
-                .stroke(Color(.quaternaryLabel), style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .stroke(Color.white.opacity(0.15), style: StrokeStyle(lineWidth: 4, lineCap: .round))
                 .rotationEffect(Self.startRotation)
             Circle()
                 .trim(from: 0, to: (Self.sweepDegrees / 360) * fraction)
@@ -565,8 +700,8 @@ private struct SolarActivityGauge: View {
 // MARK: - Sky calendar glyphs
 
 /// Meteor-shower peak glyph: a diagonal streak with 3 trailing dots fading toward the tail --
-/// spec's custom option, kept plain `.secondary` (not a decoration color) per the app's dataviz
-/// discipline.
+/// dark-surface pass: white-tinted (was `Color.secondary`, which resolves against the system
+/// color scheme) so it reads correctly on this screen's always-dark surface.
 private struct MeteorStreakGlyph: View {
     var body: some View {
         ZStack {
@@ -574,21 +709,22 @@ private struct MeteorStreakGlyph: View {
                 path.move(to: CGPoint(x: 5, y: 5))
                 path.addLine(to: CGPoint(x: 17, y: 17))
             }
-            .stroke(Color.secondary.opacity(0.9), style: StrokeStyle(lineWidth: 2, lineCap: .round))
-            Circle().fill(Color.secondary.opacity(0.55)).frame(width: 3, height: 3).position(x: 10, y: 10)
-            Circle().fill(Color.secondary.opacity(0.35)).frame(width: 2.4, height: 2.4).position(x: 7.5, y: 7.5)
-            Circle().fill(Color.secondary.opacity(0.2)).frame(width: 2, height: 2).position(x: 5.5, y: 5.5)
+            .stroke(Color.white.opacity(0.85), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+            Circle().fill(Color.white.opacity(0.55)).frame(width: 3, height: 3).position(x: 10, y: 10)
+            Circle().fill(Color.white.opacity(0.35)).frame(width: 2.4, height: 2.4).position(x: 7.5, y: 7.5)
+            Circle().fill(Color.white.opacity(0.2)).frame(width: 2, height: 2).position(x: 5.5, y: 5.5)
         }
         .frame(width: 22, height: 22)
     }
 }
 
-/// Close-pairing glyph: two overlapping 6pt outline circles.
+/// Close-pairing glyph: two overlapping 6pt outline circles -- dark-surface pass, same white-tint
+/// rationale as `MeteorStreakGlyph`.
 private struct PairingGlyph: View {
     var body: some View {
         ZStack {
-            Circle().stroke(Color.secondary.opacity(0.75), lineWidth: 1.2).frame(width: 6, height: 6).offset(x: -2.2)
-            Circle().stroke(Color.secondary.opacity(0.75), lineWidth: 1.2).frame(width: 6, height: 6).offset(x: 2.2)
+            Circle().stroke(Color.white.opacity(0.75), lineWidth: 1.2).frame(width: 6, height: 6).offset(x: -2.2)
+            Circle().stroke(Color.white.opacity(0.75), lineWidth: 1.2).frame(width: 6, height: 6).offset(x: 2.2)
         }
         .frame(width: 22, height: 22)
     }

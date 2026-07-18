@@ -109,6 +109,36 @@ struct TrueSkyLayer: View {
                     )
                     .opacity(iss.opacity)
                 }
+
+                if let conjunction = conjunctionRenderData {
+                    let planetPoint = CGPoint(
+                        x: proxy.size.width * conjunction.planetXFraction,
+                        y: proxy.size.height * conjunction.planetYFraction
+                    )
+                    let moonPoint = CGPoint(
+                        x: planetPoint.x + conjunction.moonSide * Self.conjunctionOffset,
+                        y: planetPoint.y - 6
+                    )
+                    let realMoonPoint = CGPoint(
+                        x: proxy.size.width * Self.realNightMoonXFraction,
+                        y: proxy.size.height * Self.realNightMoonYFraction
+                    )
+                    // "SKIP if the real geometry already places both bodies in-scene (avoid
+                    // doubles)": `CelestialBody` only draws a real moon disc at night (dusk shows
+                    // the setting sun instead — see that file's `isNight` gate), at a FIXED
+                    // decorative position, not this pairing's real one. If the mini-moon this
+                    // layer would draw lands close enough to that fixed disc, painting a second
+                    // small crescent right next to it would read as a rendering glitch (two
+                    // moons), not a deliberate pairing indicator — so it's skipped, and the real
+                    // moon disc (already on screen) stands in for it instead.
+                    let readsAsDouble = timeOfDay == .night
+                        && hypot(moonPoint.x - realMoonPoint.x, moonPoint.y - realMoonPoint.y) < Self.doubleAvoidanceThresholdPoints
+                    if !readsAsDouble {
+                        MoonPhaseDisc(illumination: conjunction.illumination, waxing: conjunction.waxing, diameter: 13, style: .dark)
+                            .position(moonPoint)
+                            .opacity(conjunction.opacity)
+                    }
+                }
             }
         }
         .allowsHitTesting(false)
@@ -297,6 +327,82 @@ struct TrueSkyLayer: View {
             startX: Self.xFractionClamped(azimuth: pass.startAzimuthDeg),
             endX: Self.xFractionClamped(azimuth: pass.endAzimuthDeg),
             y: Self.yFraction(altitude: pass.peakAltitudeDeg),
+            opacity: multiplier
+        )
+    }
+
+    // MARK: - Conjunction scene (header space-event layers)
+
+    private struct ConjunctionRenderData {
+        var planetXFraction: CGFloat
+        var planetYFraction: CGFloat
+        /// +1 to draw the mini-moon to the right of the planet dot, -1 to the left — derived
+        /// from whether the pairing's combined azimuth sits east or west of the planet's own
+        /// real azimuth (see `conjunctionRenderData`).
+        var moonSide: CGFloat
+        var illumination: Double
+        var waxing: Bool
+        var opacity: Double
+    }
+
+    /// Fixed screen-space offset between the mini-moon and the planet dot it pairs with —
+    /// deliberately NOT to-scale with the pairing's real angular separation (which can be as
+    /// small as a fraction of a degree, often too tight to read at this scene's size): "the
+    /// pairing's separation exaggerated only enough to read," per work order.
+    private static let conjunctionOffset: CGFloat = 16
+
+    /// `CelestialBody`'s real night-moon disc sits at this fixed decorative position (xFraction
+    /// 0.72, yFraction 0.26 — see that file's `xFraction`/`yFraction` for `.night`). Duplicated
+    /// as constants here rather than referenced cross-type (those are private computed
+    /// properties on `CelestialBody`, not exposed constants) — grep both files together if that
+    /// position is ever deliberately moved.
+    private static let realNightMoonXFraction: CGFloat = 0.72
+    private static let realNightMoonYFraction: CGFloat = 0.26
+
+    /// How close (in points, at this scene's rendered size) the synthetic mini-moon would need
+    /// to land to `CelestialBody`'s real moon disc before this layer skips drawing it — "avoid
+    /// doubles," see `body`'s comment at the call site for the full rationale.
+    private static let doubleAvoidanceThresholdPoints: CGFloat = 70
+
+    /// Which planet (if any) a pairing is "Moon + this planet" — planet-planet pairings return
+    /// `nil` here on purpose. A planet-planet pairing needs no synthetic mini-anything: both
+    /// bodies already get their own real-azimuth/altitude dot from the ordinary `resolvedDots`
+    /// loop above, so two planets that are genuinely close together in the real sky already read
+    /// as close together on screen, for free — adding a second indicator on top would just be a
+    /// duplicate. Only a Moon-involving pairing needs help, since the Moon itself has no
+    /// true-sky position to plot (`CelestialBody`'s moon disc is a fixed decorative spot, not
+    /// derived from real ephemeris — see the constants above).
+    private static func moonPairedPlanet(_ pairing: Conjunctions.Pairing) -> Planets.Body? {
+        switch (pairing.bodyA, pairing.bodyB) {
+        case (.moon, .planet(let body)): return body
+        case (.planet(let body), .moon): return body
+        default: return nil
+        }
+    }
+
+    /// Resolves tonight's conjunction pairing (if any, and if it's a Moon-planet one — see
+    /// `moonPairedPlanet`) into everything `body` needs to draw the mini-moon: the paired
+    /// planet's own real xFraction/yFraction (looked up from `trueSky.planets`, the exact same
+    /// data `resolvedDots` already draws that planet's own dot from — this never invents a
+    /// planet position `TrueSkyLayer` wouldn't otherwise show), which side to offset the
+    /// mini-moon to, and tonight's real Moon illumination/waxing for an accurate little crescent.
+    /// `nil` whenever any required piece is missing — a pairing exists but the paired planet
+    /// isn't itself in view (behind the viewer, or below the altitude bar) draws nothing rather
+    /// than fabricating a position.
+    private var conjunctionRenderData: ConjunctionRenderData? {
+        guard isNightOrDusk, let multiplier = Self.visibilityMultiplier(for: condition) else { return nil }
+        guard let pairing = trueSky.conjunctionPairing, let planetBody = Self.moonPairedPlanet(pairing) else { return nil }
+        guard let illumination = trueSky.moonIlluminatedFraction, let waxing = trueSky.moonWaxing else { return nil }
+        guard let planetDot = trueSky.planets.first(where: { $0.body == planetBody }),
+              let planetX = Self.xFractionStrict(azimuth: planetDot.azimuthDegrees) else { return nil }
+
+        let moonSide: CGFloat = pairing.azimuthAtBest >= planetDot.azimuthDegrees ? 1 : -1
+        return ConjunctionRenderData(
+            planetXFraction: planetX,
+            planetYFraction: Self.yFraction(altitude: planetDot.altitudeDegrees),
+            moonSide: moonSide,
+            illumination: illumination,
+            waxing: waxing,
             opacity: multiplier
         )
     }

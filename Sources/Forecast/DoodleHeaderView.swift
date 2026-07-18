@@ -51,6 +51,11 @@ struct DoodleHeaderView: View {
     var forceTrueSkyPlanets: Bool = false
     /// `-forceISSStreakNow` — see `DoodleComposer.resolve`'s `forceISSStreakNow` parameter.
     var forceISSStreakNow: Bool = false
+    /// Header space-event layers: `-forceMeteorStreaks`, `-forceConjunctionScene`,
+    /// `-forceLaunchContrail` — see `DoodleComposer.resolve`'s matching parameters.
+    var forceMeteorStreaks: Bool = false
+    var forceConjunctionScene: Bool = false
+    var forceLaunchContrail: Bool = false
     /// Forecast-surface overhaul, work item 1 (Tonight Headline hero): tonight's hourly cloud
     /// data, needed to build `TonightHeadline.Inputs`' overcast/stargazing-score tiers. Defaulted
     /// to empty so every existing call site (loading/error/empty previews) keeps compiling
@@ -70,6 +75,10 @@ struct DoodleHeaderView: View {
     /// full `State` (rather than just the aurora band/ISS passes the true-sky doodle scene
     /// needs) additionally lets this view build `TonightHeadline.Inputs` for the hero caption.
     @State private var fetchedSkyState: SkyTonightService.State? = nil
+    /// Header space-event layers ("launch-day contrail"): cache-only, never triggers a network
+    /// fetch of its own — same sourcing `HourlySkyEvents`' launch icons already use (see
+    /// `loadLaunchCacheOnly()` below).
+    @State private var fetchedGoLaunchToday: Bool = false
 
     private var fetchedAuroraBand: AuroraBand? {
         fetchedSkyState.flatMap { SkyTonightService.availableValue($0.aurora) }?.band
@@ -77,6 +86,26 @@ struct DoodleHeaderView: View {
 
     private var fetchedISSPasses: [ISSPass] {
         fetchedSkyState.flatMap { SkyTonightService.availableValue($0.iss) } ?? []
+    }
+
+    /// Header space-event layers ("meteor streaks"/"conjunction nights"): `state(...)` already
+    /// computes meteor outlook, close pairings, and moon phase synchronously as part of the one
+    /// async call above (only ISS/aurora are genuinely networked) — so these three ride along on
+    /// `fetchedSkyState` for free, no second fetch.
+    private var fetchedMeteorOutlook: MeteorShowers.MeteorOutlook? {
+        fetchedSkyState?.meteor
+    }
+
+    private var fetchedConjunctionPairing: Conjunctions.Pairing? {
+        fetchedSkyState?.pairings.first
+    }
+
+    private var fetchedMoonIlluminatedFraction: Double? {
+        fetchedSkyState.map { $0.astronomy.moon.illuminatedPercent / 100 }
+    }
+
+    private var fetchedMoonWaxing: Bool? {
+        fetchedSkyState?.astronomy.moon.waxing
     }
 
     @Environment(UnitsSettings.self) private var unitsSettings
@@ -122,7 +151,15 @@ struct DoodleHeaderView: View {
             trueSkyAuroraBand: fetchedAuroraBand,
             trueSkyISSPasses: fetchedISSPasses,
             forceTrueSkyPlanets: forceTrueSkyPlanets,
-            forceISSStreakNow: forceISSStreakNow
+            forceISSStreakNow: forceISSStreakNow,
+            trueSkyMeteorOutlook: fetchedMeteorOutlook,
+            trueSkyConjunctionPairing: fetchedConjunctionPairing,
+            trueSkyMoonIlluminatedFraction: fetchedMoonIlluminatedFraction,
+            trueSkyMoonWaxing: fetchedMoonWaxing,
+            hasGoLaunchToday: fetchedGoLaunchToday,
+            forceMeteorStreaks: forceMeteorStreaks,
+            forceConjunctionScene: forceConjunctionScene,
+            forceLaunchContrail: forceLaunchContrail
         )
     }
 
@@ -158,6 +195,29 @@ struct DoodleHeaderView: View {
             overrides: skyForcedOverrides
         )
         fetchedSkyState = result
+    }
+
+    /// `sky/` subdirectory of the app's caches directory — the same shared cache directory
+    /// `ForecastPageView.loadSkyContext()`/`SpaceViewModel` already use for the launch cache.
+    private static var skyCacheDirectory: URL {
+        let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        return base.appendingPathComponent("sky", isDirectory: true)
+    }
+
+    /// Header space-event layers ("launch-day contrail"): cache-only read, mirroring
+    /// `ForecastPageView.loadSkyContext()`'s own launch sourcing (work order: "cache-only read,
+    /// same as the hourly icons") — never triggers a new network fetch; a cache miss/stale cache
+    /// simply means no contrail today, which is the documented, acceptable degraded behavior.
+    private func loadLaunchCacheOnly() async {
+        let launches = await LaunchesUpcoming.cachedNextLaunchesIfFresh(
+            cacheDirectory: Self.skyCacheDirectory, from: date, count: 10
+        )
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        fetchedGoLaunchToday = launches.contains {
+            $0.status == .go && calendar.isDate($0.net, inSameDayAs: date)
+        }
     }
 
     // MARK: - Tonight Headline (work item 1)
@@ -271,6 +331,16 @@ struct DoodleHeaderView: View {
         .task(id: trueSkyTaskKey) {
             await loadTrueSkyNetworkState()
         }
+        .task(id: launchCacheTaskKey) {
+            await loadLaunchCacheOnly()
+        }
+    }
+
+    /// Re-runs whenever the location or calendar day changes — same `.task(id:)` rationale as
+    /// `trueSkyTaskKey`. Kept as its own key (rather than folded into `trueSkyTaskKey`) since this
+    /// cache-only read doesn't depend on `skyForcedOverrides` at all.
+    private var launchCacheTaskKey: String {
+        "\(location?.id.uuidString ?? "none")|\(Calendar.current.startOfDay(for: date).timeIntervalSince1970)"
     }
 
     /// The condition symbol + big temperature + "Feels like" line — PRD Section 6 item 2's

@@ -173,6 +173,28 @@ enum DoodleComposer {
         var planets: [TrueSkyPlanetDot] = []
         var auroraBand: AuroraBand? = nil
         var activeISSPass: ISSPass? = nil
+        /// Header space-event layers (WP: "meteor streaks on active-shower nights"): tonight's
+        /// meteor outlook, `nil` when no shower is active. Drives `MeteorStreakLayer`'s
+        /// eligibility (a shower has to actually be active) and cadence
+        /// (`estimatedVisiblePerHour` — a busier, darker night streaks more often).
+        var meteorOutlook: MeteorShowers.MeteorOutlook? = nil
+        /// Header space-event layers ("conjunction nights"): tonight's closest Moon-planet
+        /// pairing, if any. Planet-planet pairings need no synthetic treatment here — both
+        /// bodies already get their own real-position dot from `planets` above, so they read as
+        /// close together for free. See `TrueSkyLayer`'s "conjunction scene" doc comment for the
+        /// full rule, including why only Moon-involving pairings land here.
+        var conjunctionPairing: Conjunctions.Pairing? = nil
+        /// Tonight's Moon illumination/waxing — needed only to draw an accurate mini crescent
+        /// next to a conjunction's planet dot (`TrueSkyLayer`). `CelestialBody`'s own night-moon
+        /// graphic sits at a fixed decorative position, not derived from real phase math, so
+        /// these two fields exist purely to feed the conjunction-scene mini-moon.
+        var moonIlluminatedFraction: Double? = nil
+        var moonWaxing: Bool? = nil
+        /// Header space-event layers ("launch-day contrail"): true when a `.go`-status launch's
+        /// T-0 falls on `date`'s calendar day. Cache-only read (mirrors `HourlySkyEvents`' own
+        /// launch-icon sourcing — see `DoodleHeaderView`'s doc comment on where this comes from);
+        /// never triggers a new network fetch of its own.
+        var hasGoLaunchToday: Bool = false
     }
 
     // MARK: - Resolved scene
@@ -203,7 +225,15 @@ enum DoodleComposer {
         trueSkyAuroraBand: AuroraBand? = nil,
         trueSkyISSPasses: [ISSPass] = [],
         forceTrueSkyPlanets: Bool = false,
-        forceISSStreakNow: Bool = false
+        forceISSStreakNow: Bool = false,
+        trueSkyMeteorOutlook: MeteorShowers.MeteorOutlook? = nil,
+        trueSkyConjunctionPairing: Conjunctions.Pairing? = nil,
+        trueSkyMoonIlluminatedFraction: Double? = nil,
+        trueSkyMoonWaxing: Bool? = nil,
+        hasGoLaunchToday: Bool = false,
+        forceMeteorStreaks: Bool = false,
+        forceConjunctionScene: Bool = false,
+        forceLaunchContrail: Bool = false
     ) -> Scene {
         let season = Season.current(for: date, hemisphere: hemisphere)
         let condition = forcedCondition ?? ConditionCategory.category(forRawCode: current?.conditionCode ?? "clear")
@@ -220,7 +250,15 @@ enum DoodleComposer {
             auroraBand: trueSkyAuroraBand,
             issPasses: trueSkyISSPasses,
             forcePlanets: forceTrueSkyPlanets,
-            forceISSStreakNow: forceISSStreakNow
+            forceISSStreakNow: forceISSStreakNow,
+            meteorOutlook: trueSkyMeteorOutlook,
+            conjunctionPairing: trueSkyConjunctionPairing,
+            moonIlluminatedFraction: trueSkyMoonIlluminatedFraction,
+            moonWaxing: trueSkyMoonWaxing,
+            hasGoLaunchToday: hasGoLaunchToday,
+            forceMeteorStreaks: forceMeteorStreaks,
+            forceConjunctionScene: forceConjunctionScene,
+            forceLaunchContrail: forceLaunchContrail
         )
         return Scene(date: date, season: season, timeOfDay: timeOfDay, condition: condition, specialDay: specialDay, trueSky: trueSky)
     }
@@ -243,7 +281,15 @@ enum DoodleComposer {
         auroraBand: AuroraBand?,
         issPasses: [ISSPass],
         forcePlanets: Bool,
-        forceISSStreakNow: Bool
+        forceISSStreakNow: Bool,
+        meteorOutlook: MeteorShowers.MeteorOutlook?,
+        conjunctionPairing: Conjunctions.Pairing?,
+        moonIlluminatedFraction: Double?,
+        moonWaxing: Bool?,
+        hasGoLaunchToday: Bool,
+        forceMeteorStreaks: Bool,
+        forceConjunctionScene: Bool,
+        forceLaunchContrail: Bool
     ) -> TrueSkyScene {
         let resolvedPlanets: [TrueSkyPlanetDot]
         if forcePlanets {
@@ -261,7 +307,22 @@ enum DoodleComposer {
             activeISSPass = issPasses.first { date >= $0.startTime && date <= $0.endTime }
         }
 
-        return TrueSkyScene(planets: resolvedPlanets, auroraBand: auroraBand, activeISSPass: activeISSPass)
+        let resolvedMeteor = forceMeteorStreaks ? Self.syntheticMeteorOutlookForStreaks(referenceDate: date) : meteorOutlook
+        let resolvedPairing = forceConjunctionScene ? Self.syntheticConjunctionPairing(referenceDate: date) : conjunctionPairing
+        let resolvedMoonIlluminatedFraction = forceConjunctionScene ? 0.32 : moonIlluminatedFraction
+        let resolvedMoonWaxing = forceConjunctionScene ? true : moonWaxing
+        let resolvedLaunchToday = forceLaunchContrail ? true : hasGoLaunchToday
+
+        return TrueSkyScene(
+            planets: resolvedPlanets,
+            auroraBand: auroraBand,
+            activeISSPass: activeISSPass,
+            meteorOutlook: resolvedMeteor,
+            conjunctionPairing: resolvedPairing,
+            moonIlluminatedFraction: resolvedMoonIlluminatedFraction,
+            moonWaxing: resolvedMoonWaxing,
+            hasGoLaunchToday: resolvedLaunchToday
+        )
     }
 
     /// `-forceTrueSkyPlanets` sim-verify synthetic set (work-order spec): Venus low in the west
@@ -293,5 +354,80 @@ enum DoodleComposer {
             peakRangeKm: 450,
             brightness: .bright
         )
+    }
+
+    /// `-forceMeteorStreaks` sim-verify synthetic outlook: a Perseids-at-peak, moon-out-of-the-
+    /// way `MeteorOutlook` with a high `estimatedVisiblePerHour` so `MeteorStreakLayer` streaks
+    /// at its fastest cadence (~6s) regardless of whether a real shower is active tonight. Reuses
+    /// the real Perseids table entry (looked up by name, same "stay honest even if the table's
+    /// numbers change" rationale as `SkyTonightService.syntheticMeteorOutlook`), falling back to
+    /// an inline literal only if that lookup ever fails.
+    private static func syntheticMeteorOutlookForStreaks(referenceDate: Date) -> MeteorShowers.MeteorOutlook {
+        let perseids = MeteorShowers.all.first { $0.name == "Perseids" }
+            ?? MeteorShowers.MeteorShower(
+                name: "Perseids",
+                activeStart: .init(month: 7, day: 17), activeEnd: .init(month: 8, day: 24),
+                peak: .init(month: 8, day: 12), zhr: 100,
+                radiantConstellation: "Perseus", radiantRA: 48, radiantDec: 58,
+                viewingNotes: "The most reliable major shower."
+            )
+        return MeteorShowers.MeteorOutlook(
+            shower: perseids,
+            isPeakNight: true,
+            daysFromPeak: 0,
+            theoreticalZHR: perseids.zhr,
+            estimatedVisiblePerHour: 80,
+            moonInterference: .none,
+            bestWindow: DateInterval(start: referenceDate, end: referenceDate.addingTimeInterval(3 * 3600)),
+            moonIlluminatedPercent: 4,
+            moonUpFraction: 0.05
+        )
+    }
+
+    /// `-forceConjunctionScene` sim-verify synthetic pairing: a fixed Moon-Jupiter pairing 1.8°
+    /// apart, high in the SSW — mirrors `SkyTonightService.syntheticPairing`'s spec, kept as its
+    /// own literal here rather than a cross-file call since that one lives on `@MainActor
+    /// SkyTonightService` and this is a `nonisolated`-callable pure function.
+    private static func syntheticConjunctionPairing(referenceDate: Date) -> Conjunctions.Pairing {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        var components = calendar.dateComponents([.year, .month, .day], from: referenceDate)
+        components.hour = 21
+        components.minute = 15
+        let viewingTime = calendar.date(from: components) ?? referenceDate
+        return Conjunctions.Pairing(
+            bodyA: .moon,
+            bodyB: .planet(.jupiter),
+            separationDegrees: 1.8,
+            bestViewingTime: viewingTime,
+            altitudeAtBest: 34,
+            azimuthAtBest: 200,
+            directionDescription: "high in the SSW"
+        )
+    }
+}
+
+/// Additive-only: lets `DoodleComposer.TrueSkyScene` (Equatable) compare two meteor outlooks —
+/// compares the fields that identify "the same outlook," not every stored field (mirrors
+/// `SkyTonightService`'s own additive `ISSPass: Equatable`/`MoonInterference` extensions, same
+/// don't-modify-engine-logic rationale: `MeteorShowers.swift` itself is untouched).
+extension MeteorShowers.MeteorOutlook: Equatable {
+    public static func == (lhs: MeteorShowers.MeteorOutlook, rhs: MeteorShowers.MeteorOutlook) -> Bool {
+        lhs.shower.name == rhs.shower.name
+            && lhs.isPeakNight == rhs.isPeakNight
+            && lhs.estimatedVisiblePerHour == rhs.estimatedVisiblePerHour
+            && lhs.bestWindow == rhs.bestWindow
+    }
+}
+
+/// Additive-only: lets `DoodleComposer.TrueSkyScene` (Equatable) compare two pairings — same
+/// rationale as the `MeteorOutlook` extension just above; `Conjunctions.swift` itself is
+/// untouched.
+extension Conjunctions.Pairing: Equatable {
+    public static func == (lhs: Conjunctions.Pairing, rhs: Conjunctions.Pairing) -> Bool {
+        lhs.bodyA == rhs.bodyA
+            && lhs.bodyB == rhs.bodyB
+            && lhs.separationDegrees == rhs.separationDegrees
+            && lhs.bestViewingTime == rhs.bestViewingTime
     }
 }

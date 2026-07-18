@@ -108,6 +108,12 @@ final class ForecastViewModel {
     /// matching parameters.
     let forceTrueSkyPlanets: Bool
     let forceISSStreakNow: Bool
+    /// Header space-event layers sim-verify hooks: `-forceMeteorStreaks`,
+    /// `-forceConjunctionScene`, `-forceLaunchContrail` — see `DoodleComposer.resolve`'s matching
+    /// parameters.
+    let forceMeteorStreaks: Bool
+    let forceConjunctionScene: Bool
+    let forceLaunchContrail: Bool
 
     init(
         store: WeatherStore,
@@ -127,7 +133,10 @@ final class ForecastViewModel {
         forcePairing: Bool = false,
         initialExpandedSkyPlanet: Planets.Body? = nil,
         forceTrueSkyPlanets: Bool = false,
-        forceISSStreakNow: Bool = false
+        forceISSStreakNow: Bool = false,
+        forceMeteorStreaks: Bool = false,
+        forceConjunctionScene: Bool = false,
+        forceLaunchContrail: Bool = false
     ) {
         self.store = store
         self.forcedState = forcedState
@@ -146,6 +155,9 @@ final class ForecastViewModel {
         self.initialExpandedSkyPlanet = initialExpandedSkyPlanet
         self.forceTrueSkyPlanets = forceTrueSkyPlanets
         self.forceISSStreakNow = forceISSStreakNow
+        self.forceMeteorStreaks = forceMeteorStreaks
+        self.forceConjunctionScene = forceConjunctionScene
+        self.forceLaunchContrail = forceLaunchContrail
         if let initialMetric {
             self.selectedMetric = initialMetric
         }

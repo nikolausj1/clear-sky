@@ -289,6 +289,9 @@ struct ForecastPageView: View {
                         skyForcedOverrides: viewModel.skyForcedOverrides,
                         forceTrueSkyPlanets: viewModel.forceTrueSkyPlanets,
                         forceISSStreakNow: viewModel.forceISSStreakNow,
+                        forceMeteorStreaks: viewModel.forceMeteorStreaks,
+                        forceConjunctionScene: viewModel.forceConjunctionScene,
+                        forceLaunchContrail: viewModel.forceLaunchContrail,
                         hourly: payload.hourly,
                         onCaptionTap: { scrollToSkyCard(proxy: proxy) }
                     )

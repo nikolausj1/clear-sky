@@ -63,7 +63,8 @@ struct NavigationShell: View {
                         SpaceView(
                             viewModel: spaceViewModel,
                             location: spaceLocation,
-                            scrollTarget: Self.scrollSpaceTargetFromLaunchArgs()
+                            scrollTarget: Self.scrollSpaceTargetFromLaunchArgs(),
+                            showLaunchDetailAtLaunch: Self.launchArgsContain("-showLaunchDetail")
                         )
                     } else {
                         ProgressView()
@@ -137,7 +138,10 @@ struct NavigationShell: View {
             forcePairing: Self.launchArgsContain("-forcePairing"),
             initialExpandedSkyPlanet: Self.expandSkyPlanetFromLaunchArgs(),
             forceTrueSkyPlanets: Self.launchArgsContain("-forceTrueSkyPlanets"),
-            forceISSStreakNow: Self.launchArgsContain("-forceISSStreakNow")
+            forceISSStreakNow: Self.launchArgsContain("-forceISSStreakNow"),
+            forceMeteorStreaks: Self.launchArgsContain("-forceMeteorStreaks"),
+            forceConjunctionScene: Self.launchArgsContain("-forceConjunctionScene"),
+            forceLaunchContrail: Self.launchArgsContain("-forceLaunchContrail")
         )
 
         let rankingsVM = RankingsViewModel(
