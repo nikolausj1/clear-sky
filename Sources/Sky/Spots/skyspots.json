@@ -1,0 +1,228 @@
+[
+  {
+    "id": "cape-canaveral",
+    "name": "Cape Canaveral / Kennedy Space Center",
+    "category": "launchSite",
+    "blurb": "The busiest launch complex in the world: NASA's Kennedy Space Center and the adjoining Cape Canaveral Space Force Station host SpaceX, ULA, and Blue Origin pads flying Falcon 9, Falcon Heavy, Atlas V, Vulcan, and New Glenn missions most weeks of the year.",
+    "latitude": 28.5721,
+    "longitude": -80.6480,
+    "matchKeys": ["Cape Canaveral", "Kennedy", "KSC", "Merritt Island", "CCSFS"]
+  },
+  {
+    "id": "starbase",
+    "name": "Starbase, Texas",
+    "category": "launchSite",
+    "blurb": "SpaceX's development and launch site on the Gulf coast near Boca Chica, built to fly and recover the Starship/Super Heavy stack.",
+    "latitude": 25.9972,
+    "longitude": -97.1566,
+    "matchKeys": ["Starbase", "Boca Chica"]
+  },
+  {
+    "id": "vandenberg",
+    "name": "Vandenberg Space Force Base",
+    "category": "launchSite",
+    "blurb": "California's polar-orbit launch site, used for Falcon 9 missions to sun-synchronous orbit as well as national-security and reconnaissance satellite launches.",
+    "latitude": 34.7420,
+    "longitude": -120.5724,
+    "matchKeys": ["Vandenberg", "SLC-4", "SLC-6"]
+  },
+  {
+    "id": "wallops",
+    "name": "Wallops Flight Facility",
+    "category": "launchSite",
+    "blurb": "NASA's Virginia launch range on the Eastern Shore, home to Rocket Lab's Electron pad and Northrop Grumman's Antares/Cygnus cargo runs to the ISS.",
+    "latitude": 37.9401,
+    "longitude": -75.4664,
+    "matchKeys": ["Wallops"]
+  },
+  {
+    "id": "kourou",
+    "name": "Guiana Space Centre, Kourou",
+    "category": "launchSite",
+    "blurb": "Europe's spaceport on the French Guiana coast, chosen for its near-equatorial latitude, which gives Ariane 6 and Vega rockets a natural boost toward geostationary orbit.",
+    "latitude": 5.2360,
+    "longitude": -52.7750,
+    "matchKeys": ["Kourou", "Guiana"]
+  },
+  {
+    "id": "baikonur",
+    "name": "Baikonur Cosmodrome",
+    "category": "launchSite",
+    "blurb": "The world's oldest and largest operational spaceport, leased by Russia from Kazakhstan, still flying crewed Soyuz launches to the ISS alongside Proton and other cargo missions.",
+    "latitude": 45.9650,
+    "longitude": 63.3050,
+    "matchKeys": ["Baikonur"]
+  },
+  {
+    "id": "tanegashima",
+    "name": "Tanegashima Space Center",
+    "category": "launchSite",
+    "blurb": "JAXA's main launch site on a small island south of Kyushu, flying H-IIA/H3 rockets and HTV/HTV-X cargo missions to the ISS.",
+    "latitude": 30.3990,
+    "longitude": 130.9700,
+    "matchKeys": ["Tanegashima"]
+  },
+  {
+    "id": "mahia",
+    "name": "Rocket Lab Launch Complex 1, Mahia Peninsula",
+    "category": "launchSite",
+    "blurb": "A private orbital launch site on New Zealand's North Island coast, the home pad for Rocket Lab's Electron and the primary base for its upcoming Neutron rocket.",
+    "latitude": -39.2600,
+    "longitude": 177.8700,
+    "matchKeys": ["Mahia", "Rocket Lab Launch Complex 1"]
+  },
+  {
+    "id": "fairbanks",
+    "name": "Fairbanks, Alaska",
+    "category": "auroraSpot",
+    "blurb": "Sits almost directly under the auroral oval's typical position, giving it aurora on a large share of clear nights even at modest geomagnetic activity.",
+    "latitude": 64.8378,
+    "longitude": -147.7164
+  },
+  {
+    "id": "yellowknife",
+    "name": "Yellowknife, Northwest Territories",
+    "category": "auroraSpot",
+    "blurb": "One of the most consistent aurora-viewing towns on Earth, thanks to its position beneath the oval, low light pollution, and a climate that keeps skies clear for weeks at a stretch in winter.",
+    "latitude": 62.4540,
+    "longitude": -114.3718
+  },
+  {
+    "id": "tromso",
+    "name": "Tromso, Norway",
+    "category": "auroraSpot",
+    "blurb": "A coastal Arctic city inside the auroral oval with easy access despite its latitude, thanks to the Gulf Stream keeping the surrounding fjords ice-free.",
+    "latitude": 69.6492,
+    "longitude": 18.9553
+  },
+  {
+    "id": "abisko",
+    "name": "Abisko, Sweden",
+    "category": "auroraSpot",
+    "blurb": "A small Swedish Lapland village known for the 'Blue Hole' of Abisko, a local microclimate that keeps skies clearer than surrounding areas even in an aurora-favorable location.",
+    "latitude": 68.3559,
+    "longitude": 18.8286
+  },
+  {
+    "id": "rovaniemi",
+    "name": "Rovaniemi, Finland",
+    "category": "auroraSpot",
+    "blurb": "The Finnish Lapland capital sits under the oval and is visible on roughly half of clear nights across the winter season.",
+    "latitude": 66.5039,
+    "longitude": 25.7294
+  },
+  {
+    "id": "reykjavik",
+    "name": "Reykjavik, Iceland",
+    "category": "auroraSpot",
+    "blurb": "Iceland's capital is far enough north to catch aurora on many clear autumn-through-spring nights, with darker skies available a short drive outside the city.",
+    "latitude": 64.1466,
+    "longitude": -21.9426
+  },
+  {
+    "id": "churchill",
+    "name": "Churchill, Manitoba",
+    "category": "auroraSpot",
+    "blurb": "A remote Hudson Bay town directly under the auroral oval, drawing dedicated aurora tourism for roughly 300 nights of visibility a year.",
+    "latitude": 58.7684,
+    "longitude": -94.1650
+  },
+  {
+    "id": "murmansk",
+    "name": "Murmansk, Russia",
+    "category": "auroraSpot",
+    "blurb": "The largest city north of the Arctic Circle, positioned under the oval on the Kola Peninsula with a coastal climate kept ice-free by the North Atlantic Current.",
+    "latitude": 68.9585,
+    "longitude": 33.0827
+  },
+  {
+    "id": "cherry-springs",
+    "name": "Cherry Springs State Park",
+    "category": "darkSky",
+    "blurb": "A Pennsylvania state park in the sparsely populated Susquehannock State Forest, designated a Gold-tier International Dark Sky Park and one of the darkest sites east of the Mississippi.",
+    "latitude": 41.6628,
+    "longitude": -77.8256,
+    "bortleNote": "Bortle 2 skies"
+  },
+  {
+    "id": "big-bend",
+    "name": "Big Bend National Park",
+    "category": "darkSky",
+    "blurb": "The most isolated national park in the lower 48, bordering Mexico's own protected desert, with measured sky darkness among the best in North America.",
+    "latitude": 29.2498,
+    "longitude": -103.2502,
+    "bortleNote": "Bortle 1-2 skies"
+  },
+  {
+    "id": "death-valley",
+    "name": "Death Valley National Park",
+    "category": "darkSky",
+    "blurb": "A Gold-tier International Dark Sky Park in California's Mojave Desert, its low elevation basin and near-total lack of nearby development giving it some of the darkest skies certified in the US.",
+    "latitude": 36.5054,
+    "longitude": -117.0794,
+    "bortleNote": "Bortle 1-2 skies"
+  },
+  {
+    "id": "natural-bridges",
+    "name": "Natural Bridges National Monument",
+    "category": "darkSky",
+    "blurb": "The first International Dark Sky Park ever designated (2007), a remote southeastern Utah site chosen specifically as the reference case for the certification program.",
+    "latitude": 37.6083,
+    "longitude": -110.0138,
+    "bortleNote": "Bortle 2 skies"
+  },
+  {
+    "id": "mauna-kea",
+    "name": "Mauna Kea",
+    "category": "darkSky",
+    "blurb": "A dormant Hawaiian volcano whose 13,800-foot summit sits above much of the atmosphere's turbulence and moisture, making it one of the premier professional observatory sites on Earth as well as a legendary amateur viewing spot.",
+    "latitude": 19.8207,
+    "longitude": -155.4681,
+    "bortleNote": "Bortle 1 skies at the summit"
+  },
+  {
+    "id": "atacama",
+    "name": "San Pedro de Atacama",
+    "category": "darkSky",
+    "blurb": "A high desert town in northern Chile bordering the Atacama, one of the driest and clearest regions on the planet and the site of major professional observatories including ALMA and the Very Large Telescope.",
+    "latitude": -22.9087,
+    "longitude": -68.1997,
+    "bortleNote": "Bortle 1 skies in the surrounding desert"
+  },
+  {
+    "id": "namibrand",
+    "name": "NamibRand Nature Reserve",
+    "category": "darkSky",
+    "blurb": "A private nature reserve on the edge of the Namib Desert, Africa's first International Dark Sky Reserve and one of only a handful of Gold-tier reserves worldwide.",
+    "latitude": -25.0154,
+    "longitude": 16.0129,
+    "bortleNote": "Certified Class 1 (darkest measurable) skies"
+  },
+  {
+    "id": "aoraki-mackenzie",
+    "name": "Aoraki Mackenzie International Dark Sky Reserve",
+    "category": "darkSky",
+    "blurb": "A 4,300-square-kilometer Gold-tier reserve around New Zealand's Lake Tekapo and Mount John Observatory, protected by regional lighting ordinances in the surrounding Mackenzie Basin.",
+    "latitude": -43.9856,
+    "longitude": 170.4650,
+    "bortleNote": "Bortle 1-2 skies"
+  },
+  {
+    "id": "galloway-forest",
+    "name": "Galloway Forest Park",
+    "category": "darkSky",
+    "blurb": "The UK's largest forest park and its first Dark Sky Park, in southern Scotland's Dumfries and Galloway region, chosen for skies dark enough to see the Milky Way with the naked eye.",
+    "latitude": 55.0502,
+    "longitude": -4.2667,
+    "bortleNote": "Bortle 2 skies"
+  },
+  {
+    "id": "jasper",
+    "name": "Jasper National Park",
+    "category": "darkSky",
+    "blurb": "The world's second-largest Dark Sky Preserve, spanning over 11,000 square kilometers of the Canadian Rockies in Alberta, home to an annual Dark Sky Festival each October.",
+    "latitude": 52.8734,
+    "longitude": -117.9543,
+    "bortleNote": "Bortle 2 skies"
+  }
+]
