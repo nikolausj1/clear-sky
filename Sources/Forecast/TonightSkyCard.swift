@@ -28,6 +28,21 @@ struct TonightSkyCard: View {
     /// `info.circle` button. Defaulted so every existing call site/preview keeps compiling
     /// unchanged (a no-op tap).
     var onExplain: (ExplainerContent) -> Void = { _ in }
+    /// Notifications work package: fired at the end of every `load()` with this card's own
+    /// `location` — this is the "hook where `SkyTonightService` resolves passes"
+    /// `SkyNotificationScheduler`'s own doc comment refers to. Only the location is passed (not
+    /// the resolved `State`): `SkyNotificationScheduler.refreshISS` needs BOTH tonight's and
+    /// tomorrow night's passes, but this card only ever loads tonight's, so the scheduler always
+    /// re-derives what it needs itself (a cheap in-memory-cache hit for "tonight," since this
+    /// card just resolved exactly that) rather than being handed a partial result here. Every
+    /// page's card fires this (each saved location gets its own `TonightSkyCard`, and
+    /// `TabView(.page)` keeps every page mounted, not just the active one — see
+    /// `ForecastView.pagerView`'s doc comment), so the caller (ultimately `NavigationShell`) is
+    /// responsible for filtering to whichever location it actually cares about (the first saved
+    /// location, per the notifications work order) rather than this view knowing anything about
+    /// "which location is the notification location." Defaulted to a no-op so every existing call
+    /// site/preview keeps compiling unchanged.
+    var onSkyStateResolved: (SavedLocation) -> Void = { _ in }
 
     @State private var astronomy: SkyTonight.TonightSky?
     @State private var issState: SkyTonightService.SectionState<[ISSPass]> = .loading
@@ -66,7 +81,8 @@ struct TonightSkyCard: View {
         forcedOverrides: SkyTonightService.ForcedOverrides? = nil,
         initialExpandedPlanet: Planets.Body? = nil,
         initialShowPeopleSheet: Bool = false,
-        onExplain: @escaping (ExplainerContent) -> Void = { _ in }
+        onExplain: @escaping (ExplainerContent) -> Void = { _ in },
+        onSkyStateResolved: @escaping (SavedLocation) -> Void = { _ in }
     ) {
         self.location = location
         self.date = date
@@ -74,6 +90,7 @@ struct TonightSkyCard: View {
         self._expandedPlanet = State(initialValue: initialExpandedPlanet)
         self._isPresentingPeopleSheet = State(initialValue: initialShowPeopleSheet)
         self.onExplain = onExplain
+        self.onSkyStateResolved = onSkyStateResolved
     }
 
     var body: some View {
@@ -209,6 +226,13 @@ struct TonightSkyCard: View {
         issState = result.iss
         auroraState = result.aurora
         bestMoment = result.bestMoment
+
+        // Sim-verify forced overrides (`-forceISSPass`, `-forceAuroraBand`, etc.) synthesize
+        // data that doesn't reflect real conditions — never worth waking a real device over, so
+        // this hook is skipped entirely whenever any override is active, mirroring how those
+        // overrides already bypass `SkyTonightService`'s own cache.
+        guard forcedOverrides?.isActive != true else { return }
+        onSkyStateResolved(location)
     }
 
     // MARK: - Night panel chrome

@@ -1,18 +1,39 @@
 import SwiftUI
 
-/// PRD Screen D: units toggle, attribution/legal, app version. "Nothing else" per the Phase 3
-/// build brief — no other Settings content belongs here yet. States table: "Fully static" /
+/// PRD Screen D: units toggle, attribution/legal, app version. States table: "Fully static" /
 /// "Shows permission status and a shortcut to iOS Settings" (the latter piece lives in the
 /// Locations screen's own denied-state row per PRD Section 6's state table row for Settings,
 /// which is about location permission status — included here too since Settings is the natural
 /// home for "why can't I use current location").
+///
+/// PRD Revision Notes (2026-07-18, night-first expansion): a NOTIFICATIONS section, between
+/// Location and About, hosts the app's only two notification toggles — "ISS pass alerts" and
+/// "Aurora storm alerts," both opt-in, both default-off (`SkyNotificationScheduler`'s own
+/// type-level doc comment covers scheduling/dedupe/limitations; this file only owns the toggle UI
+/// and the authorization-denial flow).
 struct SettingsView: View {
     @Environment(UnitsSettings.self) private var unitsSettings
     @Environment(\.dismiss) private var dismiss
     let locationManager: CurrentLocationManager
+    /// Notifications work package: the location `SkyNotificationScheduler` schedules ISS/aurora
+    /// alerts against — the first saved location, per that type's own doc comment. `nil` when
+    /// there are no saved locations yet, in which case toggling either notification ON still
+    /// requests system authorization (harmless, and needed before the location list is non-empty
+    /// anyway) but schedules nothing until a location exists.
+    var firstSavedLocation: SavedLocation?
 
     @State private var attribution: WeatherAttributionInfo?
     @State private var attributionError = false
+
+    /// Notifications work package: both toggles persist straight to `UserDefaults` via the exact
+    /// keys `SkyNotificationScheduler` reads from — see that type's doc comment on why there's
+    /// only one source of truth for "is this feature on," not a separate copy here.
+    @AppStorage(SkyNotificationScheduler.issEnabledKey) private var issAlertsEnabled = false
+    @AppStorage(SkyNotificationScheduler.auroraEnabledKey) private var auroraAlertsEnabled = false
+    /// Both toggles share the same underlying system permission (`UNUserNotificationCenter`
+    /// authorization is app-wide, not per-notification-kind — see `SkyNotificationScheduler`'s
+    /// doc comment), so one denial-explanation row serves both rather than duplicating it.
+    @State private var notificationPermissionDenied = false
 
     private var appVersion: String {
         let bundle = Bundle.main
@@ -49,6 +70,49 @@ struct SettingsView: View {
                     }
                 } header: {
                     Text("Location").tracking(0.8)
+                }
+
+                Section {
+                    Toggle(isOn: $issAlertsEnabled) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("ISS pass alerts")
+                            Text("10 minutes before visible Space Station passes at your first saved city")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .onChange(of: issAlertsEnabled) { _, newValue in
+                        handleISSToggle(newValue)
+                    }
+
+                    Toggle(isOn: $auroraAlertsEnabled) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Aurora storm alerts")
+                            Text("Only when strong geomagnetic storms are forecast — rare")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .onChange(of: auroraAlertsEnabled) { _, newValue in
+                        handleAuroraToggle(newValue)
+                    }
+
+                    if notificationPermissionDenied {
+                        Button("Open iOS Settings") {
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Notifications").tracking(0.8)
+                } footer: {
+                    if notificationPermissionDenied {
+                        // PRD: exactly these two notifications exist, both opt-in — the denial
+                        // explanation names the app's own permission, not a generic system
+                        // message, so it's clear which toggle to revisit after re-allowing it.
+                        Text("Notifications are turned off for Zenith in iOS Settings. Turn them on there, then try the toggle again.")
+                    }
                 }
 
                 Section {
@@ -112,6 +176,44 @@ struct SettingsView: View {
             attribution = try await WeatherService.shared.fetchAttribution()
         } catch {
             attributionError = true
+        }
+    }
+
+    // MARK: - Notifications work package
+
+    /// Toggle ON -> request authorization (contextual, per `SkyNotificationScheduler`'s doc
+    /// comment) and schedule immediately from real data; denial flips the toggle back off and
+    /// surfaces the explanation row. Toggle OFF -> remove every pending ISS notification.
+    private func handleISSToggle(_ newValue: Bool) {
+        Task {
+            if newValue {
+                let granted = await SkyNotificationScheduler.shared.enableISS(location: firstSavedLocation)
+                if granted {
+                    notificationPermissionDenied = false
+                } else {
+                    issAlertsEnabled = false
+                    notificationPermissionDenied = true
+                }
+            } else {
+                await SkyNotificationScheduler.shared.disableISS()
+            }
+        }
+    }
+
+    /// Mirrors `handleISSToggle` for the Aurora toggle.
+    private func handleAuroraToggle(_ newValue: Bool) {
+        Task {
+            if newValue {
+                let granted = await SkyNotificationScheduler.shared.enableAurora(location: firstSavedLocation)
+                if granted {
+                    notificationPermissionDenied = false
+                } else {
+                    auroraAlertsEnabled = false
+                    notificationPermissionDenied = true
+                }
+            } else {
+                await SkyNotificationScheduler.shared.disableAurora()
+            }
         }
     }
 }

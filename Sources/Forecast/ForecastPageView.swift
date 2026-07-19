@@ -47,6 +47,9 @@ struct ForecastPageView: View {
     /// rather than a `Binding` because every page in the `TabView` mounts one of these, and only
     /// one page's offset should ever drive the shared bar state.
     var onScrollOffsetChange: (CGFloat) -> Void = { _ in }
+    /// Notifications work package: forwarded straight through to `TonightSkyCard`'s own
+    /// identically-named callback — see that file's doc comment.
+    var onSkyStateResolved: (SavedLocation) -> Void = { _ in }
     @Bindable var viewModel: ForecastViewModel
     var onRetry: () -> Void
     var onRefresh: () async -> Void
@@ -390,7 +393,8 @@ struct ForecastPageView: View {
                                 forcedOverrides: viewModel.skyForcedOverrides,
                                 initialExpandedPlanet: viewModel.initialExpandedSkyPlanet,
                                 initialShowPeopleSheet: showPeopleSheetAtLaunch,
-                                onExplain: { presentedExplainer = $0 }
+                                onExplain: { presentedExplainer = $0 },
+                                onSkyStateResolved: onSkyStateResolved
                             )
 
                             AttributionFooter(attribution: payload.attribution)

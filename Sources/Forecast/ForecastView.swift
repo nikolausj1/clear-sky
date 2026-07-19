@@ -23,6 +23,9 @@ struct ForecastView: View {
     /// Sim-verify only (always-dark audit sweep): `-showAlertDetail` — see
     /// `ForecastPageView.showAlertDetailAtLaunch`'s doc comment.
     var showAlertDetailAtLaunch: Bool = false
+    /// Notifications work package: forwarded straight through to every page's `TonightSkyCard`
+    /// — see that file's doc comment on `onSkyStateResolved`.
+    var onSkyStateResolved: (SavedLocation) -> Void = { _ in }
     var onOpenSettings: () -> Void = {}
     var onOpenLocations: () -> Void = {}
 
@@ -176,6 +179,7 @@ struct ForecastView: View {
                         // offsets (e.g. from before a swipe) that would otherwise fight the
                         // active page's own readings.
                         onScrollOffsetChange: index == viewModel.activeIndex ? { updateHeroScrolledAway(forOffset: $0) } : { _ in },
+                        onSkyStateResolved: onSkyStateResolved,
                         viewModel: viewModel,
                         onRetry: { Task { await viewModel.load(location: location, forceRefresh: false) } },
                         onRefresh: { await viewModel.load(location: location, forceRefresh: true) }

@@ -24,6 +24,13 @@ import SwiftUI
 ///   `AttributionFooter` for a sim-verify screenshot — `simctl` can't scroll.
 /// - `-showPeopleSheet` ("People in Space" work package) presents `PeopleInSpaceSheet` on the
 ///   active Forecast page at launch — `simctl` can't tap the Tonight's Sky card's people row.
+/// - `-forceNotifTest` (notifications work package) schedules one test ISS notification 15
+///   seconds out via `SkyNotificationScheduler.scheduleTestNotification()` — sim-verify only, so
+///   a foreground-delivered banner can be screenshotted without waiting for a real pass.
+/// - `-dumpPendingNotifs` (notifications work package) refreshes ISS scheduling for the first
+///   saved location from real data, then prints every pending local notification request to the
+///   console via `SkyNotificationScheduler.dumpPendingRequests()` — only visible when launched
+///   with `xcrun simctl launch --console` (see that method's doc comment).
 struct NavigationShell: View {
     private enum Tab {
         case forecast
@@ -32,6 +39,9 @@ struct NavigationShell: View {
     }
 
     @Environment(\.modelContext) private var modelContext
+    /// Notifications work package: drives the "on every app foreground" ISS/aurora refresh
+    /// trigger — see `SkyNotificationScheduler.refreshISS`/`refreshAurora`'s doc comments.
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var forecastViewModel: ForecastViewModel?
     @State private var locationsViewModel: LocationsViewModel?
@@ -56,6 +66,7 @@ struct NavigationShell: View {
                             forcedExplainerKey: Self.forcedExplainerKeyFromLaunchArgs(),
                             showPeopleSheetAtLaunch: Self.launchArgsContain("-showPeopleSheet"),
                             showAlertDetailAtLaunch: Self.launchArgsContain("-showAlertDetail"),
+                            onSkyStateResolved: handleSkyStateResolved,
                             onOpenSettings: { isPresentingSettings = true },
                             onOpenLocations: { isPresentingLocations = true }
                         )
@@ -105,9 +116,39 @@ struct NavigationShell: View {
         }
         .sheet(isPresented: $isPresentingSettings) {
             if let locationsViewModel {
-                SettingsView(locationManager: locationsViewModel.locationManager)
+                SettingsView(locationManager: locationsViewModel.locationManager, firstSavedLocation: forecastViewModel?.locations.first)
                     .environment(unitsSettings)
             }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else { return }
+            handleForeground()
+        }
+    }
+
+    // MARK: - Notifications work package
+
+    /// `scenePhase == .active` fires on every launch AND every return-to-foreground — both are
+    /// "the app foreground" trigger the notifications work order asks for. Silently does nothing
+    /// if there's no saved location yet (nothing to schedule against).
+    private func handleForeground() {
+        guard let location = forecastViewModel?.locations.first else { return }
+        Task {
+            await SkyNotificationScheduler.shared.refreshISS(location: location)
+            await SkyNotificationScheduler.shared.refreshAurora(location: location)
+        }
+    }
+
+    /// `TonightSkyCard.load()`'s post-fetch hook, forwarded from every page — filters down to
+    /// just the first saved location (the notifications work order's "ACTIVE (first) saved
+    /// location," i.e. `locations.first`, NOT necessarily the pager's currently-active page —
+    /// unlike `spaceLocation` below, which follows the active page). A no-op for every other
+    /// page's card.
+    private func handleSkyStateResolved(_ location: SavedLocation) {
+        guard forecastViewModel?.locations.first?.id == location.id else { return }
+        Task {
+            await SkyNotificationScheduler.shared.refreshISS(location: location)
+            await SkyNotificationScheduler.shared.refreshAurora(location: location)
         }
     }
 
@@ -194,6 +235,31 @@ struct NavigationShell: View {
         }
         if Self.launchArgsContain("-showSpace") {
             selectedTab = .space
+        }
+
+        // Notifications work package sim-verify hooks. `SkyNotificationScheduler.shared` is
+        // touched here (once, on every bootstrap) purely to construct the singleton early —
+        // its `init` installs the `UNUserNotificationCenterDelegate` that lets a
+        // foreground-delivered notification present as a banner, and that needs to be in place
+        // before anything (real schedule or `-forceNotifTest`) could possibly fire.
+        let scheduler = SkyNotificationScheduler.shared
+        if Self.launchArgsContain("-forceNotifTest") {
+            Task { await scheduler.scheduleTestNotification() }
+        }
+        if Self.launchArgsContain("-dumpPendingNotifs") {
+            Task {
+                // Real pass data for the first saved location (not a synthetic/forced one) —
+                // per work order, this dump is meant to prove real ISS-alert scheduling, so it
+                // refreshes from actual `SkyTonightService` data before printing. A no-op inside
+                // `refreshISS` if the ISS toggle is currently off (see that method's doc
+                // comment), which is exactly what makes this dump usable as toggle-off proof too:
+                // relaunch with this same flag after toggling off and the printed list reflects
+                // whatever `disableISS()` already removed in the prior session.
+                if let location = vm.locations.first {
+                    await scheduler.refreshISS(location: location)
+                }
+                await scheduler.dumpPendingRequests()
+            }
         }
     }
 
