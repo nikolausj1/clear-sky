@@ -95,10 +95,14 @@ struct TonightSkyCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("TONIGHT'S SKY")
-                .font(.footnote.weight(.semibold))
-                .tracking(0.8)
-                .foregroundStyle(Color.white.opacity(0.55))
+            HStack {
+                Text("TONIGHT'S SKY")
+                    .font(.footnote.weight(.semibold))
+                    .tracking(0.8)
+                    .foregroundStyle(Color.white.opacity(0.55))
+                Spacer()
+                nightVisionQuickToggle
+            }
             nightDivider
             VStack(alignment: .leading, spacing: 0) {
                 if let astronomy {
@@ -157,6 +161,7 @@ struct TonightSkyCard: View {
         .sheet(isPresented: $isPresentingPeopleSheet) {
             if case .available(let summary) = peopleStore.state {
                 PeopleInSpaceSheet(summary: summary)
+                    .nightVisionAware()
             }
         }
     }
@@ -233,6 +238,27 @@ struct TonightSkyCard: View {
         // overrides already bypass `SkyTonightService`'s own cache.
         guard forcedOverrides?.isActive != true else { return }
         onSkyStateResolved(location)
+    }
+
+    // MARK: - Night Vision quick toggle
+
+    /// Night Vision work package: the "no Settings trip" ingress — one tap flips
+    /// `NightVisionMode.shared.enabled` from right inside the card whose whole reason for
+    /// existing is "you're about to go outside and look at the sky." Mounted in the "TONIGHT'S
+    /// SKY" header row's trailing side (this card's own top-right corner), not the "TONIGHT'S
+    /// TIMELINE" sub-header, since the card-level header is visible immediately without scrolling
+    /// past the headline row.
+    private var nightVisionQuickToggle: some View {
+        Button {
+            NightVisionMode.shared.enabled.toggle()
+        } label: {
+            Image(systemName: NightVisionMode.shared.enabled ? "eye.fill" : "eye")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(NightVisionMode.shared.enabled ? Color(red: 1.0, green: 0.35, blue: 0.3) : Color.white.opacity(0.55))
+                .frame(width: 28, height: 28)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(NightVisionMode.shared.enabled ? "Turn off Night Vision" : "Turn on Night Vision")
     }
 
     // MARK: - Night panel chrome

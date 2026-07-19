@@ -54,7 +54,13 @@ struct PeopleInSpaceSheet: View {
         .scrollContentBackground(.hidden)
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .presentationBackground { SpaceDarkBackground() }
+        // Night Vision work package: `.presentationBackground` renders behind the sheet's own
+        // content view, outside the tree `.nightVisionAware()` (applied by the caller, at this
+        // sheet's `.sheet(isPresented:)` call site in `TonightSkyCard`) wraps — it does NOT
+        // inherit that effect automatically, an escape hatch discovered during sim-verify (the
+        // background stayed navy-blue while everything else in the sheet went red). Wrapped here
+        // too so the background itself goes red along with the rest.
+        .presentationBackground { SpaceDarkBackground().nightVisionAware() }
     }
 
     private func personRow(_ person: SpacePerson) -> some View {

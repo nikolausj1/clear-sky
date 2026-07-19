@@ -422,9 +422,11 @@ struct ForecastPageView: View {
             }
             .sheet(isPresented: $isPresentingAlertDetail) {
                 AlertDetailSheet(alerts: payload.activeAlerts)
+                    .nightVisionAware()
             }
             .sheet(item: $presentedExplainer) { content in
                 ExplainerSheet(content: content)
+                    .nightVisionAware()
             }
             .onAppear {
                 scrollToTargetIfNeeded(payload, proxy: proxy)

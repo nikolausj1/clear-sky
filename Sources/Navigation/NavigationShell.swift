@@ -112,12 +112,14 @@ struct NavigationShell: View {
             if let locationsViewModel {
                 LocationsView(viewModel: locationsViewModel, forceSearchFocused: Self.launchArgsContain("-focusSearch"))
                     .environment(unitsSettings)
+                    .nightVisionAware()
             }
         }
         .sheet(isPresented: $isPresentingSettings) {
             if let locationsViewModel {
                 SettingsView(locationManager: locationsViewModel.locationManager, firstSavedLocation: forecastViewModel?.locations.first)
                     .environment(unitsSettings)
+                    .nightVisionAware()
             }
         }
         .onChange(of: scenePhase) { _, newPhase in

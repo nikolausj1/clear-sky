@@ -60,7 +60,13 @@ struct LaunchDetailSheet: View {
         .scrollContentBackground(.hidden)
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
-        .presentationBackground { SpaceDarkBackground() }
+        // Night Vision work package: `.presentationBackground` renders behind the sheet's own
+        // content view, outside the tree `.nightVisionAware()` (applied by the caller, at this
+        // sheet's `.sheet(item:)` call site in `SpaceView`) wraps — it does NOT inherit that
+        // effect automatically, an escape hatch discovered during sim-verify (the background
+        // stayed navy-blue while everything else in the sheet went red). Wrapped here too so the
+        // background itself goes red along with the rest.
+        .presentationBackground { SpaceDarkBackground().nightVisionAware() }
     }
 
     private func detailRow(label: String, value: String) -> some View {

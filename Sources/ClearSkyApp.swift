@@ -29,6 +29,11 @@ struct ClearSkyApp: App {
             // already dark by construction. No Settings toggle is added for this (that's a
             // future product decision, explicitly not part of this package).
             .preferredColorScheme(.dark)
+            // Night Vision work package: the app-root half of the red-on-black dark-adaptation
+            // mode — see `NightVisionModifier`'s doc comment for the compositing technique and
+            // why `.sheet` content each needs this applied again at its own root (it does not
+            // inherit from here the way `.tint`/`.preferredColorScheme` do).
+            .nightVisionAware()
         }
         .modelContainer(modelContainer)
     }

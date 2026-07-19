@@ -83,6 +83,7 @@ struct SpaceView: View {
         }
         .sheet(item: $presentedLaunch) { launch in
             LaunchDetailSheet(launch: launch)
+                .nightVisionAware()
         }
         .onAppear {
             showLaunchDetailHookIfNeeded()

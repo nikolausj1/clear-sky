@@ -60,6 +60,19 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    Toggle(isOn: nightVisionBinding) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Red screen mode")
+                            Text("Deep red display preserves your eyes' dark adaptation while stargazing.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                } header: {
+                    Text("Night Vision").tracking(0.8)
+                }
+
+                Section {
                     LabeledContent("Current Location Access", value: locationPermissionLabel)
                     if locationManager.status == .denied {
                         Button("Open iOS Settings") {
@@ -161,6 +174,17 @@ struct SettingsView: View {
         .task {
             await loadAttribution()
         }
+    }
+
+    /// Night Vision work package: `NightVisionMode.shared` is a plain `@Observable` singleton
+    /// (not a `@Bindable` property here), so a manual `Binding` is the simplest way to hand its
+    /// `enabled` property to a `Toggle` — see `NightVisionMode`'s doc comment for why it's a
+    /// singleton rather than something threaded in via `@Environment`.
+    private var nightVisionBinding: Binding<Bool> {
+        Binding(
+            get: { NightVisionMode.shared.enabled },
+            set: { NightVisionMode.shared.enabled = $0 }
+        )
     }
 
     private var locationPermissionLabel: String {
