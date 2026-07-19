@@ -47,6 +47,19 @@ enum SkyFinderLaunchArgTarget: String {
     }
 }
 
+/// Mini-planetarium work package: one object rendered in the sky field — every currently-up
+/// object within the pointing cone, not just the selected target. Owner's words: "pressing Moon
+/// should help guide you to the moon, but you should still see Venus, the ISS, and everything
+/// else." `starMagnitude` is set only for `.star` kinds — it drives both the point's size and
+/// whether it's one of the "3 brightest stars in view" that get a name label (see
+/// `SkyFinderView.horizonScene`'s brightest-star-label logic).
+private struct SkyFieldObject {
+    let kind: SkyFinderTarget.Kind
+    let azimuthDeg: Double
+    let altitudeDeg: Double
+    let starMagnitude: Double?
+}
+
 /// Sky Finder: point the phone at the sky, get guided to tonight's objects. Full-screen cover
 /// presented from the Tonight's Sky card / true-sky hero (see those files' `onOpenFinder`/
 /// `onFindPlanetTap` call sites). Owns its own data load (astronomy + satellite passes) rather
@@ -130,6 +143,24 @@ struct SkyFinderView: View {
             // directly rather than routing every sim-verify flag through `NavigationShell`).
             if CommandLine.arguments.contains("-showFinderStarPicker") {
                 isPresentingStarPicker = true
+            }
+            // Mini-planetarium work package sim-verify hook: `-finderDemoRetarget <name>` proves
+            // tap-to-retarget's effect — switching `selectedKind` re-points guidance (arrow/lock)
+            // at the newly named target — without needing `simctl` to actually tap a rendered
+            // field object (it can't). Reuses `SkyFinderLaunchArgTarget`'s own name→Kind
+            // resolution (the same parser `-showFinder` uses) since tapping a field object does
+            // exactly this under the hood: `selectedKind = tappedObject.kind`. Fires after the
+            // initial `-showFinder` assignment above so a screenshot can show an actual switch
+            // (e.g. `-showFinder moon -finderDemoRetarget venus`), not just an initial pick.
+            if let flagIndex = CommandLine.arguments.firstIndex(of: "-finderDemoRetarget"), flagIndex + 1 < CommandLine.arguments.count,
+               let retarget = SkyFinderLaunchArgTarget(rawValue: CommandLine.arguments[flagIndex + 1]) {
+                let retargetPresentation = retarget.presentation
+                if let kind = retargetPresentation.initialKind {
+                    selectedKind = kind
+                } else if let fallback = retargetPresentation.initialSatelliteKindFallback,
+                          let match = satellitePasses.first(where: { $0.satellite.kind == fallback }) {
+                    selectedKind = .satellite(match)
+                }
             }
         }
         .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { tick in
@@ -361,6 +392,7 @@ struct SkyFinderView: View {
         // be if the phone were level — i.e. tilting the phone UP moves the drawn horizon line
         // DOWN the screen, since you're now looking further above it.
         let horizonY = center.y + CGFloat(currentReading.altitudeDeg) * Self.pointsPerDegree
+        let placedField = placedFieldObjects(center: center)
 
         return ZStack {
             Group {
@@ -377,6 +409,15 @@ struct SkyFinderView: View {
             // `FinderGuidance.delta(deviceRollRad:)` documents for the arrow angle.
             .rotationEffect(.radians(-currentReading.deviceRollRad), anchor: UnitPoint(x: center.x / size.width, y: center.y / size.height))
 
+            // Mini-planetarium sky field: every OTHER currently-up object within the pointing
+            // cone, passive (dimmer, no arrow/haptics) — placed via the exact same
+            // `FinderGuidance.delta(deviceRollRad:)` call the selected target's own marker uses
+            // below, so roll compensation is guaranteed identical between the two rather than two
+            // parallel implementations that could silently drift apart.
+            ForEach(placedField, id: \.object.kind.id) { placed in
+                fieldObjectMarker(placed, brightestStarNames: brightestStarNamesInView(placedField))
+            }
+
             crosshair(center: center)
 
             if let guidanceDelta, let selectedKind {
@@ -387,6 +428,142 @@ struct SkyFinderView: View {
                 }
             }
         }
+        .contentShape(Rectangle())
+        .gesture(fieldTapGesture(placedField))
+    }
+
+    // MARK: - Sky field (mini-planetarium)
+
+    /// Every currently-up object (`fieldObjects`), minus the selected target itself (which keeps
+    /// its own `targetMarker`/`edgeArrow` treatment), narrowed to the pointing cone
+    /// (`nearFieldThresholdDeg`), with each object's on-screen point already resolved — computed
+    /// once per `horizonScene` build so the tap gesture and the rendering loop below see the
+    /// exact same set of points rather than recomputing (and risking drift) twice.
+    private func placedFieldObjects(center: CGPoint) -> [(object: SkyFieldObject, point: CGPoint, delta: FinderGuidance.GuidanceDelta)] {
+        fieldObjects
+            .filter { $0.kind.id != selectedKind?.id }
+            .compactMap { object -> (object: SkyFieldObject, point: CGPoint, delta: FinderGuidance.GuidanceDelta)? in
+                let delta = FinderGuidance.delta(
+                    from: (azimuthDeg: currentReading.azimuthDeg, altitudeDeg: currentReading.altitudeDeg),
+                    to: (azimuthDeg: object.azimuthDeg, altitudeDeg: object.altitudeDeg),
+                    deviceRollRad: currentReading.deviceRollRad
+                )
+                guard delta.angularSeparationDeg <= Self.nearFieldThresholdDeg else { return nil }
+                let radius = CGFloat(delta.angularSeparationDeg) * Self.pointsPerDegree
+                let angle = delta.screenArrowAngleRad
+                let point = CGPoint(x: center.x + radius * sin(angle), y: center.y - radius * cos(angle))
+                return (object, point, delta)
+            }
+    }
+
+    /// The 3 brightest currently-rendered stars — only these get a name label (per work order:
+    /// "only for non-star objects and the 3 brightest stars in view — full star labels would
+    /// clutter"). Scoped to what's actually ON SCREEN right now (`placedField`), not the whole
+    /// 12-star catalog slice, so which 3 get labeled can shift as the phone sweeps.
+    private func brightestStarNamesInView(_ placedField: [(object: SkyFieldObject, point: CGPoint, delta: FinderGuidance.GuidanceDelta)]) -> Set<String> {
+        let stars = placedField.compactMap { placed -> (name: String, magnitude: Double)? in
+            guard let magnitude = placed.object.starMagnitude else { return nil }
+            return (placed.object.kind.name, magnitude)
+        }
+        return Set(stars.sorted { $0.magnitude < $1.magnitude }.prefix(3).map(\.name))
+    }
+
+    /// One passive (non-target) field object: its glyph, dimmed to 0.7 opacity, plus a name label
+    /// when applicable. No arrow, no haptics, no lock-bloom — those stay exclusive to the
+    /// selected target's `targetMarker`/`edgeArrow`.
+    private func fieldObjectMarker(
+        _ placed: (object: SkyFieldObject, point: CGPoint, delta: FinderGuidance.GuidanceDelta),
+        brightestStarNames: Set<String>
+    ) -> some View {
+        let isStar = placed.object.starMagnitude != nil
+        let showsLabel = !isStar || brightestStarNames.contains(placed.object.kind.name)
+        return VStack(spacing: 2) {
+            fieldGlyph(for: placed.object.kind, starMagnitude: placed.object.starMagnitude)
+            if showsLabel {
+                Text(placed.object.kind.name)
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.85))
+                    .lineLimit(1)
+                    .fixedSize()
+            }
+        }
+        .opacity(0.7)
+        .position(placed.point)
+    }
+
+    /// The small glyph drawn for a field object — reuses existing components (`MoonPhaseDisc`,
+    /// `ISSGlyph`, `TrueSkyLayer.dotColor`) rather than inventing new art: a MoonPhaseDisc mini
+    /// for the Moon, a color dot with a subtle glow for planets, the ISS glyph for the ISS (any
+    /// other tracked satellite kind falls back to a plain dot — see `isISSKind`), and a small
+    /// white point scaled by magnitude for stars.
+    @ViewBuilder
+    private func fieldGlyph(for kind: SkyFinderTarget.Kind, starMagnitude: Double?) -> some View {
+        switch kind.base {
+        case .moon:
+            MoonPhaseDisc(
+                illumination: (astronomy?.moon.illuminatedPercent ?? 50) / 100,
+                waxing: astronomy?.moon.waxing ?? true,
+                diameter: 16,
+                style: .dark
+            )
+        case .planet:
+            let color = targetColor(for: kind)
+            ZStack {
+                Circle()
+                    .fill(RadialGradient(colors: [color.opacity(0.3), color.opacity(0)], center: .center, startRadius: 0, endRadius: 10))
+                    .frame(width: 20, height: 20)
+                Circle().fill(color).frame(width: 7, height: 7)
+            }
+        case .satellite:
+            if isISSKind(kind) {
+                ISSGlyph(size: CGSize(width: 18, height: 10)).foregroundStyle(targetColor(for: kind))
+            } else {
+                Circle().fill(targetColor(for: kind)).frame(width: 6, height: 6)
+            }
+        case .star:
+            Circle().fill(Color.white).frame(width: starPointSize(forMagnitude: starMagnitude ?? 1.5), height: starPointSize(forMagnitude: starMagnitude ?? 1.5))
+        }
+    }
+
+    /// `true` when a `.satellite` kind resolves to the ISS specifically (vs. Hubble/Tiangong/a
+    /// Starlink train) — drives the ISS-glyph-vs-plain-dot choice in `fieldGlyph`.
+    private func isISSKind(_ kind: SkyFinderTarget.Kind) -> Bool {
+        guard case .satellite(let catalogNumber, _) = kind.base else { return false }
+        return satellitePasses.first(where: { $0.satellite.catalogNumber == catalogNumber })?.satellite.kind == .iss
+    }
+
+    /// Brighter (lower/more-negative magnitude) stars draw as a bigger point — Sirius-bright
+    /// (-1.46) down to the catalog's faintest (Adhara/Polaris, ~+2) spans roughly 4pt down to
+    /// 1.5pt, clamped so an out-of-catalog value never draws implausibly large/small.
+    private func starPointSize(forMagnitude magnitude: Double) -> CGFloat {
+        let t = (2.0 - magnitude) / 3.5
+        return CGFloat(max(1.5, min(4.0, 1.5 + t * 2.5)))
+    }
+
+    /// Tap-to-retarget: a single whole-scene gesture (rather than a `Button` per object) so
+    /// nearest-object disambiguation is a straightforward "closest point within the hit radius"
+    /// comparison across every currently-rendered field object, instead of relying on SwiftUI's
+    /// z-order-based hit-testing when two objects' tap areas overlap (the Moon/Venus-close-
+    /// together case the ribbon's own `staggerLabelRows` already documents as a known collision).
+    /// `hitRadius` of 20pt gives each object a ≥40pt-diameter hit target — comfortably over the
+    /// work order's "≥36pt" floor — even though the drawn glyph itself (a 6-7pt dot for a planet,
+    /// smaller for a star) is much smaller than that.
+    private func fieldTapGesture(_ placedField: [(object: SkyFieldObject, point: CGPoint, delta: FinderGuidance.GuidanceDelta)]) -> some Gesture {
+        let hitRadius: CGFloat = 20
+        // `SpatialTapGesture` (not a zero-distance `DragGesture`) — a genuine tap recognizer that
+        // still reports `location`, so it doesn't compete with `pickerChips`' horizontal
+        // `ScrollView` the way repurposing a drag/pan recognizer for "tap with location" could.
+        return SpatialTapGesture(count: 1, coordinateSpace: .local)
+            .onEnded { value in
+                let tapPoint = value.location
+                let nearest = placedField
+                    .map { (kind: $0.object.kind, distance: hypot($0.point.x - tapPoint.x, $0.point.y - tapPoint.y)) }
+                    .filter { $0.distance <= hitRadius }
+                    .min { $0.distance < $1.distance }
+                guard let nearest else { return }
+                selectedKind = nearest.kind
+                UISelectionFeedbackGenerator().selectionChanged()
+            }
     }
 
     private static let horizonTicks: [(label: String, azimuthDeg: Double)] = [
@@ -719,7 +896,17 @@ struct SkyFinderView: View {
     /// the picker chips deliberately keep stars behind their own "Stars" chip/sheet rather than
     /// cluttering the chip row with 8+ extra entries.
     private var ribbonObjects: [(kind: SkyFinderTarget.Kind, azimuthDeg: Double, altitudeDeg: Double)] {
-        var objects = pickerKinds.compactMap { kind -> (kind: SkyFinderTarget.Kind, azimuthDeg: Double, altitudeDeg: Double)? in
+        currentlyUpObjects(starCount: 8).map { ($0.kind, $0.azimuthDeg, $0.altitudeDeg) }
+    }
+
+    /// Shared "what's actually up right now" resolution behind both the ribbon (`ribbonObjects`,
+    /// 8 stars) and the mini-planetarium sky field (`fieldObjects`, 12 stars — see work order's
+    /// "~12 brightest currently-up stars"). A satellite only counts as "up" while its pass window
+    /// is actively in progress (matching the ribbon's pre-existing behavior and the work order's
+    /// "when in a live pass; otherwise skip — they're not visibly 'up'"), not merely scheduled
+    /// later tonight.
+    private func currentlyUpObjects(starCount: Int) -> [SkyFieldObject] {
+        var objects = pickerKinds.compactMap { kind -> SkyFieldObject? in
             if case .satellite(let catalogNumber, let startTime) = kind.base {
                 guard let pass = satellitePasses.first(where: { $0.satellite.catalogNumber == catalogNumber && $0.pass.startTime == startTime }),
                       SkyFinderTarget.isSatellitePassActive(pass.pass, at: now)
@@ -728,14 +915,71 @@ struct SkyFinderView: View {
             guard let position = SkyFinderTarget.position(for: kind, at: now, location: location, passes: satellitePasses), position.altitudeDeg > 0 else {
                 return nil
             }
-            return (kind, position.azimuthDeg, position.altitudeDeg)
+            return SkyFieldObject(kind: kind, azimuthDeg: position.azimuthDeg, altitudeDeg: position.altitudeDeg, starMagnitude: nil)
         }
 
-        let stars = BrightStars.brightestUp(date: now, lat: location.latitude, lon: location.longitude, count: 8, minAltitude: 10)
+        let stars = BrightStars.brightestUp(date: now, lat: location.latitude, lon: location.longitude, count: starCount, minAltitude: 10)
         for entry in stars {
-            objects.append((.star(entry.star), entry.azimuthDeg, entry.altitudeDeg))
+            objects.append(SkyFieldObject(kind: .star(entry.star), azimuthDeg: entry.azimuthDeg, altitudeDeg: entry.altitudeDeg, starMagnitude: entry.star.magnitude))
         }
         return objects
+    }
+
+    /// Mini-planetarium work package: every currently-up object (moon, visible planets, an
+    /// active satellite pass, the 12 brightest currently-up stars), for the sky-field rendering
+    /// in `horizonScene` — NOT limited to the pointing cone; `horizonScene` itself filters down
+    /// to whatever falls within `nearFieldThresholdDeg` of where the phone is pointed right now.
+    private var fieldObjects: [SkyFieldObject] {
+        let real = currentlyUpObjects(starCount: 12)
+        return real + demoFieldObjects(excluding: real)
+    }
+
+    /// `-finderDemo` sweep support: up to 3 synthetic, clearly-fabricated non-target objects at
+    /// fixed offsets around wherever the real selected target actually is (or a fixed fallback
+    /// direction if nothing's selected yet) — mirrors `DeviceMotionAdapter`'s own
+    /// `demoAnchorAzimuthDeg`/`fallbackDemoAnchorAzimuthDeg` pattern (deterministic offsets from
+    /// an anchor, not random) so the sweep showcases the field (multiple objects entering/exiting
+    /// view) even when the real tonight sky is sparse at capture time. A no-op outside demo mode.
+    /// Skips a candidate only when a REAL object of the same name is already near this same
+    /// anchor (within `nearFieldThresholdDeg`) — i.e. would visibly duplicate/impersonate a real
+    /// marker at basically the same spot — not merely "exists somewhere in tonight's whole sky".
+    /// The first version of this check excluded on any whole-sky name match, which (caught in
+    /// sim-verify) silently dropped every fabricated stand-in whenever the real object of that
+    /// name happened to be up ANYWHERE tonight, even on the opposite side of the sky from the
+    /// anchor — leaving the demo field empty exactly when it was supposed to prove itself.
+    private func demoFieldObjects(excluding real: [SkyFieldObject]) -> [SkyFieldObject] {
+        guard adapter.isDemoMode else { return [] }
+        let anchor = targetPosition ?? (azimuthDeg: 150.0, altitudeDeg: 35.0)
+        let nearbyRealIds = Set(real.filter { candidate in
+            FinderGuidance.angularSeparationDeg(
+                az1: candidate.azimuthDeg, alt1: candidate.altitudeDeg,
+                az2: anchor.azimuthDeg, alt2: anchor.altitudeDeg
+            ) <= Self.nearFieldThresholdDeg
+        }.map(\.kind.id))
+        let takenIds = nearbyRealIds.union(selectedKind.map { [$0.id] } ?? [])
+        let fabricated: [(offsetAzimuthDeg: Double, offsetAltitudeDeg: Double, kind: SkyFinderTarget.Kind, starMagnitude: Double?)] = [
+            (14, 9, .planet(.venus), nil),
+            (-20, -7, .planet(.jupiter), nil),
+            (27, 3, .star(name: "Vega"), 0.03),
+        ]
+        return fabricated.compactMap { entry in
+            guard !takenIds.contains(entry.kind.id) else { return nil }
+            // Deliberately NOT clamped to a "plausible sky" altitude range: the anchor itself can
+            // legitimately sit below the horizon (e.g. targeting the Moon before moonrise — the
+            // crosshair still points there per this app's existing "not up yet" convention). A
+            // floor/ceiling here would distort a small, intentional offset into a much larger one
+            // whenever the anchor sits near/past that floor/ceiling — caught in sim-verify: a
+            // `max(5, min(85, …))` clamp pushed these companions outside `nearFieldThresholdDeg`
+            // and silently emptied the whole demo field when the Moon was below the horizon at
+            // capture time. The offset itself (≤9°) is what has to stay small and exact, not the
+            // absolute altitude.
+            return SkyFieldObject(
+                kind: entry.kind,
+                azimuthDeg: normalizeDegrees(anchor.azimuthDeg + entry.offsetAzimuthDeg),
+                altitudeDeg: anchor.altitudeDeg + entry.offsetAltitudeDeg,
+                starMagnitude: entry.starMagnitude
+            )
+        }
     }
 
     // MARK: - Haptics
