@@ -181,9 +181,12 @@ struct DoodleHeaderView: View {
     /// moment.
     private var representativeDate: Date { tonightPreview.representativeDate }
 
-    /// True when the scene is a forecast (a sky not yet reached) rather than a live view —
-    /// drives the "A look at tonight's sky" caption below.
-    private var isForecastPreview: Bool { tonightPreview.isForecastPreview }
+    /// Composite cheat-sheet hero: `TonightPreviewResolution.isForecastPreview` (live-vs-forecast)
+    /// no longer drives anything in this view — the "A look at tonight's sky" caption used to be
+    /// gated on it (only shown for a forecast preview), but the label is unconditional now (see
+    /// `spaceHeroBlock`'s comment on that change). `tonightPreview`/`representativeDate` above are
+    /// still very much used (they anchor which night's composite this is); only this one
+    /// derived flag became dead, so it's removed here rather than kept as an unused property.
 
     /// Location terrain integration: which curated landscape art set matches the display
     /// location, via the offline `TerrainClassifier`. `.hills` (the pre-existing default) for
@@ -267,17 +270,28 @@ struct DoodleHeaderView: View {
 
     /// `scene`'s full dependency set as a single joined-string key, mirroring the
     /// `trueSkyTaskKey`/`launchCacheTaskKey`/`taskKey` "cache key as joined string" idiom already
-    /// used elsewhere in this file (and in `TonightSkyCard`). Every field `scene`'s resolution
-    /// actually reads (directly or via `currentPlanetPositions`/`tonightConditionCode`/
-    /// `terrainClass`/`tonightHeadline`) is represented here — `hourly`'s identity is
-    /// approximated by its count + first/last dates rather than a full per-element comparison,
-    /// which is deliberately cheap (this key is rebuilt every render) while still changing
-    /// whenever a genuinely new payload lands (a different fetch always shifts the hourly
-    /// window's bounds or length).
+    /// used elsewhere in this file (and in `TonightSkyCard`).
+    ///
+    /// **Composite cheat-sheet hero — why this no longer keys on raw `representativeDate`/`date`:**
+    /// before this package, the hero mirrored a single moment, so the key had to invalidate every
+    /// time that moment ticked forward (this page's `TimelineView` re-evaluates `date` every 60s —
+    /// see `ForecastPageView.loadedView`). Now every composite input is itself a pure function of
+    /// (location, calendar night) — `currentPlanetPositions` scans each planet's WHOLE night for
+    /// its best-viewing moment rather than sampling one instant, `trueSky.issPass`/aurora/meteor/
+    /// conjunction/moon all describe tonight as a whole, not "right now" — so re-resolving the
+    /// scene every 60 minutes purely because a clock ticked would just repeat the exact same
+    /// answer at real cost (`currentPlanetPositions`' full-night scan is the expensive part this
+    /// cache exists to avoid re-running on every scroll frame — see `resolvedScene`'s doc comment).
+    /// `nightIdentity` below is the one time-driven component left: the calendar-day identity of
+    /// `representativeDate`, i.e. exactly the "existing day-rollover" case (crossing into a new
+    /// calendar night re-anchors everything) — a change any time the composite genuinely needs to
+    /// re-anchor, and only then. `tonightConditionCode`/`issLiveNow` below are the two exceptions
+    /// that still need finer-than-daily sensitivity (see their own comments); both are cheap to
+    /// recompute every render (no full-night scan involved), so including them here doesn't
+    /// reintroduce the per-scroll-frame cost this cache exists to avoid.
     private var sceneCacheKey: String {
         [
-            "\(representativeDate.timeIntervalSince1970)",
-            "\(date.timeIntervalSince1970)",
+            "\(nightIdentity.timeIntervalSince1970)",
             location?.id.uuidString ?? "none",
             current?.conditionCode ?? "none",
             "\(current?.temperature.value ?? -9999)",
@@ -285,11 +299,36 @@ struct DoodleHeaderView: View {
             "\(sunset?.timeIntervalSince1970 ?? -1)",
             forcedCondition?.rawValue ?? "none",
             forcedTimeOfDay?.rawValue ?? "none",
-            "\(hourly.count)",
-            "\(hourly.first?.date.timeIntervalSince1970 ?? -1)",
-            "\(hourly.last?.date.timeIntervalSince1970 ?? -1)",
+            // Tonight's forecast condition, as a fingerprint of the RESOLVED code rather than the
+            // raw `hourly` array's count/bounds — replaces the pre-composite key's coarser
+            // "hourly.count + first/last date" approximation with the actual value the scene
+            // reads, and (unlike that approximation) is completely insensitive to `hourly`
+            // re-fetching the same forecast, or to `representativeDate` drifting within the same
+            // hourly bucket.
+            tonightConditionCode ?? "none",
+            // "Aurora band" (per work order): tonight's outlook, independent of live time — see
+            // `TrueSkyLayer.auroraOpacity`'s own doc comment for why no separate "is it dark right
+            // now" gate belongs here (that's a rendering-time concern, not a cache-key one).
             fetchedAuroraBand?.description ?? "none",
-            "\(fetchedISSPasses.count)",
+            // "ISS pass id" (per work order): fingerprints the actual pass `trueSky.issPass` will
+            // depict (its start time + peak altitude + start/end azimuth), not just its presence —
+            // the previous `"\(fetchedISSPasses.count)"` component would have missed a pass swap
+            // that left the count unchanged (e.g. a stale forced pass replaced by a freshly
+            // fetched real one at the same count).
+            issPassFingerprint,
+            // Composite ISS static-vs-live: cheap (a linear scan over tonight's handful of passes,
+            // no full-night trig scan) and needs finer-than-daily sensitivity — this is what makes
+            // the cache re-resolve `scene` (and therefore `scene.date`, which `TrueSkyLayer` reads
+            // to decide live vs. static) right as `date` crosses into or out of a real pass window,
+            // without re-resolving on every other 60s tick. See `TrueSkyLayer.issRenderData`'s
+            // `isLive` for the corresponding rendering-time check this key exists to keep fresh.
+            "\(issLiveNow)",
+            // "Planet best positions" (per work order): NOT fingerprinted by re-running
+            // `currentPlanetPositions`' full-night scan here — that would defeat this cache's
+            // entire purpose (see the type-level comment above). `nightIdentity` + `location`'s id
+            // already fully determine that scan's result (it's a pure function of exactly those
+            // two things), so they ARE the fingerprint, just expressed as their cheap inputs
+            // instead of the expensive output.
             fetchedMeteorOutlook == nil ? "none" : "some",
             fetchedConjunctionPairing == nil ? "none" : "some",
             "\(fetchedMoonIlluminatedFraction ?? -1)",
@@ -303,13 +342,59 @@ struct DoodleHeaderView: View {
         ].joined(separator: "|")
     }
 
-    /// Synchronous, pure math (no network) — recomputed on every render just like
-    /// `TonightSkyCard`'s own `SkyTonightService.astronomy(...)` call, so this never waits on
-    /// the async aurora/ISS fetch below. Evaluated at `representativeDate` (not raw `date`) so a
-    /// daytime preview shows tonight's actual planet positions, not right-now's.
+    /// The calendar day `representativeDate` (already resolved to the correct "tonight," live or
+    /// forecast-preview — see `resolveTonightPreview`) falls on, floored to day granularity. The
+    /// sole time-driven component of `sceneCacheKey` — see that property's doc comment.
+    private var nightIdentity: Date {
+        Calendar.current.startOfDay(for: representativeDate)
+    }
+
+    /// `sceneCacheKey`'s "ISS pass id" component — see that property's comment for why this
+    /// fingerprints the pass's actual identifying fields rather than just `fetchedISSPasses.count`.
+    private var issPassFingerprint: String {
+        guard let pass = fetchedISSPasses.first else { return "none" }
+        return "\(pass.startTime.timeIntervalSince1970)|\(pass.peakAltitudeDeg)|\(pass.startAzimuthDeg)|\(pass.endAzimuthDeg)"
+    }
+
+    /// `sceneCacheKey`'s ISS live/static component — true exactly when `representativeDate` falls
+    /// inside tonight's (first) real pass window. Cheap linear scan (a handful of passes at most),
+    /// safe to include directly in a key rebuilt every render.
+    private var issLiveNow: Bool {
+        guard let pass = fetchedISSPasses.first else { return false }
+        return representativeDate >= pass.startTime && representativeDate <= pass.endTime
+    }
+
+    /// Composite cheat-sheet hero (owner's brief: "a visual cheat sheet of the interesting events
+    /// of tonight... a composite representation of everything for that night"): every planet
+    /// that's visible SOMEWHERE tonight gets a dot, each drawn at ITS OWN best-viewing-moment
+    /// position — not all frozen to one shared instant. The old `SkyTonight.currentPlanetPositions
+    /// (date: representativeDate, ...)` sampled every planet at ONE instant, so a planet whose
+    /// best window falls outside that instant (e.g. best after midnight, sampled at dusk+90m)
+    /// simply wasn't visible yet and got no dot — moment-accurate, but not a composite of
+    /// everything tonight. `SkyTonight.compute(...)` already scans each planet's whole night and
+    /// reports `PlanetVisibility.bestAltitude`/`bestAzimuth` at the moment of peak altitude within
+    /// its qualifying window (that peak-altitude moment IS the planet's best-viewing moment — see
+    /// `SkyTonight.PlanetVisibility`'s own doc comment), so those are used directly rather than
+    /// re-deriving a window midpoint via a second position call. Filtered to `isVisibleTonight`;
+    /// `DoodleComposer`'s own `trueSkyMinimumAltitude` filter re-applies the same floor
+    /// defensively, so this isn't the only gate.
+    ///
+    /// Synchronous, pure math (no network) — same cost category as `TonightSkyCard`'s own
+    /// `SkyTonightService.astronomy(...)` call (a full-night scan per planet, not a single-instant
+    /// sample, but the same computation that call already performs for the same location/night) —
+    /// computed fresh here rather than reused from `fetchedSkyState.astronomy` so this never waits
+    /// on the async aurora/ISS fetch below; planets render immediately.
     private var currentPlanetPositions: [SkyTonight.CurrentPlanetPosition] {
         guard let location else { return [] }
-        return SkyTonight.currentPlanetPositions(date: representativeDate, latitude: location.latitude, longitude: location.longitude)
+        let tonight = SkyTonight.compute(date: representativeDate, latitude: location.latitude, longitude: location.longitude, timeZone: .current)
+        return tonight.planets.compactMap { planet -> SkyTonight.CurrentPlanetPosition? in
+            guard planet.isVisibleTonight,
+                  let altitude = planet.bestAltitude,
+                  let azimuth = planet.bestAzimuth,
+                  let magnitude = planet.apparentMagnitude
+            else { return nil }
+            return SkyTonight.CurrentPlanetPosition(body: planet.body, altitude: altitude, azimuth: azimuth, apparentMagnitude: magnitude)
+        }
     }
 
     /// Re-runs whenever the location, calendar evening, or a forced aurora/ISS override changes
@@ -565,16 +650,19 @@ struct DoodleHeaderView: View {
     private var spaceHeroBlock: some View {
         if let resolvedCaption {
             VStack(spacing: 6) {
-                // Always-night hero, preview label: only shown when the scene is a forecast
-                // (daytime viewing, previewing this evening's sky) rather than a live view — at
-                // night the scene IS the live sky, so no label per the owner's decision ("no
-                // exclamations... factual, no label at night").
-                if isForecastPreview {
-                    Text("A look at tonight's sky")
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.55))
-                        .multilineTextAlignment(.center)
-                }
+                // Composite cheat-sheet hero: shown UNCONDITIONALLY now — the scene is always a
+                // composite (owner's brief: "not completely accurate, but a composite
+                // representation of everything for that night"), never a strictly-live view even
+                // during tonight's dark hours (planets sit at their own best-viewing moments
+                // rather than this instant's real position, the ISS may be a static mark rather
+                // than an in-progress pass, etc.), so the label no longer suppresses itself just
+                // because `date` happens to fall inside tonight's dark window. Previously gated on
+                // `tonightPreview.isForecastPreview` (see that property's doc comment above, near
+                // `representativeDate`) — that flag is now unused by this view entirely.
+                Text("A look at tonight's sky")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.55))
+                    .multilineTextAlignment(.center)
 
                 Text(resolvedCaption)
                     .font(.system(.title2, design: .rounded).weight(.semibold))

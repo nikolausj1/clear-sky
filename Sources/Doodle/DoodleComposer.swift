@@ -234,7 +234,16 @@ enum DoodleComposer {
     struct TrueSkyScene: Equatable {
         var planets: [TrueSkyPlanetDot] = []
         var auroraBand: AuroraBand? = nil
-        var activeISSPass: ISSPass? = nil
+        /// Composite cheat-sheet hero: tonight's ISS pass to depict, whenever one exists tonight
+        /// at all — independent of whether `date` (the composite's single representative moment)
+        /// happens to fall inside its window. `TrueSkyLayer` is what decides LIVE vs STATIC
+        /// rendering (an animated streak when `date` genuinely sits inside the window, a fixed
+        /// trail+glyph at the pass's peak otherwise) — this field just always carries "the pass,"
+        /// full stop, the same way `meteorOutlook`/`conjunctionPairing` below always carry
+        /// tonight's data rather than only-if-currently-happening data. `nil` when no pass exists
+        /// tonight. Picks the first (earliest) pass when more than one exists tonight — the one a
+        /// person watching the sky would see first.
+        var issPass: ISSPass? = nil
         /// Header space-event layers (WP: "meteor streaks on active-shower nights"): tonight's
         /// meteor outlook, `nil` when no shower is active. Drives `MeteorStreakLayer`'s
         /// eligibility (a shower has to actually be active) and cadence
@@ -300,6 +309,12 @@ enum DoodleComposer {
         /// coverage reaching that far (falls back to `current`'s condition below — same
         /// documented fallback every other optional input here uses).
         tonightConditionCode: String? = nil,
+        /// Composite cheat-sheet hero: despite the type name (`CurrentPlanetPosition`, unchanged
+        /// so `SkyTonight` needed no edits), the caller (`DoodleHeaderView.currentPlanetPositions`)
+        /// now feeds each planet's OWN best-viewing-moment altitude/azimuth here, not one shared
+        /// instant — so a planet whose best window is the middle of the night still shows up in
+        /// an evening composite. This function stays none the wiser; it just filters/maps whatever
+        /// positions it's handed.
         trueSkyPlanets: [SkyTonight.CurrentPlanetPosition] = [],
         trueSkyAuroraBand: AuroraBand? = nil,
         trueSkyISSPasses: [ISSPass] = [],
@@ -352,11 +367,13 @@ enum DoodleComposer {
     private static let trueSkyMinimumAltitude = 10.0
 
     /// Folds the raw astronomy/aurora/ISS data `resolve(...)` is handed into the small bundle
-    /// `TrueSkyLayer` paints. Aurora/ISS pass through close to as-is (their band-threshold /
-    /// "is `date` inside a pass window" gating lives in `TrueSkyLayer` itself, alongside its
-    /// `timeOfDay`/`condition` gating, which this function has no reason to duplicate) — the
-    /// only real resolution work here is the planet altitude filter and the two sim-verify
-    /// forcing hooks.
+    /// `TrueSkyLayer` paints. Aurora passes through close to as-is (its band-threshold gating
+    /// lives in `TrueSkyLayer` itself, alongside its `timeOfDay`/`condition` gating, which this
+    /// function has no reason to duplicate). ISS: composite cheat-sheet hero — this now always
+    /// resolves to tonight's pass (if any), not only when `date` happens to fall inside its
+    /// window; `TrueSkyLayer` is what checks "is `date` inside the window" to decide live-animated
+    /// vs static-composite rendering. The remaining real resolution work here is the planet
+    /// altitude filter and the sim-verify forcing hooks.
     private static func resolveTrueSky(
         date: Date,
         planets: [SkyTonight.CurrentPlanetPosition],
@@ -382,11 +399,15 @@ enum DoodleComposer {
                 .map { TrueSkyPlanetDot(body: $0.body, azimuthDegrees: $0.azimuth, altitudeDegrees: $0.altitude, magnitude: $0.apparentMagnitude) }
         }
 
-        let activeISSPass: ISSPass?
+        let issPass: ISSPass?
         if forceISSStreakNow {
-            activeISSPass = Self.syntheticActiveISSPass(now: date)
+            issPass = Self.syntheticActiveISSPass(now: date)
         } else {
-            activeISSPass = issPasses.first { date >= $0.startTime && date <= $0.endTime }
+            // Composite cheat-sheet hero: tonight's pass shows up in the composite any time it
+            // EXISTS tonight — picking `.first` rather than filtering to "date falls inside it"
+            // (the old, moment-accurate-only rule). `TrueSkyLayer` re-derives the live/static
+            // split itself by comparing `date` against this same pass's window.
+            issPass = issPasses.first
         }
 
         let resolvedMeteor = forceMeteorStreaks ? Self.syntheticMeteorOutlookForStreaks(referenceDate: date) : meteorOutlook
@@ -398,7 +419,7 @@ enum DoodleComposer {
         return TrueSkyScene(
             planets: resolvedPlanets,
             auroraBand: auroraBand,
-            activeISSPass: activeISSPass,
+            issPass: issPass,
             meteorOutlook: resolvedMeteor,
             conjunctionPairing: resolvedPairing,
             moonIlluminatedFraction: resolvedMoonIlluminatedFraction,
@@ -410,8 +431,10 @@ enum DoodleComposer {
     /// `-forceTrueSkyPlanets` sim-verify synthetic set (work-order spec): Venus low in the west
     /// (bright, should render), Saturn mid-high in the SE (dim, should render), and Mars low in
     /// the ENE — deliberately azimuth 68°, just *outside* `TrueSkyLayer`'s 90°-270° "faces south"
-    /// window, included specifically to prove the "behind the viewer" skip logic actually hides
-    /// a real planet, rather than that code path only ever going untested.
+    /// window, included specifically to prove the composite's edge-clamp logic (see
+    /// `TrueSkyLayer.xFractionEdgeClamped`) actually pins an out-of-window planet to the scene's
+    /// edge rather than silently dropping it — the pre-composite behavior this replaced was to
+    /// skip it outright, which this same synthetic Mars used to prove instead.
     private static let syntheticTrueSkyPlanets: [TrueSkyPlanetDot] = [
         TrueSkyPlanetDot(body: .venus, azimuthDegrees: 262, altitudeDegrees: 12, magnitude: -4.2),
         TrueSkyPlanetDot(body: .saturn, azimuthDegrees: 140, altitudeDegrees: 35, magnitude: 0.8),

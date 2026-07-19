@@ -18,17 +18,26 @@ import SwiftUI
 ///
 /// **Azimuth/altitude -> scene mapping.** The illustrated scene faces roughly south (that's how
 /// the hills read: a single low ridge, not a 360° panorama). Azimuth 90° (due east) through 180°
-/// (south) to 270° (due west) is mapped left-to-right across the scene's width; anything outside
-/// that window is behind the viewer and gets no dot at all — see `xFractionStrict`. Altitude 0°
-/// (the horizon) through 60° (high overhead, in practice the top of what's worth drawing) maps
-/// bottom-of-sky to upper-sky, clamped clear of the top chrome zone using the same
-/// `topInsetFraction` convention `CelestialBody` already uses (0.26) — see `yFraction`.
+/// (south) to 270° (due west) is mapped left-to-right across the scene's width. **Composite
+/// cheat-sheet hero (deliberate artistic license, owner's brief: "not completely accurate, but a
+/// composite representation of everything for that night"):** a planet outside that window is NOT
+/// skipped — it's clamped to the nearest scene edge (with a small inset) instead, so an east-ish
+/// object hugs the left edge and a west-ish one hugs the right edge rather than vanishing just
+/// because it's technically behind the viewer at this one representative moment — see
+/// `xFractionEdgeClamped`. Altitude 0° (the horizon) through 60° (high overhead, in practice the
+/// top of what's worth drawing) maps bottom-of-sky to upper-sky, clamped clear of the top chrome
+/// zone using the same `topInsetFraction` convention `CelestialBody` already uses (0.26) — see
+/// `yFraction`.
 ///
 /// **Cheap-animation philosophy** (matches `TwinkleStar`/`DriftingCloud`/`FallingStreak` in the
 /// sibling layer files): nothing here polls a timer. The ISS streak is a single
-/// `withAnimation(.linear(duration:))` position sweep kicked off `onAppear`; everything else is
-/// static per render. No internal `Date()` calls anywhere in this file — `date` is always the
-/// same top-level "now" `DoodleComposer` already threads through the rest of the scene.
+/// `withAnimation(.linear(duration:))` position sweep kicked off `onAppear`, drawn only while
+/// `date` genuinely falls inside a real pass window (`ISSStreak`, live); every other case — the
+/// overwhelmingly common one, since a composite's single representative moment rarely lands
+/// inside a pass that's only a few minutes long — draws a fixed, non-animated trail+glyph at the
+/// pass's peak position instead (`ISSStaticGlyph`, composite cheat-sheet hero). Everything else in
+/// this file is static per render. No internal `Date()` calls anywhere in this file — `date` is
+/// always the same top-level "now" `DoodleComposer` already threads through the rest of the scene.
 struct TrueSkyLayer: View {
     let timeOfDay: DoodleComposer.TimeOfDay
     let condition: DoodleComposer.ConditionCategory
@@ -100,14 +109,23 @@ struct TrueSkyLayer: View {
                 }
 
                 if let iss = issRenderData {
-                    ISSStreak(
-                        pass: iss.pass,
-                        now: date,
-                        startXFraction: iss.startX,
-                        endXFraction: iss.endX,
-                        yFraction: iss.y
-                    )
-                    .opacity(iss.opacity)
+                    if iss.isLive {
+                        ISSStreak(
+                            pass: iss.pass,
+                            now: date,
+                            startXFraction: iss.startX,
+                            endXFraction: iss.endX,
+                            yFraction: iss.y
+                        )
+                        .opacity(iss.opacity)
+                    } else {
+                        ISSStaticGlyph(
+                            movingRight: iss.endX >= iss.startX,
+                            xFraction: iss.peakX,
+                            yFraction: iss.y
+                        )
+                        .opacity(iss.opacity)
+                    }
                 }
 
                 if let conjunction = conjunctionRenderData {
@@ -189,19 +207,21 @@ struct TrueSkyLayer: View {
     }
 
     /// Planets: night + dusk only (Venus/Mercury in particular are often best just after sunset,
-    /// while the sky's still dusk-blue) and condition-permitting. Azimuth outside the 90°-270°
-    /// window is silently skipped (not dimmed) — that planet is behind the viewer, not obscured.
+    /// while the sky's still dusk-blue) and condition-permitting. Composite cheat-sheet hero:
+    /// every planet `trueSky.planets` carries gets a dot — azimuth outside the 90°-270° window no
+    /// longer means "skip it" (that was the moment-accurate, non-composite rule); it's now edge-
+    /// clamped instead, so the composite always shows everything tonight has to offer. See
+    /// `xFractionEdgeClamped`.
     static func planetDotFractions(
         timeOfDay: DoodleComposer.TimeOfDay,
         condition: DoodleComposer.ConditionCategory,
         trueSky: DoodleComposer.TrueSkyScene
     ) -> [PlanetDotFraction] {
         guard timeOfDay == .night || timeOfDay == .dusk, visibilityMultiplier(for: condition) != nil else { return [] }
-        return trueSky.planets.compactMap { planet in
-            guard let x = xFractionStrict(azimuth: planet.azimuthDegrees) else { return nil }
-            return PlanetDotFraction(
+        return trueSky.planets.map { planet in
+            PlanetDotFraction(
                 body: planet.body,
-                xFraction: x,
+                xFraction: xFractionEdgeClamped(azimuth: planet.azimuthDegrees),
                 yFraction: yFraction(altitude: planet.altitudeDegrees),
                 magnitude: planet.magnitude
             )
@@ -310,22 +330,35 @@ struct TrueSkyLayer: View {
 
     private struct ISSRenderData {
         var pass: ISSPass
+        /// True only when `date` genuinely falls inside `pass`'s own window — drives the live
+        /// animated `ISSStreak` vs. the static composite `ISSStaticGlyph` choice in `body`.
+        var isLive: Bool
         var startX: CGFloat
         var endX: CGFloat
+        /// Midpoint of `startX`/`endX` — a straight-line approximation of where the pass's peak
+        /// (highest-altitude) moment sits along its traversal, used to position the static glyph.
+        /// Same "straight-line approximation of the real rise/peak/set arc" simplification
+        /// `ISSStreak`'s own doc comment already documents for the live case.
+        var peakX: CGFloat
         var y: CGFloat
         var opacity: Double
     }
 
     /// ISS passes are visible at dusk (often the brightest, most-watched passes are right after
-    /// sunset) as well as full night, per work order. `TrueSkyScene.activeISSPass` is already
-    /// `nil` unless `date` falls inside a real pass window (or `-forceISSStreakNow`), so the only
-    /// gating left here is time-of-day + weather.
+    /// sunset) as well as full night, per work order. `TrueSkyScene.issPass` now carries tonight's
+    /// pass any time one exists (composite cheat-sheet hero — see that field's doc comment), not
+    /// only while `date` sits inside it, so this resolves the render data whenever a pass exists
+    /// tonight and time-of-day + weather permit; `isLive` is what tells `body` whether to animate.
     private var issRenderData: ISSRenderData? {
-        guard isNightOrDusk, let multiplier = Self.visibilityMultiplier(for: condition), let pass = trueSky.activeISSPass else { return nil }
+        guard isNightOrDusk, let multiplier = Self.visibilityMultiplier(for: condition), let pass = trueSky.issPass else { return nil }
+        let startX = Self.xFractionClamped(azimuth: pass.startAzimuthDeg)
+        let endX = Self.xFractionClamped(azimuth: pass.endAzimuthDeg)
         return ISSRenderData(
             pass: pass,
-            startX: Self.xFractionClamped(azimuth: pass.startAzimuthDeg),
-            endX: Self.xFractionClamped(azimuth: pass.endAzimuthDeg),
+            isLive: date >= pass.startTime && date <= pass.endTime,
+            startX: startX,
+            endX: endX,
+            peakX: (startX + endX) / 2,
             y: Self.yFraction(altitude: pass.peakAltitudeDeg),
             opacity: multiplier
         )
@@ -393,8 +426,11 @@ struct TrueSkyLayer: View {
         guard isNightOrDusk, let multiplier = Self.visibilityMultiplier(for: condition) else { return nil }
         guard let pairing = trueSky.conjunctionPairing, let planetBody = Self.moonPairedPlanet(pairing) else { return nil }
         guard let illumination = trueSky.moonIlluminatedFraction, let waxing = trueSky.moonWaxing else { return nil }
-        guard let planetDot = trueSky.planets.first(where: { $0.body == planetBody }),
-              let planetX = Self.xFractionStrict(azimuth: planetDot.azimuthDegrees) else { return nil }
+        // Composite cheat-sheet hero: the paired planet is now edge-clamped rather than skipped
+        // when its azimuth is out of the 90°-270° window (see `resolvedDots`/`xFractionEdgeClamped`),
+        // so it's always in view for the mini-moon to pair against — no more `nil` guard here.
+        guard let planetDot = trueSky.planets.first(where: { $0.body == planetBody }) else { return nil }
+        let planetX = Self.xFractionEdgeClamped(azimuth: planetDot.azimuthDegrees)
 
         let moonSide: CGFloat = pairing.azimuthAtBest >= planetDot.azimuthDegrees ? 1 : -1
         return ConjunctionRenderData(
@@ -426,16 +462,27 @@ struct TrueSkyLayer: View {
         return horizonFraction - t * (horizonFraction - topInsetFraction)
     }
 
-    /// Planets: strictly skip azimuths outside the "faces south" 90°-270° window — a planet
-    /// behind the viewer gets no dot at all, not a clamped one at the scene's edge.
-    private static func xFractionStrict(azimuth: Double) -> CGFloat? {
-        guard azimuth >= 90, azimuth <= 270 else { return nil }
+    /// Planets: composite cheat-sheet hero — azimuths outside the "faces south" 90°-270° window no
+    /// longer skip the dot; they clamp to the nearest scene edge, inset a little (`planetEdgeInset`)
+    /// so the dot doesn't touch the frame. Deliberate artistic license (owner's brief: "not
+    /// completely accurate, but a composite representation of everything for that night") — an
+    /// east-ish object (azimuth < 90°) hugs the left edge, a west-ish one (azimuth > 270°) hugs the
+    /// right edge, rather than vanishing because it's technically behind the viewer at this one
+    /// representative moment.
+    private static let planetEdgeInset: CGFloat = 0.04
+
+    private static func xFractionEdgeClamped(azimuth: Double) -> CGFloat {
+        if azimuth < 90 { return planetEdgeInset }
+        if azimuth > 270 { return 1 - planetEdgeInset }
         return CGFloat((azimuth - 90) / 180.0)
     }
 
-    /// ISS: clamp instead of skip. A pass sweeping in from behind the viewer (e.g. a WNW start,
-    /// azimuth 292.5°) still visibly traverses most of the scene before/after that clamp point,
-    /// which reads better as "a satellite crossing the sky" than not rendering the pass at all.
+    /// ISS: clamp all the way to the frame edge (no inset) — a pass sweeping in from behind the
+    /// viewer (e.g. a WNW start, azimuth 292.5°) still visibly traverses most of the scene before/
+    /// after that clamp point, which reads better as "a satellite crossing the sky" than not
+    /// rendering the pass at all. Kept distinct from `xFractionEdgeClamped` (planets) since the
+    /// ISS's start/end clamp is about a *sweep* running off-frame, not a single dot needing
+    /// breathing room from the edge.
     private static func xFractionClamped(azimuth: Double) -> CGFloat {
         CGFloat(min(max((azimuth - 90) / 180.0, 0), 1))
     }
@@ -510,6 +557,51 @@ private struct ISSStreak: View {
                     xFraction = endXFraction
                 }
             }
+        }
+    }
+}
+
+/// Composite cheat-sheet hero: the ISS's STATIC composite mark — drawn whenever tonight's pass
+/// exists but `date` doesn't currently fall inside it (the overwhelmingly common case, since a
+/// composite's one representative moment rarely lands inside a pass window only a few minutes
+/// long). A smaller, non-animated cousin of `ISSStreak`'s trail+dot treatment, fixed at the pass's
+/// peak position (`ISSRenderData.peakX`/`.y`) rather than sweeping — "a short trail arc + the ISS
+/// mini glyph," per work order, with a deliberately subtler glow than the live streak's (this is
+/// a marker saying "a pass happens tonight," not the main event).
+private struct ISSStaticGlyph: View {
+    let movingRight: Bool
+    let xFraction: CGFloat
+    let yFraction: CGFloat
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack {
+                LinearGradient(
+                    colors: [Color.white.opacity(0), Color.white.opacity(0.4)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .frame(width: 22, height: 1.4)
+                .rotationEffect(.degrees(movingRight ? 0 : 180))
+                .offset(x: movingRight ? -13 : 13)
+
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [Color.white.opacity(0.5), Color.white.opacity(0)],
+                            center: .center,
+                            startRadius: 0,
+                            endRadius: 9
+                        )
+                    )
+                    .frame(width: 18, height: 18)
+
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: 3.5, height: 3.5)
+                    .shadow(color: .white.opacity(0.7), radius: 3)
+            }
+            .position(x: proxy.size.width * xFraction, y: proxy.size.height * yFraction)
         }
     }
 }
