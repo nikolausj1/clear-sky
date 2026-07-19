@@ -158,3 +158,11 @@ enum SkyFinderTarget {
         return "A steady, plainly visible point"
     }
 }
+
+
+/// Sky Finder ingress #5 (notification tap): a reactive deep-link token. A fresh `id` per tap
+/// means `.onChange` fires even for back-to-back ISS deep links to the same target.
+struct SkyFinderDeepLink: Equatable {
+    let id = UUID()
+    let target: SkyFinderLaunchArgTarget
+}

@@ -44,6 +44,11 @@ import UserNotifications
 final class SkyNotificationScheduler: NSObject {
     static let shared = SkyNotificationScheduler()
 
+    /// Notification-tap deep link (Sky Finder ingress #5): set by `NavigationShell` at launch.
+    /// Tapping an ISS-pass notification routes straight into the Sky Finder targeting the ISS —
+    /// the highest-intent moment for the finder there is. Main-actor: UI routing.
+    var onOpenFinderForISS: (@MainActor () -> Void)?
+
     /// `SettingsView`'s toggles persist to these exact keys via `@AppStorage`, so this type's
     /// own `UserDefaults.standard.bool(forKey:)` reads always see the toggle's current value —
     /// one source of truth, no separate "is this feature on" state duplicated here.
@@ -386,5 +391,21 @@ extension SkyNotificationScheduler: UNUserNotificationCenterDelegate {
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
         completionHandler([.banner, .sound, .list])
+    }
+
+    /// Tapping an ISS-pass notification opens the Sky Finder locked on the ISS (aurora
+    /// notifications just open the app normally — there's no single object to point at).
+    nonisolated func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let identifier = response.notification.request.identifier
+        if identifier.hasPrefix("iss-") || identifier.hasPrefix("notiftest-iss") {
+            Task { @MainActor in
+                SkyNotificationScheduler.shared.onOpenFinderForISS?()
+            }
+        }
+        completionHandler()
     }
 }

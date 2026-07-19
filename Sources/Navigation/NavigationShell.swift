@@ -66,6 +66,9 @@ struct NavigationShell: View {
     @State private var spaceViewModel: SpaceViewModel?
     @State private var unitsSettings = UnitsSettings()
     @State private var selectedTab: Tab = .forecast
+    /// Sky Finder ingress #5 (notification tap): bumped by `SkyNotificationScheduler`'s
+    /// tap handler; `ForecastPageView` observes changes and presents the finder on the ISS.
+    @State private var finderDeepLink: SkyFinderDeepLink?
     @State private var isPresentingLocations = false
     @State private var isPresentingSettings = false
 
@@ -85,6 +88,7 @@ struct NavigationShell: View {
                             showJournalAtLaunch: Self.launchArgsContain("-showJournal"),
                             showAlertDetailAtLaunch: Self.launchArgsContain("-showAlertDetail"),
                             showFinderTargetAtLaunch: Self.showFinderTargetFromLaunchArgs(),
+                            finderDeepLink: finderDeepLink,
                             onSkyStateResolved: handleSkyStateResolved,
                             onOpenSettings: { isPresentingSettings = true },
                             onOpenLocations: { isPresentingLocations = true }
@@ -141,6 +145,12 @@ struct NavigationShell: View {
                 SettingsView(locationManager: locationsViewModel.locationManager, firstSavedLocation: forecastViewModel?.locations.first)
                     .environment(unitsSettings)
                     .nightVisionAware()
+            }
+        }
+        .onAppear {
+            SkyNotificationScheduler.shared.onOpenFinderForISS = {
+                selectedTab = .forecast
+                finderDeepLink = SkyFinderDeepLink(target: .iss)
             }
         }
         .onChange(of: scenePhase) { _, newPhase in

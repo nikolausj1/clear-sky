@@ -46,6 +46,9 @@ struct ForecastPageView: View {
     /// Sim-verify only (Sky Finder work package): `-showFinder <target>` — see
     /// `NavigationShell`'s doc comment.
     var showFinderTargetAtLaunch: SkyFinderLaunchArgTarget? = nil
+    /// Sky Finder ingress #5 (notification tap): unlike the one-shot launch-arg above, this is
+    /// REACTIVE — a change while the app is running presents the finder on the ISS.
+    var finderDeepLink: SkyFinderDeepLink? = nil
     /// UX redesign part 2 (lead QC defect: scroll-aware top bar): reports this page's scroll
     /// content offset (`0` at rest, growing as the user scrolls down) up to `ForecastView`,
     /// which only listens for the currently-active page (see `ForecastView.pagerView`) and uses
@@ -175,6 +178,10 @@ struct ForecastPageView: View {
                     emptyStateView()
                 }
             }
+        }
+        .onChange(of: finderDeepLink) { _, link in
+            guard let link else { return }
+            finderPresentation = link.target.presentation
         }
     }
 

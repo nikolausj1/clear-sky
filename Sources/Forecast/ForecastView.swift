@@ -29,6 +29,9 @@ struct ForecastView: View {
     /// Sim-verify only (Sky Finder work package): `-showFinder <target>` — see
     /// `NavigationShell`'s doc comment and `ForecastPageView.showFinderTargetAtLaunch`.
     var showFinderTargetAtLaunch: SkyFinderLaunchArgTarget? = nil
+    /// Sky Finder ingress #5: reactive deep link from a notification tap (vs the one-shot
+    /// launch-arg above). Threaded to the ACTIVE page only, like the launch-arg target.
+    var finderDeepLink: SkyFinderDeepLink? = nil
     /// Notifications work package: forwarded straight through to every page's `TonightSkyCard`
     /// — see that file's doc comment on `onSkyStateResolved`.
     var onSkyStateResolved: (SavedLocation) -> Void = { _ in }
@@ -182,6 +185,7 @@ struct ForecastView: View {
                         showJournalAtLaunch: index == viewModel.activeIndex && showJournalAtLaunch,
                         showAlertDetailAtLaunch: index == viewModel.activeIndex && showAlertDetailAtLaunch,
                         showFinderTargetAtLaunch: index == viewModel.activeIndex ? showFinderTargetAtLaunch : nil,
+                        finderDeepLink: index == viewModel.activeIndex ? finderDeepLink : nil,
                         // Only the active page's scroll offset should drive the shared bar
                         // state — an inactive page's `ScrollView` can report stale/irrelevant
                         // offsets (e.g. from before a swipe) that would otherwise fight the
