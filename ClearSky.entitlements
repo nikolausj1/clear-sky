@@ -4,5 +4,13 @@
 <dict>
 	<key>com.apple.developer.weatherkit</key>
 	<true/>
+	<!-- Widget work package: shared container the app writes WidgetSnapshot into and
+	     ZenithWidgets reads from (Sources/Shared/WidgetSnapshot.swift). Must be registered on
+	     the App ID in the Apple Developer portal before a device build/archive will succeed —
+	     see Widgets/ZenithWidgets.entitlements' own comment for the device-signing caveat. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.levelup.clearsky</string>
+	</array>
 </dict>
 </plist>

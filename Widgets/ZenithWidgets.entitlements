@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Same app group as ClearSky.entitlements — this is how ZenithWidgets reads the
+	     WidgetSnapshot the host app writes. On a real device/archive build, this app group must
+	     be registered on the com.levelup.clearsky.widgets App ID in the Apple Developer portal
+	     (and on the app's own com.levelup.clearsky App ID) before signing succeeds; on the
+	     simulator, entitlements aren't enforced the same way, so this doesn't block sim-verify —
+	     see the widget work package's final report for this build's actual device-signing
+	     status. -->
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.levelup.clearsky</string>
+	</array>
+</dict>
+</plist>

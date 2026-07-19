@@ -155,11 +155,18 @@ struct NavigationShell: View {
     /// location," i.e. `locations.first`, NOT necessarily the pager's currently-active page —
     /// unlike `spaceLocation` below, which follows the active page). A no-op for every other
     /// page's card.
+    ///
+    /// Widget work package: this is also the "hook where `SkyTonightService` resolves" the
+    /// widgets' own data-handoff spec calls for — `WidgetSnapshotWriter.refresh` runs alongside
+    /// the two notification refreshes, same first-saved-location scope, so the lock/home-screen
+    /// widgets and the two sanctioned notifications always agree on which location "tonight"
+    /// means.
     private func handleSkyStateResolved(_ location: SavedLocation) {
         guard forecastViewModel?.locations.first?.id == location.id else { return }
         Task {
             await SkyNotificationScheduler.shared.refreshISS(location: location)
             await SkyNotificationScheduler.shared.refreshAurora(location: location)
+            await WidgetSnapshotWriter.refresh(location: location)
         }
     }
 

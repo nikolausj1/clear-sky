@@ -11,6 +11,12 @@ targets:
       - path: Sources
         excludes:
           - "**/*.md"
+      # Widget work package: `-widgetPreview`'s debug screen (`Sources/Debug/WidgetPreviewView.swift`)
+      # renders the SAME widget content views the extension uses (rather than a copy), so the app
+      # target also compiles `Widgets/Views` directly. `Widgets/ZenithWidgets.swift` itself (the
+      # `@main` `WidgetBundle` + `TimelineProvider`) is deliberately NOT included here — only the
+      # extension needs it, and it would collide with the app's own `@main` `ClearSkyApp`.
+      - path: Widgets/Views
     settings:
       base:
         DEVELOPMENT_TEAM: 6A4J2GTB6F
@@ -30,3 +36,41 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         NSLocationWhenInUseUsageDescription: "Zenith uses your location to show the weather and tonight's sky where you are. Nothing is stored or shared."
         UILaunchScreen: {}
+    # Widget work package: embeds `ZenithWidgets` into the app bundle's PlugIns/ so the lock-screen
+    # and home-screen widgets install alongside the app itself — XcodeGen's standard
+    # app-extension-embed recipe (`embed: true` copies + code-signs the built extension into the
+    # host app's PlugIns/ automatically; no manual Copy Files build phase needed).
+    dependencies:
+      - target: ZenithWidgets
+        embed: true
+
+  ZenithWidgets:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "18.0"
+    # Widgets/ holds the extension's own files (bundle + views); the three `Sources/Shared/...`
+    # entries below are compiled into BOTH targets (the app picks them up automatically via its
+    # own `Sources` tree above) so the widget can reuse the moon-phase drawing/terrain-class/
+    # snapshot types without duplicating them — see each file's own doc comment for why it's safe
+    # to share (pure SwiftUI/Foundation, no app-only engine dependencies).
+    sources:
+      - path: Widgets
+      - path: Sources/Shared/MoonPhaseDisc.swift
+      - path: Sources/Shared/WidgetSnapshot.swift
+      - path: Sources/Shared/TerrainClass.swift
+    settings:
+      base:
+        DEVELOPMENT_TEAM: 6A4J2GTB6F
+        PRODUCT_BUNDLE_IDENTIFIER: com.levelup.clearsky.widgets
+        CODE_SIGN_ENTITLEMENTS: Widgets/ZenithWidgets.entitlements
+        TARGETED_DEVICE_FAMILY: "1"
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "7"
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: Zenith Widgets
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension

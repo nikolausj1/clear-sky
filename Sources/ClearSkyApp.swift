@@ -14,6 +14,10 @@ struct ClearSkyApp: App {
             Group {
                 if CommandLine.arguments.contains("-smoketest") {
                     SmokeTestView()
+                } else if CommandLine.arguments.contains("-widgetPreview") {
+                    // Widget work package: honest sim-verify substitute for the widget gallery —
+                    // see `WidgetPreviewView`'s own doc comment for why.
+                    WidgetPreviewView()
                 } else {
                     NavigationShell()
                 }

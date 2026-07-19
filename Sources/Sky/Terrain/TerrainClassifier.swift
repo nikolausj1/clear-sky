@@ -1,16 +1,5 @@
 import Foundation
 
-/// Which of the four header-illustration landscape sets (see
-/// `Sources/Doodle/Layers/IllustratedLandscapeLayer.swift`) best matches a location.
-enum TerrainClass: String, CaseIterable {
-    case mountains
-    case desert
-    case coast
-    /// The existing default landscape (rolling green hills) — what every location gets
-    /// unless it lands in one of the curated regions below.
-    case hills
-}
-
 /// Coarse, offline, deterministic lat/lon → `TerrainClass` classifier for the doodle header
 /// illustration.
 ///
@@ -43,6 +32,9 @@ enum TerrainClass: String, CaseIterable {
 /// label) entries — adding a new region later is just appending a row; no branching logic to
 /// touch. `classify` enforces precedence by scanning the table once per class in priority
 /// order, not by relying on table order.
+///
+/// `TerrainClass` itself now lives in `Sources/Shared/TerrainClass.swift` (widget work package) —
+/// this file only holds the region table and the `classify(...)` function, both app-only.
 enum TerrainClassifier {
     /// One curated rectangular region and the terrain class it maps to. `label` exists purely
     /// for readability/debugging (e.g. when eyeballing why a coordinate classified a certain
