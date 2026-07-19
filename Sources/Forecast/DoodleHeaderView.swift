@@ -72,6 +72,18 @@ struct DoodleHeaderView: View {
     /// loading/error/empty previews, and any future one that doesn't care — compiling unchanged
     /// with no tappable dots at all.
     var onFindPlanetTap: ((Planets.Body) -> Void)? = nil
+    /// Hero Option A (owner-chosen design): tapping the Tonight chip beneath the headline opens
+    /// Sky Finder — see `tonightChip`/`tonightChipFinderPresentation` for the routing logic.
+    /// `nil` (the default) keeps every existing call site — the loading/error/empty previews —
+    /// compiling unchanged with no chip at all (gated the same way `onCaptionTap`'s absence is
+    /// tolerated, since `resolvedCaption` is also `nil` for those states).
+    var onOpenTonightFinder: ((SkyFinderPresentation) -> Void)? = nil
+    /// Sim-verify only (Hero Option A work package): `-tapTonightChip` — `simctl` can't tap the
+    /// chip directly, so this simulates that tap once, right after `fetchedSkyState` resolves (the
+    /// same data `tonightChipFinderPresentation` reads), proving the ROUTING logic a real tap
+    /// would exercise — not just the finder destination screen, which `-showFinder iss`/`moon`/a
+    /// planet already covers on its own. See `loadTrueSkyNetworkState`'s call site.
+    var simulateTonightChipTapAtLaunch: Bool = false
 
     /// Aurora/ISS/bestMoment/meteor are network-or-derived-state (`SkyTonightService.state`), so
     /// — unlike planets, which are synchronous math computed fresh in `scene` below — they're
@@ -122,7 +134,16 @@ struct DoodleHeaderView: View {
     /// `.onGeometryChange`, the same measurement technique `ForecastPageView`'s
     /// `heroTopOffsetSentinel` already uses) so `captionScrim` can size itself off real content,
     /// including at accessibility text sizes.
+    ///
+    /// Hero Option A: that detail line is gone (see `spaceHeroBlock`'s doc comment) — replaced by
+    /// `tonightChip`, whose own height (font scales with Dynamic Type same as everything else in
+    /// this fixed-`.large`-capped hero) this same measurement now accounts for instead, so the
+    /// scrim keeps tracking real content with no change needed here.
     @State private var measuredSpaceBlockHeight: CGFloat = 0
+    /// `-tapTonightChip` sim-verify hook: guards `loadTrueSkyNetworkState()`'s simulated tap so it
+    /// fires exactly once (the first time `fetchedSkyState` resolves), not on every subsequent
+    /// re-fetch this `.task(id:)` might run for the same evening.
+    @State private var hasSimulatedTonightChipTap = false
 
     private var fetchedAuroraBand: AuroraBand? {
         fetchedSkyState.flatMap { SkyTonightService.availableValue($0.aurora) }?.band
@@ -484,6 +505,14 @@ struct DoodleHeaderView: View {
             overrides: skyForcedOverrides
         )
         fetchedSkyState = result
+        // `-tapTonightChip` sim-verify hook: fires right after the data `tonightChip` itself reads
+        // resolves, so the simulated tap sees exactly what a real one would (the reverse — firing
+        // from `.onAppear` before this task ever ran — would always resolve to free-explore,
+        // since `tonightHeadline` falls back to `nil` with no `fetchedSkyState` yet).
+        if simulateTonightChipTapAtLaunch, !hasSimulatedTonightChipTap {
+            hasSimulatedTonightChipTap = true
+            onOpenTonightFinder?(tonightChipFinderPresentation)
+        }
     }
 
     /// `sky/` subdirectory of the app's caches directory — the same shared cache directory
@@ -517,10 +546,12 @@ struct DoodleHeaderView: View {
     /// launch, no location, the async sky fetch hasn't resolved, or tonight's dusk/dawn window
     /// can't be resolved (polar edge case) — in which case `resolvedCaption` falls back to the
     /// phrase-bank `caption` passed in, per work order.
-    /// Scroll-perf regression follow-up: `resolvedCaption` reads this from three separate call
-    /// sites (`body`'s two `resolvedCaption != nil` checks plus `spaceHeroBlock`'s own read),
-    /// PLUS `spaceHeroBlock`'s direct `tonightHeadline?.detailText` — four re-derivations of the
-    /// same `StargazingScore.hourlyScores` full-array scan per `DoodleHeaderView.body` evaluation,
+    /// Scroll-perf regression follow-up: `resolvedCaption` reads this from two separate call
+    /// sites in `body` (both gated on `resolvedCaption != nil`) — and Hero Option A added a third,
+    /// `tonightChipFinderPresentation`'s `switch tonightHeadline?.kind` (the Tonight chip's own
+    /// tap-routing logic, evaluated fresh on every tap rather than cached itself, since a tap is
+    /// nowhere near scroll-frame frequency). Multiple re-derivations of the same
+    /// `StargazingScore.hourlyScores` full-array scan per `DoodleHeaderView.body` evaluation,
     /// every one of them on every scroll frame (this view's `body` re-runs each frame via
     /// `ForecastPageView.ParallaxHero`). Cached exactly like `resolvedScene`'s own pattern — see
     /// that property's doc comment — keyed on `headlineCacheKey`, refreshed as an effect in
@@ -656,12 +687,11 @@ struct DoodleHeaderView: View {
                         // which now overlaps this scene by that same amount.
                         .padding(.bottom, 14 + Self.sheetOverlap)
                         .frame(maxWidth: .infinity)
-                        .contentShape(Rectangle())
-                        // Work item 1: tapping the whole space block scrolls to the Tonight's
-                        // Sky card. Only active when the caller supplied a target (the loaded
-                        // state) — a no-op tap on the loading/error/empty previews, which pass
-                        // no closure.
-                        .onTapGesture { onCaptionTap?() }
+                        // Hero Option A (owner-chosen design): the tap-to-scroll gesture used to
+                        // live here, on the whole block — it now lives on the headline `Text`
+                        // itself, inside `spaceHeroBlock`, since the block also contains
+                        // `tonightChip`'s own independent tap destination (Sky Finder). See that
+                        // Text's doc comment for the two-affordances rationale.
                         // Item 5: measures the block's real laid-out height (inclusive of its
                         // own padding above) so `captionScrim` above can grow to match — see
                         // `measuredSpaceBlockHeight`'s doc comment.
@@ -775,30 +805,28 @@ struct DoodleHeaderView: View {
         }
     }
 
-    /// Space-first design batch, item 1: the space block — preview label, then the headline
-    /// (now the hero's typographic centerpiece at `.title2` rounded semibold, up from the
-    /// previous `.subheadline`), then a detail line when `tonightHeadline` has one. Lower-third
-    /// centered, directly above the caption scrim; the whole block stays tappable (unchanged
-    /// scroll-to-Tonight's-Sky-card behavior lives on the caller of this computed view, in
-    /// `body`).
+    /// Hero Option A (owner-chosen design, replaces the previous "label + headline + detail
+    /// paragraph" stack): just the headline — now the hero's ONLY line of copy — plus
+    /// `tonightChip` directly beneath it. Lower-third centered, directly above the caption scrim.
+    ///
+    /// **Two distinct affordances, deliberately not one big tappable block anymore:**
+    /// - The headline `Text` itself scrolls to the Tonight's Sky card (`onCaptionTap`) — same
+    ///   destination this whole block used to open on any tap, before this package.
+    /// - `tonightChip` opens Sky Finder (`onOpenTonightFinder`) — targeting the specific object
+    ///   the headline is about when there is one (ISS pass / bright planet / notable Moon), else
+    ///   free-explore. See that property's doc comment.
+    ///
+    /// The detail paragraph (`tonightHeadline?.detailText`) that used to render here is GONE —
+    /// per work order, the hero is one headline line only now. That text isn't lost: the night
+    /// panel's own headline row (`TonightSkyCard.headlineRow`) renders it independently, from its
+    /// own `bestMoment` fetch via `TonightHeadline.detailText(for:timeZone:)` — a completely
+    /// separate code path from this view's `tonightHeadline`, so removing it here doesn't touch
+    /// that row at all (verified by inspection, not by a shared flag: `TonightSkyCard` never reads
+    /// anything from `DoodleHeaderView`).
     @ViewBuilder
     private var spaceHeroBlock: some View {
         if let resolvedCaption {
-            VStack(spacing: 6) {
-                // Composite cheat-sheet hero: shown UNCONDITIONALLY now — the scene is always a
-                // composite (owner's brief: "not completely accurate, but a composite
-                // representation of everything for that night"), never a strictly-live view even
-                // during tonight's dark hours (planets sit at their own best-viewing moments
-                // rather than this instant's real position, the ISS may be a static mark rather
-                // than an in-progress pass, etc.), so the label no longer suppresses itself just
-                // because `date` happens to fall inside tonight's dark window. Previously gated on
-                // `tonightPreview.isForecastPreview` (see that property's doc comment above, near
-                // `representativeDate`) — that flag is now unused by this view entirely.
-                Text("A look at tonight's sky")
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.55))
-                    .multilineTextAlignment(.center)
-
+            VStack(spacing: 10) {
                 Text(resolvedCaption)
                     .font(.system(.title2, design: .rounded).weight(.semibold))
                     .foregroundStyle(.white)
@@ -808,24 +836,83 @@ struct DoodleHeaderView: View {
                     .shadow(color: .black.opacity(0.4), radius: 6, y: 2)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
+                    .contentShape(Rectangle())
+                    .onTapGesture { onCaptionTap?() }
 
-                // The fuller "Step outside" explanation beneath the headline — only present when
-                // `TonightHeadline` actually resolved one (event/overcast tiers always have one;
-                // the quieter fact tiers, and the phrase-bank `caption` fallback, may not).
-                if let detail = tonightHeadline?.detailText {
-                    // Item 5: was `.lineLimit(2)`, which truncated the longest real copy (the
-                    // ISS pass detail sentence — "Rising low in the ... It looks like a bright,
-                    // steady star moving fast." routinely runs 3 lines). Unlimited + `fixedSize`
-                    // so the text lays out at its full natural height instead of being
-                    // compressed/clipped by an ambient height proposal from the parent `VStack`.
-                    Text(detail)
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.75))
-                        .multilineTextAlignment(.center)
-                        .lineLimit(nil)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                tonightChip
             }
+        }
+    }
+
+    /// Hero Option A: the small glass pill directly under the headline, replacing the old plain
+    /// "A look at tonight's sky" caption with an actual affordance. Tapping it opens Sky Finder —
+    /// see `tonightChipFinderPresentation` for which target. `.ultraThinMaterial` capsule (glass,
+    /// matching the app's other floating chrome — the tab bar, the top chrome's settings button)
+    /// rather than a solid fill, since it sits directly on the illustrated scene and needs to read
+    /// as "floating over the art," not as a UI panel breaking the scene.
+    private var tonightChip: some View {
+        Button {
+            onOpenTonightFinder?(tonightChipFinderPresentation)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "sparkles")
+                    .accessibilityHidden(true)
+                Text("Tonight's sky · Find it")
+            }
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(.white.opacity(0.9))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(.ultraThinMaterial, in: Capsule())
+        }
+        .buttonStyle(TonightChipButtonStyle())
+        .accessibilityLabel("Find tonight's sky")
+        .accessibilityHint("Opens Sky Finder")
+    }
+
+    /// Hero Option A: which Sky Finder presentation `tonightChip` opens, resolved from
+    /// `tonightHeadline?.kind` — "if tonight's headline is about a specific findable object (ISS
+    /// pass / planet / moon), open the finder targeting that object; otherwise open free-explore"
+    /// (work order). `aurora`/`meteorShower`/`conjunction` are strong events too, but none names a
+    /// single Sky Finder target (`SkyFinderTarget.Kind` has no "aurora" or "shower radiant" case,
+    /// and a conjunction is two bodies, not one) — per work order's explicit "ISS pass / planet /
+    /// moon" list, those and every quieter fact tier (overcast/goodStargazing/showerBuilding/none)
+    /// fall through to free-explore.
+    private var tonightChipFinderPresentation: SkyFinderPresentation {
+        switch tonightHeadline?.kind {
+        case .issPass:
+            // Mirrors `SkyFinderLaunchArgTarget.iss`'s own route: this view only ever has
+            // `ISSPass` prediction data (`fetchedISSPasses`), not a full `SatellitePass` with the
+            // catalog/tracking metadata `TonightSkyCard`'s own ISS row has in hand — the
+            // fallback is exactly the mechanism built for "we know it's the ISS, we just don't
+            // have the concrete pass object" (see `SkyFinderPresentation.initialSatelliteKindFallback`'s
+            // doc comment).
+            return SkyFinderPresentation(initialSatelliteKindFallback: .iss)
+        case .brightPlanet:
+            // Re-derives which planet via `TonightHeadline.brightestVisiblePlanet` — the exact
+            // same filter/tie-break `brightPlanetHeadline` used to produce this headline in the
+            // first place (see that function's doc comment for why it's exposed non-`private`).
+            if let body = TonightHeadline.brightestVisiblePlanet(fetchedSkyState?.astronomy.planets ?? [])?.body {
+                return SkyFinderPresentation(initialKind: .planet(body))
+            }
+            return SkyFinderPresentation()
+        case .notableMoon:
+            return SkyFinderPresentation(initialKind: .moon())
+        default:
+            return SkyFinderPresentation()
+        }
+    }
+
+    /// Hero Option A: subtle press feedback for `tonightChip` — a small scale + opacity dip,
+    /// animated. Not `PressableRowStyle` (a system-fill flash tuned for opaque list rows) — this
+    /// pill already carries its own `.ultraThinMaterial` background, which a fill flash on top of
+    /// would just muddy.
+    private struct TonightChipButtonStyle: ButtonStyle {
+        func makeBody(configuration: Configuration) -> some View {
+            configuration.label
+                .scaleEffect(configuration.isPressed ? 0.96 : 1)
+                .opacity(configuration.isPressed ? 0.75 : 1)
+                .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
         }
     }
 

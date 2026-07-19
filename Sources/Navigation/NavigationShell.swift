@@ -36,6 +36,10 @@ import SwiftUI
 ///   `-seedJournal` (read directly by `SkyJournalStore`) seeds a populated Sky Journal;
 ///   `-showFinderStarPicker` (read directly by `SkyFinderView`) opens the "Stars" chip's sheet at
 ///   launch.
+/// - `-tapTonightChip` (Hero Option A work package) simulates one tap on the hero's Tonight chip
+///   on the active Forecast page, right after its sky data resolves — proves the chip's own
+///   ISS/planet/Moon/free-explore ROUTING logic, not just the finder destination screen (which
+///   `-showFinder` above already covers). See `DoodleHeaderView.simulateTonightChipTapAtLaunch`.
 /// - `-forceNotifTest` (notifications work package) schedules one test ISS notification 15
 ///   seconds out via `SkyNotificationScheduler.scheduleTestNotification()` — sim-verify only, so
 ///   a foreground-delivered banner can be screenshotted without waiting for a real pass.
@@ -89,6 +93,7 @@ struct NavigationShell: View {
                             showAlertDetailAtLaunch: Self.launchArgsContain("-showAlertDetail"),
                             showFinderTargetAtLaunch: Self.showFinderTargetFromLaunchArgs(),
                             finderDeepLink: finderDeepLink,
+                            tapTonightChipAtLaunch: Self.launchArgsContain("-tapTonightChip"),
                             onSkyStateResolved: handleSkyStateResolved,
                             onOpenSettings: { isPresentingSettings = true },
                             onOpenLocations: { isPresentingLocations = true }

@@ -49,6 +49,10 @@ struct ForecastPageView: View {
     /// Sky Finder ingress #5 (notification tap): unlike the one-shot launch-arg above, this is
     /// REACTIVE — a change while the app is running presents the finder on the ISS.
     var finderDeepLink: SkyFinderDeepLink? = nil
+    /// Sim-verify only (Hero Option A work package): `-tapTonightChip` — see
+    /// `DoodleHeaderView.simulateTonightChipTapAtLaunch`'s doc comment. Threaded straight through,
+    /// same pattern as `showFinderTargetAtLaunch` above.
+    var tapTonightChipAtLaunch: Bool = false
     /// UX redesign part 2 (lead QC defect: scroll-aware top bar): reports this page's scroll
     /// content offset (`0` at rest, growing as the user scrolls down) up to `ForecastView`,
     /// which only listens for the currently-active page (see `ForecastView.pagerView`) and uses
@@ -368,7 +372,9 @@ struct ForecastPageView: View {
                             forceLaunchContrail: viewModel.forceLaunchContrail,
                             hourly: payload.hourly,
                             onCaptionTap: { scrollToSkyCard(proxy: proxy) },
-                            onFindPlanetTap: { body in finderPresentation = SkyFinderPresentation(initialKind: .planet(body)) }
+                            onFindPlanetTap: { body in finderPresentation = SkyFinderPresentation(initialKind: .planet(body)) },
+                            onOpenTonightFinder: { finderPresentation = $0 },
+                            simulateTonightChipTapAtLaunch: tapTonightChipAtLaunch
                         )
                     }
 

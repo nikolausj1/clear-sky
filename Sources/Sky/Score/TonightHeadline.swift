@@ -332,7 +332,15 @@ enum TonightHeadline {
 
     /// Brightest (lowest apparent magnitude) visible planet with a known rise time; ties broken
     /// by raw case name for determinism (same tie-break as `BestMoment`'s own planet picker).
-    private static func brightestVisiblePlanet(_ planets: [SkyTonight.PlanetVisibility]) -> SkyTonight.PlanetVisibility? {
+    ///
+    /// Not `private` (like `compassWord`/`shortTime` below — see their shared doc comment) so
+    /// the hero's Tonight chip (`DoodleHeaderView.tonightChipFinderPresentation`) can re-derive
+    /// exactly which planet a `.brightPlanet` headline is about, to route Sky Finder at it —
+    /// re-running the same filter/tie-break `brightPlanetHeadline` already used to pick that
+    /// headline, rather than this file exporting the planet as part of `Headline` itself (which
+    /// would tie this pure-astronomy-copy type to a Finder-layer concept it otherwise never
+    /// references).
+    static func brightestVisiblePlanet(_ planets: [SkyTonight.PlanetVisibility]) -> SkyTonight.PlanetVisibility? {
         planets
             .filter { $0.isVisibleTonight && $0.apparentMagnitude != nil }
             .min { a, b in
