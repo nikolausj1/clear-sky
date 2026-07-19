@@ -170,36 +170,54 @@ struct ForecastView: View {
 
     // MARK: - Pager
 
+    /// Tab-bar opaque-band fix (owner: "Can't it just float?"): `pageIndicator` used to be a
+    /// LAYOUT SIBLING of the `TabView` inside a `VStack`, which reserved its own ~90pt-tall,
+    /// full-width strip at the bottom of the screen (dots + `pageIndicator`'s own bottom padding)
+    /// that the `TabView` was sized SHORTER to make room for. Nothing ever painted that reserved
+    /// strip — each page's `ScrollView` only fills the `TabView`'s (now-shorter) bounds, so it
+    /// never reaches down into it — leaving it showing the plain window background, which is
+    /// exactly the flat opaque band `NavigationShell.floatingBar` sat on top of on every Forecast
+    /// page. Paint-bisection (temporarily coloring candidate layers, screenshotting each) traced
+    /// it to this reserved strip specifically, not the floating bar itself, `sheetSurface`'s own
+    /// background, or `NavigationShell`'s root container — all ruled out empirically.
+    ///
+    /// Fixed by giving the `TabView` the FULL height (no sibling to share it with) and moving
+    /// `pageIndicator` to a `.overlay(alignment: .bottom)` instead — an overlay doesn't participate
+    /// in layout sizing, so it no longer steals height from the `TabView`; each page's content now
+    /// genuinely scrolls all the way to the true bottom edge, visible (through
+    /// `NavigationShell.floatingBar`'s `.ultraThinMaterial`) behind both the dots and the bar,
+    /// matching the Space/Sky Spots tabs' own edge-to-edge scrolling (neither of those had this
+    /// bug — both use a single full-bleed `ScrollView` over `SpaceDarkBackground`, no paging
+    /// sibling to reserve space in the first place).
     private var pagerView: some View {
-        VStack(spacing: 6) {
-            TabView(selection: $viewModel.activeIndex) {
-                ForEach(Array(viewModel.locations.enumerated()), id: \.element.id) { index, location in
-                    ForecastPageView(
-                        location: location,
-                        page: viewModel.state(for: location),
-                        scrollTargetHourIndex: index == viewModel.activeIndex ? scrollTargetHourIndex : nil,
-                        scrollToAttribution: index == viewModel.activeIndex && scrollToAttribution,
-                        scrollToSky: index == viewModel.activeIndex && scrollToSky,
-                        forcedExplainerKey: index == viewModel.activeIndex ? forcedExplainerKey : nil,
-                        showPeopleSheetAtLaunch: index == viewModel.activeIndex && showPeopleSheetAtLaunch,
-                        showJournalAtLaunch: index == viewModel.activeIndex && showJournalAtLaunch,
-                        showAlertDetailAtLaunch: index == viewModel.activeIndex && showAlertDetailAtLaunch,
-                        showFinderTargetAtLaunch: index == viewModel.activeIndex ? showFinderTargetAtLaunch : nil,
-                        finderDeepLink: index == viewModel.activeIndex ? finderDeepLink : nil,
-                        // Only the active page's scroll offset should drive the shared bar
-                        // state — an inactive page's `ScrollView` can report stale/irrelevant
-                        // offsets (e.g. from before a swipe) that would otherwise fight the
-                        // active page's own readings.
-                        onScrollOffsetChange: index == viewModel.activeIndex ? { updateHeroScrolledAway(forOffset: $0) } : { _ in },
-                        onSkyStateResolved: onSkyStateResolved,
-                        viewModel: viewModel,
-                        onRetry: { Task { await viewModel.load(location: location, forceRefresh: false) } },
-                        onRefresh: { await viewModel.load(location: location, forceRefresh: true) }
-                    )
-                    .tag(index)
-                }
+        TabView(selection: $viewModel.activeIndex) {
+            ForEach(Array(viewModel.locations.enumerated()), id: \.element.id) { index, location in
+                ForecastPageView(
+                    location: location,
+                    page: viewModel.state(for: location),
+                    scrollTargetHourIndex: index == viewModel.activeIndex ? scrollTargetHourIndex : nil,
+                    scrollToAttribution: index == viewModel.activeIndex && scrollToAttribution,
+                    scrollToSky: index == viewModel.activeIndex && scrollToSky,
+                    forcedExplainerKey: index == viewModel.activeIndex ? forcedExplainerKey : nil,
+                    showPeopleSheetAtLaunch: index == viewModel.activeIndex && showPeopleSheetAtLaunch,
+                    showJournalAtLaunch: index == viewModel.activeIndex && showJournalAtLaunch,
+                    showAlertDetailAtLaunch: index == viewModel.activeIndex && showAlertDetailAtLaunch,
+                    showFinderTargetAtLaunch: index == viewModel.activeIndex ? showFinderTargetAtLaunch : nil,
+                    finderDeepLink: index == viewModel.activeIndex ? finderDeepLink : nil,
+                    // Only the active page's scroll offset should drive the shared bar
+                    // state — an inactive page's `ScrollView` can report stale/irrelevant
+                    // offsets (e.g. from before a swipe) that would otherwise fight the
+                    // active page's own readings.
+                    onScrollOffsetChange: index == viewModel.activeIndex ? { updateHeroScrolledAway(forOffset: $0) } : { _ in },
+                    onSkyStateResolved: onSkyStateResolved,
+                    viewModel: viewModel,
+                    onRetry: { Task { await viewModel.load(location: location, forceRefresh: false) } },
+                    onRefresh: { await viewModel.load(location: location, forceRefresh: true) }
+                )
+                .tag(index)
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
             // UX redesign part 1: `DoodleHeaderView`'s own `ignoresSafeArea(edges: .top)` (deep
             // inside each page's `ScrollView`) doesn't propagate past the `TabView(.page)`
             // boundary — verified empirically: without this, every page rendered an opaque nav
@@ -228,11 +246,14 @@ struct ForecastView: View {
             // from (the hero's sky content — moon, stars, true-sky planet dots — creeping up
             // behind the status bar/Dynamic Island in `_review/truesky-*.png` sim-verify shots)
             // rather than as a silently-reapplied private-API workaround.
-
-            if viewModel.locations.count > 1 {
-                pageIndicator
+            .overlay(alignment: .bottom) {
+                // Tab-bar opaque-band fix: an overlay, not a layout sibling — see this property's
+                // doc comment. Doesn't reserve any space, so the `TabView` above keeps the full
+                // screen height and each page's content genuinely scrolls underneath these dots.
+                if viewModel.locations.count > 1 {
+                    pageIndicator
+                }
             }
-        }
     }
 
     private var pageIndicator: some View {
@@ -244,7 +265,9 @@ struct ForecastView: View {
             }
         }
         // Clears the floating bottom bar (`NavigationShell.floatingBar`), which overlays this
-        // screen at a fixed position — without this the dots render directly underneath it.
+        // screen at a fixed position — without this the dots render directly underneath it. No
+        // background of its own (tab-bar opaque-band fix) — the dots float directly over
+        // whatever's scrolling beneath them, same as the floating bar itself.
         .padding(.bottom, 74)
     }
 

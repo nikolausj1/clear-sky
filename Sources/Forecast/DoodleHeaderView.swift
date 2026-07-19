@@ -91,6 +91,29 @@ struct DoodleHeaderView: View {
     /// populated).
     @State private var cachedScene: DoodleComposer.Scene? = nil
     @State private var cachedSceneKey: String? = nil
+    /// Scroll-perf regression follow-up (evidence-first investigation, post e1d0165): sim-verify
+    /// (2s animated scroll) measured up to 16 `resolvedScene` cache MISSES in a single short
+    /// session — each one re-running `currentPlanetPositions`' full-night Meeus scan at ~50ms, a
+    /// 3x-over-frame-budget stall. Root cause: `sceneCacheKey` bundles the planet scan's genuinely
+    /// stable inputs (`nightIdentity`, `location`) together with several inputs that change
+    /// independently and asynchronously as `fetchedSkyState`'s network fetch / `fetchedGoLaunchToday`'s
+    /// cache-only task resolve (ISS pass fingerprint, aurora band, meteor/conjunction/moon) — so
+    /// every one of THOSE settling forces the cache to invalidate and `scene` to recompute, which
+    /// re-runs the full planet scan too even though the planets never changed. That overlap
+    /// between "tonight's data is still arriving" and "the user just started scrolling" is exactly
+    /// the real-world jank scenario (open Forecast, start scrolling immediately). Cached
+    /// separately here, keyed ONLY on the two inputs that actually determine it — see
+    /// `planetPositionsCacheKey` — so a fast field settling no longer re-triggers this scan.
+    @State private var cachedPlanetPositions: [SkyTonight.CurrentPlanetPosition]? = nil
+    @State private var cachedPlanetPositionsKey: String? = nil
+    /// Scroll-perf regression follow-up: `tonightHeadline` (Forecast-surface overhaul, work item
+    /// 1) runs `StargazingScore.hourlyScores` over the full `hourly` array — cheap in isolation,
+    /// but `resolvedCaption` reads `tonightHeadline` from three separate call sites in `body`/
+    /// `spaceHeroBlock` with no memoization, so every `DoodleHeaderView.body` evaluation (every
+    /// scroll frame, via `ParallaxHero`) re-ran that scan 3-4 times over. Cached the same way
+    /// `scene` is, keyed on `headlineCacheKey`.
+    @State private var cachedHeadline: TonightHeadline.Headline? = nil
+    @State private var cachedHeadlineKey: String? = nil
     /// Header/chrome refinements (work package "five UI refinements", item 5): the space block's
     /// detail line used to truncate at `lineLimit(2)` ("It looks like a…" for the longest real
     /// copy — the ISS pass detail sentence). Now unlimited, so the scrim behind it needs to grow
@@ -214,10 +237,21 @@ struct DoodleHeaderView: View {
     /// doesn't reach anywhere near `representativeDate` — `DoodleComposer.resolve` documents the
     /// matching fallback to `current`'s condition in that case.
     private var tonightConditionCode: String? {
+        // Scroll-perf regression (evidence-first investigation, the dominant cost this
+        // investigation actually convicted — see the commit message for the measured numbers):
+        // `representativeDate` is a computed property that re-runs `DoodleComposer
+        // .resolveTonightPreview` — two `SkyTonightService.duskDawnWindow` astronomy calculations
+        // — on EVERY access, never memoized. The closure below used to read it directly, TWICE
+        // per comparison; `Array.min(by:)` calls its predicate ~`hourly.count - 1` times, so for
+        // a ~48-entry hourly array that was ~94 fresh astronomy recomputations to find one
+        // nearest-hour match. Captured once here instead — sim-verify (2s animated scroll)
+        // measured this single change dropping a `scene` cache-miss's cost from ~50ms average to
+        // under 1ms.
+        let target = representativeDate
         guard let nearest = hourly.min(by: {
-            abs($0.date.timeIntervalSince(representativeDate)) < abs($1.date.timeIntervalSince(representativeDate))
+            abs($0.date.timeIntervalSince(target)) < abs($1.date.timeIntervalSince(target))
         }) else { return nil }
-        guard abs(nearest.date.timeIntervalSince(representativeDate)) <= Self.tonightConditionMaxGap else { return nil }
+        guard abs(nearest.date.timeIntervalSince(target)) <= Self.tonightConditionMaxGap else { return nil }
         return nearest.conditionCode
     }
 
@@ -231,7 +265,7 @@ struct DoodleHeaderView: View {
             forcedTimeOfDay: forcedTimeOfDay,
             terrainClass: terrainClass,
             tonightConditionCode: tonightConditionCode,
-            trueSkyPlanets: currentPlanetPositions,
+            trueSkyPlanets: resolvedPlanetPositions,
             trueSkyAuroraBand: fetchedAuroraBand,
             trueSkyISSPasses: fetchedISSPasses,
             forceTrueSkyPlanets: forceTrueSkyPlanets,
@@ -402,6 +436,27 @@ struct DoodleHeaderView: View {
         }
     }
 
+    /// `currentPlanetPositions`' cache key — exactly the two inputs that actually determine its
+    /// result (see that property's doc comment: it's a pure function of the calendar night +
+    /// display location, nothing else). Deliberately NOT the fuller `sceneCacheKey` — see
+    /// `cachedPlanetPositions`'s doc comment for why keeping this key narrow is the entire point.
+    private var planetPositionsCacheKey: String {
+        "\(nightIdentity.timeIntervalSince1970)|\(location?.id.uuidString ?? "none")"
+    }
+
+    /// Scroll-perf regression follow-up: serves `currentPlanetPositions`' full-night scan from a
+    /// cache keyed only on `planetPositionsCacheKey`, refreshed via the same `.onChange`-as-effect
+    /// idiom `resolvedScene` uses (see `body`) — never recomputed just because `scene`'s OTHER
+    /// inputs (ISS/aurora/meteor/moon) changed. Falls back to computing inline when the cache
+    /// hasn't been populated yet (first render) or the vanishingly rare same-instant race
+    /// `resolvedScene` documents for itself — same safety net, same rationale.
+    private var resolvedPlanetPositions: [SkyTonight.CurrentPlanetPosition] {
+        if let cachedPlanetPositions, cachedPlanetPositionsKey == planetPositionsCacheKey {
+            return cachedPlanetPositions
+        }
+        return currentPlanetPositions
+    }
+
     /// Re-runs whenever the location, calendar evening, or a forced aurora/ISS override changes
     /// — mirrors `TonightSkyCard.taskKey`'s exact rationale. Keyed on `representativeDate` rather
     /// than raw `date`; both fall on the same calendar day (the representative time is always
@@ -462,7 +517,43 @@ struct DoodleHeaderView: View {
     /// launch, no location, the async sky fetch hasn't resolved, or tonight's dusk/dawn window
     /// can't be resolved (polar edge case) — in which case `resolvedCaption` falls back to the
     /// phrase-bank `caption` passed in, per work order.
+    /// Scroll-perf regression follow-up: `resolvedCaption` reads this from three separate call
+    /// sites (`body`'s two `resolvedCaption != nil` checks plus `spaceHeroBlock`'s own read),
+    /// PLUS `spaceHeroBlock`'s direct `tonightHeadline?.detailText` — four re-derivations of the
+    /// same `StargazingScore.hourlyScores` full-array scan per `DoodleHeaderView.body` evaluation,
+    /// every one of them on every scroll frame (this view's `body` re-runs each frame via
+    /// `ForecastPageView.ParallaxHero`). Cached exactly like `resolvedScene`'s own pattern — see
+    /// that property's doc comment — keyed on `headlineCacheKey`, refreshed as an effect in
+    /// `body`'s `.onChange(of: headlineCacheKey, initial: true)`, never recomputed mid-render.
     private var tonightHeadline: TonightHeadline.Headline? {
+        if cachedHeadlineKey == headlineCacheKey {
+            return cachedHeadline
+        }
+        return tonightHeadlineUncounted
+    }
+
+    /// `tonightHeadline`'s cache key: every input `tonightHeadlineUncounted` actually reads —
+    /// `location`/`nightIdentity` (mirroring `sceneCacheKey`'s own day-identity component),
+    /// `fetchedSkyState`'s relevant fields (bestMoment/meteor/planets/moon — the same fingerprint
+    /// components `sceneCacheKey` already derives), and a cheap fingerprint of `hourly` (count +
+    /// first/last date, the same "cheap proxy for an expensive-to-compare array" idiom
+    /// `ForecastPageView`'s docs describe elsewhere) standing in for the full array `
+    /// StargazingScore.hourlyScores` scans.
+    private var headlineCacheKey: String {
+        guard let location else { return "none" }
+        return [
+            "\(nightIdentity.timeIntervalSince1970)",
+            location.id.uuidString,
+            "\(hourly.count)",
+            "\(hourly.first?.date.timeIntervalSince1970 ?? -1)",
+            "\(hourly.last?.date.timeIntervalSince1970 ?? -1)",
+            fetchedSkyState == nil ? "none" : "some",
+            fetchedMeteorOutlook == nil ? "none" : "some",
+            "\(fetchedMoonIlluminatedFraction ?? -1)",
+        ].joined(separator: "|")
+    }
+
+    private var tonightHeadlineUncounted: TonightHeadline.Headline? {
         guard let location, let skyState = fetchedSkyState, !hourly.isEmpty else { return nil }
         guard let window = SkyTonightService.duskDawnWindow(
             latitude: location.latitude, longitude: location.longitude, date: date, timeZone: .current
@@ -621,6 +712,18 @@ struct DoodleHeaderView: View {
         .onChange(of: sceneCacheKey, initial: true) { _, newKey in
             cachedScene = scene
             cachedSceneKey = newKey
+        }
+        // Scroll-perf regression follow-up: same idiom, narrower key — see
+        // `cachedPlanetPositions`'s doc comment for why this is deliberately its OWN effect
+        // rather than folded into the one above.
+        .onChange(of: planetPositionsCacheKey, initial: true) { _, newKey in
+            cachedPlanetPositions = currentPlanetPositions
+            cachedPlanetPositionsKey = newKey
+        }
+        // Scroll-perf regression follow-up: same idiom as the two above, for `tonightHeadline`.
+        .onChange(of: headlineCacheKey, initial: true) { _, newKey in
+            cachedHeadline = tonightHeadlineUncounted
+            cachedHeadlineKey = newKey
         }
     }
 
