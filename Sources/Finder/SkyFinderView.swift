@@ -22,11 +22,15 @@ struct SkyFinderPresentation: Identifiable {
     }
 }
 
-/// `-showFinder explore|moon|mercury|venus|mars|jupiter|saturn|iss` — sim-verify only (`simctl`
-/// can't tap a "Find" button), parsed in `NavigationShell`, threaded through `ForecastView`/
-/// `ForecastPageView` the same way `-showPeopleSheet` already is.
+/// `-showFinder explore|moon|mercury|venus|mars|jupiter|saturn|iss|polaris` — sim-verify only
+/// (`simctl` can't tap a "Find" button), parsed in `NavigationShell`, threaded through
+/// `ForecastView`/`ForecastPageView` the same way `-showPeopleSheet` already is. `polaris`
+/// (bright-star work package) targets Polaris directly rather than going through the "Stars"
+/// chip's sheet — `simctl` can't tap through to a sheet row either, and Polaris is a fixed,
+/// always-in-the-catalog name that needs no pass/astronomy data to resolve, unlike `.iss`'s own
+/// `initialSatelliteKindFallback` indirection.
 enum SkyFinderLaunchArgTarget: String {
-    case explore, moon, mercury, venus, mars, jupiter, saturn, iss
+    case explore, moon, mercury, venus, mars, jupiter, saturn, iss, polaris
 
     var presentation: SkyFinderPresentation {
         switch self {
@@ -38,6 +42,7 @@ enum SkyFinderLaunchArgTarget: String {
         case .jupiter: return SkyFinderPresentation(initialKind: .planet(.jupiter))
         case .saturn: return SkyFinderPresentation(initialKind: .planet(.saturn))
         case .iss: return SkyFinderPresentation(initialSatelliteKindFallback: .iss)
+        case .polaris: return SkyFinderPresentation(initialKind: .star(name: "Polaris"))
         }
     }
 }
@@ -69,6 +74,8 @@ struct SkyFinderView: View {
     @State private var selectedKind: SkyFinderTarget.Kind?
     @State private var now = Date()
     @State private var isPresentingJournal = false
+    /// Bright-star work package: the "Stars" chip's sheet — see `pickerChips`/`visibleStarsNow`.
+    @State private var isPresentingStarPicker = false
     @State private var lastHapticFireDate = Date.distantPast
     @State private var hasFiredLockHaptic = false
     @State private var justLoggedSeen = false
@@ -117,6 +124,13 @@ struct SkyFinderView: View {
                let match = satellitePasses.first(where: { $0.satellite.kind == fallbackKind }) {
                 selectedKind = .satellite(match)
             }
+            // Bright-star work package sim-verify hook: `-showFinderStarPicker` — `simctl` can't
+            // tap the "Stars" chip, so this opens the sheet directly at launch (mirrors
+            // `-seedJournal`/`-finderDemo`'s own pattern of reading `CommandLine.arguments`
+            // directly rather than routing every sim-verify flag through `NavigationShell`).
+            if CommandLine.arguments.contains("-showFinderStarPicker") {
+                isPresentingStarPicker = true
+            }
         }
         .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { tick in
             now = tick
@@ -124,6 +138,12 @@ struct SkyFinderView: View {
         }
         .sheet(isPresented: $isPresentingJournal) {
             SkyJournalView(store: journalStore)
+        }
+        .sheet(isPresented: $isPresentingStarPicker) {
+            StarPickerSheet(stars: visibleStarsNow) { star in
+                selectedKind = .star(star)
+                isPresentingStarPicker = false
+            }
         }
         .statusBarHidden()
         .onDisappear {
@@ -246,10 +266,22 @@ struct SkyFinderView: View {
                 ForEach(pickerKinds, id: \.id) { kind in
                     chip(title: kind.name, isSelected: selectedKind == kind) { selectedKind = kind }
                 }
+                // Bright-star work package: the "Stars" chip sits at the end of the picker and,
+                // unlike every other chip, doesn't select a target directly — it opens
+                // `StarPickerSheet` (a compact list of tonight's currently-up stars) instead,
+                // since there are too many candidate stars to fit as individual chips. Still
+                // highlights like a normal chip whenever the active target happens to be a star
+                // (picked from that sheet, the ribbon, or a launch-arg hook).
+                chip(title: "Stars", isSelected: isStarSelected) { isPresentingStarPicker = true }
             }
             .padding(.horizontal, 16)
         }
         .padding(.top, 10)
+    }
+
+    private var isStarSelected: Bool {
+        if case .star = selectedKind?.base { return true }
+        return false
     }
 
     private var pickerKinds: [SkyFinderTarget.Kind] {
@@ -259,6 +291,21 @@ struct SkyFinderView: View {
         }
         kinds += satellitePasses.map { .satellite($0) }
         return kinds
+    }
+
+    /// Bright-star work package: every catalog star currently above the 10° visibility floor,
+    /// brightest-first, EXCEPT Polaris is always pinned to index 0 when it's in that list — it's
+    /// only magnitude 1.98 (far down the brightest-first order on its own merit), but it's the
+    /// one star every stargazer actually wants to find first (see `BrightStars.swift`'s own
+    /// catalog-scope note), so `StarPickerSheet` always surfaces it as the first row rather than
+    /// buried near the bottom.
+    private var visibleStarsNow: [(star: BrightStars.Star, azimuthDeg: Double, altitudeDeg: Double)] {
+        let visible = BrightStars.visibleStars(date: now, lat: location.latitude, lon: location.longitude, minAltitude: 10)
+        guard let polarisIndex = visible.firstIndex(where: { $0.star.name == "Polaris" }) else { return visible }
+        var reordered = visible
+        let polaris = reordered.remove(at: polarisIndex)
+        reordered.insert(polaris, at: 0)
+        return reordered
     }
 
     private func chip(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
@@ -416,7 +463,15 @@ struct SkyFinderView: View {
         case .moon: return .white
         case .planet(let body): return TrueSkyLayer.dotColor(for: body)
         case .satellite: return Color.clearSkyAccentOnDark
+        case .star: return Color(red: 0.86, green: 0.9, blue: 1.0)
         }
+    }
+
+    /// Bright-star work package: `true` for any `.star` kind — used to draw ribbon dots smaller/
+    /// dimmer and unlabeled (see `ribbon(in:)`) so the Moon/planets/ISS stay visually dominant.
+    private static func isStarKind(_ kind: SkyFinderTarget.Kind) -> Bool {
+        if case .star = kind.base { return true }
+        return false
     }
 
     // MARK: - Free explore
@@ -430,6 +485,17 @@ struct SkyFinderView: View {
                 Text("Nearest: \(nearest.name), \(Int(nearest.separationDeg.rounded()))° away")
                     .font(.caption)
                     .foregroundStyle(Color.white.opacity(0.65))
+                // Bright-star work package: when the nearest object is a star, the free-explore
+                // capsule doubles as its identification card — the star's factLine + colorNote,
+                // same composed sentence `SkyFinderTarget.lockFact` shows once a star is actually
+                // targeted and locked.
+                if let detail = nearestStarDetail(for: nearest.name) {
+                    Text(detail)
+                        .font(.caption2)
+                        .foregroundStyle(Color.white.opacity(0.55))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
+                }
             }
         }
         .foregroundStyle(.white)
@@ -438,6 +504,11 @@ struct SkyFinderView: View {
         .background(.ultraThinMaterial, in: Capsule())
     }
 
+    /// Bright-star work package: nearest-object detection now also considers every currently-up
+    /// star, within a tighter 10° radius (vs. the 15° the Moon/planets/satellites already use) —
+    /// tighter because there can be up to 8+ candidate stars in view at once, and a looser radius
+    /// would make "nearest" chatter constantly as the phone sweeps past unrelated background
+    /// stars rather than settling once genuinely close to one.
     private var nearestObjectWithinRange: (name: String, separationDeg: Double)? {
         let candidates = pickerKinds.compactMap { kind -> (name: String, separationDeg: Double)? in
             guard let position = SkyFinderTarget.position(for: kind, at: now, location: location, passes: satellitePasses) else { return nil }
@@ -446,8 +517,23 @@ struct SkyFinderView: View {
                 az2: position.azimuthDeg, alt2: position.altitudeDeg
             )
             return (kind.name, separation)
-        }
-        return candidates.filter { $0.separationDeg <= 15 }.min { $0.separationDeg < $1.separationDeg }
+        }.filter { $0.separationDeg <= 15 }
+
+        let starCandidates = BrightStars.visibleStars(date: now, lat: location.latitude, lon: location.longitude, minAltitude: 10)
+            .compactMap { entry -> (name: String, separationDeg: Double)? in
+                let separation = FinderGuidance.angularSeparationDeg(
+                    az1: currentReading.azimuthDeg, alt1: currentReading.altitudeDeg,
+                    az2: entry.azimuthDeg, alt2: entry.altitudeDeg
+                )
+                return (entry.star.name, separation)
+            }.filter { $0.separationDeg <= 10 }
+
+        return (candidates + starCandidates).min { $0.separationDeg < $1.separationDeg }
+    }
+
+    private func nearestStarDetail(for name: String) -> String? {
+        guard let star = BrightStars.all.first(where: { $0.name == name }) else { return nil }
+        return "\(star.factLine) Appears \(star.colorNote)."
     }
 
     // MARK: - Lock / approach card
@@ -536,26 +622,46 @@ struct SkyFinderView: View {
             objects: objects.map { (name: $0.kind.name, azimuthDeg: $0.azimuthDeg, altitudeDeg: $0.altitudeDeg) },
             deviceAzimuthDeg: currentReading.azimuthDeg
         )
+        // Ribbon-nit fix: stagger any labels sitting close enough on-screen to overlap (the
+        // known "Moon/Venus close together" case) into an alternating second row, rather than
+        // letting them draw on top of each other — see `Self.staggerLabelRows`'s doc comment for
+        // why staggering (not hiding the dimmer label) was the fix chosen here.
+        let staggered = Self.staggerLabelRows(positions: positions, screenWidth: size.width)
+
         return ZStack(alignment: .bottom) {
             Rectangle()
                 .fill(.ultraThinMaterial)
                 .frame(height: 56)
-            ForEach(Array(zip(objects, positions)), id: \.0.kind.id) { object, position in
+            ForEach(Array(objects.indices), id: \.self) { index in
+                let object = objects[index]
+                let position = positions[index]
+                let isStar = Self.isStarKind(object.kind)
                 Button {
                     selectedKind = object.kind
                 } label: {
                     VStack(spacing: 2) {
                         Circle()
                             .fill(targetColor(for: object.kind))
-                            .frame(width: 6, height: 6)
-                        Text(object.kind.name)
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.white.opacity(0.85))
-                            .lineLimit(1)
+                            .opacity(isStar ? 0.7 : 1.0)
+                            .frame(width: isStar ? 3.5 : 6, height: isStar ? 3.5 : 6)
+                        // Bright-star work package: stars draw as a dot only, no name label —
+                        // the Moon/planets/ISS stay "visually dominant" (per work order) partly
+                        // by being the only ones labeled; up to 8 extra star labels would also
+                        // make the exact overlap problem this same package fixes elsewhere worse,
+                        // not better.
+                        if !isStar {
+                            Text(object.kind.name)
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.85))
+                                .lineLimit(1)
+                        }
                     }
                 }
                 .buttonStyle(.plain)
-                .position(x: size.width * position.xFraction, y: size.height - ribbonRowOffset(position.altBand))
+                .position(
+                    x: size.width * position.xFraction,
+                    y: size.height - ribbonRowOffset(position.altBand) - (staggered[index] ? 14 : 0)
+                )
             }
         }
         .frame(maxHeight: .infinity, alignment: .bottom)
@@ -570,11 +676,50 @@ struct SkyFinderView: View {
         }
     }
 
+    /// Ribbon-nit fix: detects near-collisions between adjacent objects' screen-space
+    /// `xFraction` positions (not azimuth degrees — that's what actually determines whether two
+    /// labels' text draws on top of each other) and alternates every colliding object into a
+    /// staggered second row, walking in `xFraction` order so a chain of 3+ closely-spaced objects
+    /// alternates low/high/low/high rather than every one of them just flipping relative to a
+    /// single neighbor. Chosen over "hide the dimmer label" (the other option the work order
+    /// offered) because it keeps every object identifiable rather than silently dropping
+    /// information — the classic case this fixes is the Moon and Venus sitting only a few degrees
+    /// apart in the sky.
+    ///
+    /// Known limitation: this only compares each object against its immediate neighbor in sorted
+    /// order, so it doesn't catch a collision between the two objects nearest the ribbon's own
+    /// wraparound seam (xFraction ≈ 0 vs. ≈ 1 — see `FinderGuidance.ribbonPositions`'s doc
+    /// comment on that seam) since they land at opposite ends of the sort, not adjacent. That
+    /// seam sits directly behind the device, the least relevant part of the ribbon, so it's an
+    /// acceptable gap rather than one worth the extra wraparound-comparison complexity.
+    private static func staggerLabelRows(
+        positions: [(name: String, xFraction: Double, altBand: FinderGuidance.AltitudeBand)],
+        screenWidth: CGFloat
+    ) -> [Bool] {
+        guard screenWidth > 0, positions.count > 1 else { return Array(repeating: false, count: positions.count) }
+        let collisionThreshold = 46.0 / Double(screenWidth) // ~46pt: comfortably wider than a short label
+        var flags = Array(repeating: false, count: positions.count)
+        let order = positions.indices.sorted { positions[$0].xFraction < positions[$1].xFraction }
+        var previousIndex: Int?
+        for index in order {
+            if let previousIndex, abs(positions[index].xFraction - positions[previousIndex].xFraction) < collisionThreshold {
+                flags[index] = !flags[previousIndex]
+            }
+            previousIndex = index
+        }
+        return flags
+    }
+
     /// Every currently-up object tonight, for the ribbon — "currently up" for a satellite means
     /// its pass window is actively in progress right now, not merely scheduled later tonight
-    /// (unlike the picker chips, which list every pass regardless of timing).
+    /// (unlike the picker chips, which list every pass regardless of timing). Bright-star work
+    /// package: also joins in up to the 8 brightest currently-up stars (10° visibility floor,
+    /// matching `visibleStarsNow`'s own floor) even though stars aren't part of `pickerKinds` —
+    /// the ribbon is meant to show "everything up there right now," which includes stars, while
+    /// the picker chips deliberately keep stars behind their own "Stars" chip/sheet rather than
+    /// cluttering the chip row with 8+ extra entries.
     private var ribbonObjects: [(kind: SkyFinderTarget.Kind, azimuthDeg: Double, altitudeDeg: Double)] {
-        pickerKinds.compactMap { kind in
+        var objects = pickerKinds.compactMap { kind -> (kind: SkyFinderTarget.Kind, azimuthDeg: Double, altitudeDeg: Double)? in
             if case .satellite(let catalogNumber, let startTime) = kind.base {
                 guard let pass = satellitePasses.first(where: { $0.satellite.catalogNumber == catalogNumber && $0.pass.startTime == startTime }),
                       SkyFinderTarget.isSatellitePassActive(pass.pass, at: now)
@@ -585,6 +730,12 @@ struct SkyFinderView: View {
             }
             return (kind, position.azimuthDeg, position.altitudeDeg)
         }
+
+        let stars = BrightStars.brightestUp(date: now, lat: location.latitude, lon: location.longitude, count: 8, minAltitude: 10)
+        for entry in stars {
+            objects.append((.star(entry.star), entry.azimuthDeg, entry.altitudeDeg))
+        }
+        return objects
     }
 
     // MARK: - Haptics

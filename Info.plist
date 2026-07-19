@@ -24,6 +24,8 @@
 	<false/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Zenith uses your location to show the weather and tonight's sky where you are. Nothing is stored or shared.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UILaunchScreen</key>
 	<dict/>
 </dict>

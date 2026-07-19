@@ -14,6 +14,10 @@ struct ZenithWidgetsBundle: WidgetBundle {
         TonightRectangularWidget()
         TonightSmallWidget()
         TonightMediumWidget()
+        // ISS Live Activity work package: `Widgets/ISSPassLiveActivity.swift` — a
+        // `Widget`-conforming type just like the four above, just backed by `ActivityConfiguration`
+        // instead of `StaticConfiguration`, so it belongs in the same bundle.
+        ISSPassLiveActivity()
     }
 }
 

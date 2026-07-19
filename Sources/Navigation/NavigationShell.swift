@@ -26,13 +26,16 @@ import SwiftUI
 ///   `AttributionFooter` for a sim-verify screenshot — `simctl` can't scroll.
 /// - `-showPeopleSheet` ("People in Space" work package) presents `PeopleInSpaceSheet` on the
 ///   active Forecast page at launch — `simctl` can't tap the Tonight's Sky card's people row.
-/// - `-showFinder explore|moon|mercury|venus|mars|jupiter|saturn|iss` (Sky Finder work package)
-///   presents `SkyFinderView` on the active Forecast page at launch, targeting the named object
-///   (`explore` = free-explore mode) — `simctl` can't tap a "Find" button. See
-///   `SkyFinderLaunchArgTarget`. `-finderDemo`/`-finderDemoStage <stage>`/`-finderCalibrationPoor`
-///   (read directly by `DeviceMotionAdapter`) drive the canned pointing sweep for every
-///   motion-dependent screenshot; `-seedJournal` (read directly by `SkyJournalStore`) seeds a
-///   populated Sky Journal.
+/// - `-showFinder explore|moon|mercury|venus|mars|jupiter|saturn|iss|polaris` (Sky Finder work
+///   package) presents `SkyFinderView` on the active Forecast page at launch, targeting the named
+///   object (`explore` = free-explore mode; `polaris` is the bright-star work package's own
+///   sim-verify entry point, since `simctl` can't tap through the "Stars" chip's sheet) —
+///   `simctl` can't tap a "Find" button either. See `SkyFinderLaunchArgTarget`.
+///   `-finderDemo`/`-finderDemoStage <stage>`/`-finderCalibrationPoor` (read directly by
+///   `DeviceMotionAdapter`) drive the canned pointing sweep for every motion-dependent screenshot;
+///   `-seedJournal` (read directly by `SkyJournalStore`) seeds a populated Sky Journal;
+///   `-showFinderStarPicker` (read directly by `SkyFinderView`) opens the "Stars" chip's sheet at
+///   launch.
 /// - `-forceNotifTest` (notifications work package) schedules one test ISS notification 15
 ///   seconds out via `SkyNotificationScheduler.scheduleTestNotification()` — sim-verify only, so
 ///   a foreground-delivered banner can be screenshotted without waiting for a real pass.
@@ -40,6 +43,11 @@ import SwiftUI
 ///   saved location from real data, then prints every pending local notification request to the
 ///   console via `SkyNotificationScheduler.dumpPendingRequests()` — only visible when launched
 ///   with `xcrun simctl launch --console` (see that method's doc comment).
+/// - `-forceISSActivity` (ISS Live Activity work package) starts a demo Live Activity with a
+///   synthetic pass 2 minutes out, 4-minute duration, via `ISSActivityManager.startDemoActivity()`
+///   — bypasses the Settings toggle/real-pass gates entirely, sim-verify only. Live Activities DO
+///   run on the Simulator (unlike CoreMotion, which Sky Finder's own `-finderDemo` flag works
+///   around), so this activity is real and screenshot-able from the home screen/Dynamic Island.
 struct NavigationShell: View {
     private enum Tab {
         case forecast
@@ -151,6 +159,10 @@ struct NavigationShell: View {
         Task {
             await SkyNotificationScheduler.shared.refreshISS(location: location)
             await SkyNotificationScheduler.shared.refreshAurora(location: location)
+            // ISS Live Activity work package: same foreground trigger — ends any stale activity
+            // and starts a fresh one if a visible pass now falls inside the 45-minute window. See
+            // `ISSActivityManager.refresh`'s doc comment.
+            await ISSActivityManager.refresh(location: location)
         }
     }
 
@@ -171,6 +183,7 @@ struct NavigationShell: View {
             await SkyNotificationScheduler.shared.refreshISS(location: location)
             await SkyNotificationScheduler.shared.refreshAurora(location: location)
             await WidgetSnapshotWriter.refresh(location: location)
+            await ISSActivityManager.refresh(location: location)
         }
     }
 
@@ -282,6 +295,11 @@ struct NavigationShell: View {
                 }
                 await scheduler.dumpPendingRequests()
             }
+        }
+
+        // ISS Live Activity work package sim-verify hook: see this file's own doc comment.
+        if Self.launchArgsContain("-forceISSActivity") {
+            Task { await ISSActivityManager.startDemoActivity() }
         }
     }
 
@@ -475,8 +493,8 @@ struct NavigationShell: View {
         return Planets.Body(rawValue: args[flagIndex + 1])
     }
 
-    /// `-showFinder explore|moon|mercury|venus|mars|jupiter|saturn|iss` — see this file's own
-    /// doc comment and `SkyFinderLaunchArgTarget`.
+    /// `-showFinder explore|moon|mercury|venus|mars|jupiter|saturn|iss|polaris` — see this file's
+    /// own doc comment and `SkyFinderLaunchArgTarget`.
     private static func showFinderTargetFromLaunchArgs() -> SkyFinderLaunchArgTarget? {
         let args = CommandLine.arguments
         guard let flagIndex = args.firstIndex(of: "-showFinder"), flagIndex + 1 < args.count else { return nil }

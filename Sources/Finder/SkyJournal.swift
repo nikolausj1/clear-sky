@@ -64,6 +64,14 @@ final class SkyJournalStore {
         Planets.Body.allCases.filter { body in entries.contains { $0.objectId == "planet-\(body.rawValue)" } }.count
     }
 
+    /// Bright-star work package: how many distinct stars have ever been logged — `objectId`s
+    /// prefixed `"star-"` per `SkyFinderTarget.Kind`'s id scheme. Unlike `planetsFoundCount`
+    /// (a fraction of a fixed set of 5), this is an open-ended count against the 23-star catalog,
+    /// so the journal tally just reports the raw number rather than "N of 23."
+    var starsFoundCount: Int {
+        entries.filter { $0.objectId.hasPrefix("star-") }.count
+    }
+
     private func persist() {
         guard let data = try? JSONEncoder().encode(entries) else { return }
         userDefaults.set(data, forKey: Self.storageKey)
@@ -77,6 +85,11 @@ final class SkyJournalStore {
             Entry(objectId: "planet-jupiter", name: "Jupiter", firstSeenDate: calendar.date(byAdding: .day, value: -1, to: now) ?? now, count: 2),
             Entry(objectId: "moon", name: "Moon", firstSeenDate: calendar.date(byAdding: .day, value: -6, to: now) ?? now, count: 9),
             Entry(objectId: "sat-25544", name: "ISS", firstSeenDate: now, count: 1),
+            // Bright-star work package: demo star entries so `-seedJournal` screenshots show the
+            // journal tally's new "· N stars" suffix populated, not stuck at zero.
+            Entry(objectId: "star-Vega", name: "Vega", firstSeenDate: calendar.date(byAdding: .day, value: -2, to: now) ?? now, count: 3),
+            Entry(objectId: "star-Sirius", name: "Sirius", firstSeenDate: calendar.date(byAdding: .day, value: -5, to: now) ?? now, count: 4),
+            Entry(objectId: "star-Polaris", name: "Polaris", firstSeenDate: calendar.date(byAdding: .day, value: -6, to: now) ?? now, count: 2),
         ]
         persist()
     }
@@ -135,7 +148,8 @@ struct SkyJournalView: View {
 
     private var tallyLine: String {
         let found = store.planetsFoundCount
-        return "\(found) of 5 naked-eye planets found"
+        let stars = store.starsFoundCount
+        return "\(found) of 5 naked-eye planets found · \(stars) star\(stars == 1 ? "" : "s")"
     }
 
     private func entryRow(_ entry: SkyJournalStore.Entry) -> some View {

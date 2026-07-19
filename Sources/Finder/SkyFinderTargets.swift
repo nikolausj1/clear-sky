@@ -11,6 +11,12 @@ enum SkyFinderTarget {
             case moon
             case planet(Planets.Body)
             case satellite(catalogNumber: Int, startTime: Date)
+            /// Bright-star work package: keyed on the star's `name` alone (unique across
+            /// `BrightStars.all`), not the full `BrightStars.Star` value — that struct isn't
+            /// `Hashable` (it doesn't need to be for its own catalog-lookup use), and a name is
+            /// already enough to re-resolve the full entry via `BrightStars.all.first(where:)`
+            /// wherever the rest of this file needs it (position, lock fact).
+            case star(name: String)
         }
 
         let base: Base
@@ -21,6 +27,7 @@ enum SkyFinderTarget {
             case .moon: return "moon"
             case .planet(let body): return "planet-\(body.rawValue)"
             case .satellite(let catalogNumber, let startTime): return "sat-\(catalogNumber)-\(startTime.timeIntervalSince1970)"
+            case .star(let name): return "star-\(name)"
             }
         }
 
@@ -32,6 +39,8 @@ enum SkyFinderTarget {
         static func satellite(_ pass: SatellitePass) -> Kind {
             Kind(base: .satellite(catalogNumber: pass.satellite.catalogNumber, startTime: pass.pass.startTime), name: pass.satellite.name)
         }
+        static func star(name: String) -> Kind { Kind(base: .star(name: name), name: name) }
+        static func star(_ star: BrightStars.Star) -> Kind { Kind.star(name: star.name) }
     }
 
     /// Resolves `kind`'s true az/alt at `date` for an observer at `location`. `nil` only when the
@@ -62,6 +71,10 @@ enum SkyFinderTarget {
                 return nil
             }
             return interpolatedPosition(pass: pass.pass, at: date)
+
+        case .star(let name):
+            guard let star = BrightStars.all.first(where: { $0.name == name }) else { return nil }
+            return BrightStars.horizontalPosition(star: star, date: date, latitudeDeg: location.latitude, longitudeDeg: location.longitude)
         }
     }
 
@@ -128,6 +141,13 @@ enum SkyFinderTarget {
             return SkyFinderTarget.isSatellitePassActive(pass.pass, at: Date())
                 ? "Moving — keep following."
                 : "Not up yet — this is where it rises."
+
+        case .star(let name):
+            guard let star = BrightStars.all.first(where: { $0.name == name }) else { return nil }
+            // Bright-star work package: the identification card shows both the star's factLine
+            // and its colorNote, per work order — composed into one sentence rather than a
+            // second text row, since `lockOrApproachCard` only has room for a single fact line.
+            return "\(star.factLine) Appears \(star.colorNote)."
         }
     }
 

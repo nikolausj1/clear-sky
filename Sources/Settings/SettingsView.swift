@@ -11,6 +11,13 @@ import SwiftUI
 /// "Aurora storm alerts," both opt-in, both default-off (`SkyNotificationScheduler`'s own
 /// type-level doc comment covers scheduling/dedupe/limitations; this file only owns the toggle UI
 /// and the authorization-denial flow).
+///
+/// ISS Live Activity work package: the same section gains a third toggle, "ISS pass Live
+/// Activity" — a fully separate permission (`ActivityAuthorizationInfo().areActivitiesEnabled`,
+/// not `UNUserNotificationCenter` authorization), owned end-to-end by `ISSActivityManager`. Its
+/// denial state (`liveActivityUnavailable`) is tracked independently of
+/// `notificationPermissionDenied` since the two permissions can differ, but both point the user
+/// at the same iOS Settings app page, so they share one "Open iOS Settings" button/footer.
 struct SettingsView: View {
     @Environment(UnitsSettings.self) private var unitsSettings
     @Environment(\.dismiss) private var dismiss
@@ -34,6 +41,14 @@ struct SettingsView: View {
     /// authorization is app-wide, not per-notification-kind — see `SkyNotificationScheduler`'s
     /// doc comment), so one denial-explanation row serves both rather than duplicating it.
     @State private var notificationPermissionDenied = false
+
+    /// ISS Live Activity work package: persists to `ISSActivityManager`'s own key, same
+    /// one-source-of-truth pattern as the two toggles above.
+    @AppStorage(ISSActivityManager.issLiveActivityEnabledKey) private var issLiveActivityEnabled = false
+    /// Separate from `notificationPermissionDenied`: Live Activities have their own system
+    /// permission (`ActivityAuthorizationInfo().areActivitiesEnabled`), independent of
+    /// notification authorization.
+    @State private var liveActivityUnavailable = false
 
     private var appVersion: String {
         let bundle = Bundle.main
@@ -110,7 +125,19 @@ struct SettingsView: View {
                         handleAuroraToggle(newValue)
                     }
 
-                    if notificationPermissionDenied {
+                    Toggle(isOn: $issLiveActivityEnabled) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("ISS pass Live Activity")
+                            Text("A live countdown and progress on your Lock Screen and Dynamic Island around visible passes.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .onChange(of: issLiveActivityEnabled) { _, newValue in
+                        handleISSLiveActivityToggle(newValue)
+                    }
+
+                    if notificationPermissionDenied || liveActivityUnavailable {
                         Button("Open iOS Settings") {
                             if let url = URL(string: UIApplication.openSettingsURLString) {
                                 UIApplication.shared.open(url)
@@ -120,11 +147,16 @@ struct SettingsView: View {
                 } header: {
                     Text("Notifications").tracking(0.8)
                 } footer: {
-                    if notificationPermissionDenied {
-                        // PRD: exactly these two notifications exist, both opt-in — the denial
-                        // explanation names the app's own permission, not a generic system
-                        // message, so it's clear which toggle to revisit after re-allowing it.
-                        Text("Notifications are turned off for Zenith in iOS Settings. Turn them on there, then try the toggle again.")
+                    // PRD: exactly these three toggles exist, all opt-in — each denial
+                    // explanation names the specific permission, so it's clear which toggle to
+                    // revisit after re-allowing it in iOS Settings.
+                    VStack(alignment: .leading, spacing: 4) {
+                        if notificationPermissionDenied {
+                            Text("Notifications are turned off for Zenith in iOS Settings. Turn them on there, then try the toggle again.")
+                        }
+                        if liveActivityUnavailable {
+                            Text("Live Activities are turned off for Zenith in iOS Settings. Turn them on there, then try the toggle again.")
+                        }
                     }
                 }
 
@@ -237,6 +269,25 @@ struct SettingsView: View {
                 }
             } else {
                 await SkyNotificationScheduler.shared.disableAurora()
+            }
+        }
+    }
+
+    /// ISS Live Activity work package: mirrors `handleISSToggle`'s shape exactly, but against
+    /// `ISSActivityManager`'s own separate Live Activity permission rather than
+    /// `UNUserNotificationCenter` authorization.
+    private func handleISSLiveActivityToggle(_ newValue: Bool) {
+        Task {
+            if newValue {
+                let granted = await ISSActivityManager.enable(location: firstSavedLocation)
+                if granted {
+                    liveActivityUnavailable = false
+                } else {
+                    issLiveActivityEnabled = false
+                    liveActivityUnavailable = true
+                }
+            } else {
+                await ISSActivityManager.disable()
             }
         }
     }
