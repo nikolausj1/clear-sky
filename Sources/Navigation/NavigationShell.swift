@@ -1,7 +1,7 @@
 import SwiftData
 import SwiftUI
 
-/// Root container for Phase 3+. Hosts the floating bottom bar (Forecast | Space | Rankings)
+/// Root container for Phase 3+. Hosts the floating bottom bar (Forecast | Space | Sky Spots)
 /// plus a search/locations button that presents the Locations screen as a sheet, per PRD Section
 /// 6's "Navigation structure." The Forecast screen's top-right ellipsis (wired via
 /// `onOpenSettings`) presents Settings as a sheet. Also the home for this phase's sim-verify
@@ -9,8 +9,10 @@ import SwiftUI
 ///
 /// - `-showLocations` presents the Locations sheet at launch.
 /// - `-showSettings` presents the Settings sheet at launch.
-/// - `-showRankings` selects the Rankings tab at launch (mirrors `-showLocations`; `simctl`
-///   can't tap the floating bottom bar for a screenshot of the non-default tab).
+/// - `-showSpots` selects the Sky Spots tab at launch (mirrors `-showLocations`; `simctl`
+///   can't tap the floating bottom bar for a screenshot of the non-default tab). `-showRankings`
+///   is kept as a back-compat alias (Sky Spots work package: Rankings retired, same launch-arg
+///   contract preserved for any existing sim-verify script still passing the old flag).
 /// - `-showSpace` selects the Space tab at launch (work package WP-K).
 /// - `-locationDenied` forces `CurrentLocationManager` to report a denied permission status.
 /// - `-locationGranted` forces `CurrentLocationManager` to report an already-authorized status
@@ -42,7 +44,7 @@ struct NavigationShell: View {
     private enum Tab {
         case forecast
         case space
-        case rankings
+        case spots
     }
 
     @Environment(\.modelContext) private var modelContext
@@ -52,7 +54,7 @@ struct NavigationShell: View {
 
     @State private var forecastViewModel: ForecastViewModel?
     @State private var locationsViewModel: LocationsViewModel?
-    @State private var rankingsViewModel: RankingsViewModel?
+    @State private var skySpotsViewModel: SkySpotsViewModel?
     @State private var spaceViewModel: SpaceViewModel?
     @State private var unitsSettings = UnitsSettings()
     @State private var selectedTab: Tab = .forecast
@@ -93,16 +95,18 @@ struct NavigationShell: View {
                     } else {
                         ProgressView()
                     }
-                case .rankings:
-                    if let rankingsViewModel {
-                        RankingsView(
-                            viewModel: rankingsViewModel,
+                case .spots:
+                    if let skySpotsViewModel {
+                        SkySpotsView(
+                            viewModel: skySpotsViewModel,
                             onSelectCity: { location in
                                 if let index = forecastViewModel?.locations.firstIndex(where: { $0.id == location.id }) {
                                     forecastViewModel?.activeIndex = index
                                 }
                                 selectedTab = .forecast
-                            }
+                            },
+                            scrollTarget: Self.scrollSpotsTargetFromLaunchArgs(),
+                            initialExpandedSpotId: Self.expandSpotIdFromLaunchArgs()
                         )
                     } else {
                         ProgressView()
@@ -207,7 +211,7 @@ struct NavigationShell: View {
             forceLaunchContrail: Self.launchArgsContain("-forceLaunchContrail")
         )
 
-        let rankingsVM = RankingsViewModel(
+        let skySpotsVM = SkySpotsViewModel(
             store: weatherStore,
             forcedDate: Self.forcedDateFromLaunchArgs()
         )
@@ -223,9 +227,9 @@ struct NavigationShell: View {
             locationManager: locationManager,
             searchService: LocationSearchService(),
             networkMonitor: networkMonitor,
-            onLocationsChanged: { [weak vm, weak rankingsVM] locations, preferredActiveId in
+            onLocationsChanged: { [weak vm, weak skySpotsVM] locations, preferredActiveId in
                 vm?.applyLocations(locations, preferredActiveId: preferredActiveId)
-                rankingsVM?.applyLocations(locations)
+                skySpotsVM?.applyLocations(locations)
             }
         )
 
@@ -235,11 +239,11 @@ struct NavigationShell: View {
             // pager, so this reaches a non-default page directly for a screenshot.
             vm.activeIndex = index
         }
-        rankingsVM.applyLocations(locationsStore.fetchAll())
+        skySpotsVM.applyLocations(locationsStore.fetchAll())
 
         forecastViewModel = vm
         locationsViewModel = locationsVM
-        rankingsViewModel = rankingsVM
+        skySpotsViewModel = skySpotsVM
         spaceViewModel = spaceVM
 
         if Self.launchArgsContain("-showLocations") {
@@ -248,8 +252,8 @@ struct NavigationShell: View {
         if Self.launchArgsContain("-showSettings") {
             isPresentingSettings = true
         }
-        if Self.launchArgsContain("-showRankings") {
-            selectedTab = .rankings
+        if Self.launchArgsContain("-showSpots") || Self.launchArgsContain("-showRankings") {
+            selectedTab = .spots
         }
         if Self.launchArgsContain("-showSpace") {
             selectedTab = .space
@@ -313,7 +317,7 @@ struct NavigationShell: View {
             HStack(spacing: 0) {
                 tabButton(title: "Forecast", systemImage: "sun.max.fill", tab: .forecast)
                 tabButton(title: "Space", systemImage: "moon.stars", tab: .space)
-                tabButton(title: "Rankings", systemImage: "list.number", tab: .rankings)
+                tabButton(title: "Sky Spots", systemImage: "map", tab: .spots)
             }
             .padding(.horizontal, 6)
             .padding(.vertical, 6)
@@ -514,5 +518,24 @@ struct NavigationShell: View {
         let args = CommandLine.arguments
         guard let flagIndex = args.firstIndex(of: "-scrollSpaceTo"), flagIndex + 1 < args.count else { return nil }
         return SpaceView.ScrollTarget(rawValue: args[flagIndex + 1])
+    }
+
+    // MARK: - Sky Spots tab hooks
+
+    /// `-scrollSpotsTo launchSites|aurora|darkSky` — sim-verify only, scrolls the Sky Spots tab
+    /// straight to a card below the fold at launch (`simctl` can't scroll). See
+    /// `SkySpotsView.ScrollTarget`.
+    private static func scrollSpotsTargetFromLaunchArgs() -> SkySpotsView.ScrollTarget? {
+        let args = CommandLine.arguments
+        guard let flagIndex = args.firstIndex(of: "-scrollSpotsTo"), flagIndex + 1 < args.count else { return nil }
+        return SkySpotsView.ScrollTarget(rawValue: args[flagIndex + 1])
+    }
+
+    /// `-expandSpotId <id>` — sim-verify only, pre-expands the named `SkySpot` row (an `id` from
+    /// `skyspots.json`, e.g. "cape-canaveral") at launch (`simctl` can't tap a row to expand it).
+    private static func expandSpotIdFromLaunchArgs() -> String? {
+        let args = CommandLine.arguments
+        guard let flagIndex = args.firstIndex(of: "-expandSpotId"), flagIndex + 1 < args.count else { return nil }
+        return args[flagIndex + 1]
     }
 }
