@@ -212,3 +212,11 @@ enum FinderGuidance {
         }
     }
 }
+
+
+// File-local copy (see PointingMath.swift's note — non-private versions collide app-wide).
+private extension Double {
+    func clamped(to range: ClosedRange<Double>) -> Double {
+        min(max(self, range.lowerBound), range.upperBound)
+    }
+}

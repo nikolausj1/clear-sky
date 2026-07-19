@@ -162,7 +162,10 @@ func normalizeRadians(_ rad: Double) -> Double {
     normalizeSignedDegrees(rad * radToDeg) * degToRad
 }
 
-extension Double {
+// `private` so this file-local helper can't collide with the several other private
+// `clamped(to:)` copies across the app (a non-private version here broke the whole-app
+// build via ambiguity — caught by the notifications work package's build).
+private extension Double {
     func clamped(to range: ClosedRange<Double>) -> Double {
         min(max(self, range.lowerBound), range.upperBound)
     }
