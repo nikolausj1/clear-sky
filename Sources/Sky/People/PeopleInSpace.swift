@@ -93,6 +93,10 @@ struct SpacePerson: Equatable, Identifiable {
     /// exploration writeup below (`PeopleInSpace.craftLabel` doc comment) for why this genuinely
     /// cannot be derived from this endpoint without blowing the shared rate-limit budget.
     let craftLabel: String?
+    /// Small circular profile-photo URL, for the People-in-Space sheet's avatar (CDN sanctioned
+    /// per the PRD). `nil` when LL2 supplied neither a thumbnail nor a full profile image, or the
+    /// supplied string didn't parse as a URL -- the sheet falls back to an initials circle.
+    let profileImageThumbnailURL: URL?
 }
 
 /// Everything the app needs to render a "People in Space" screen: the full mapped, sorted roster
@@ -242,7 +246,8 @@ enum PeopleInSpace {
             currentMissionStart: currentMissionStart,
             daysInSpaceCurrent: daysInSpace(currentMissionStart: currentMissionStart, now: now),
             careerTimeInSpace: humanizedCareerTime(raw: astronaut.timeInSpace, flightsCount: astronaut.flightsCount),
-            craftLabel: nil
+            craftLabel: nil,
+            profileImageThumbnailURL: astronaut.avatarImageURL
         )
     }
 

@@ -370,8 +370,8 @@ struct NavigationShell: View {
         return Int(args[flagIndex + 1])
     }
 
-    /// `-showExplainer issPass|aurora|meteorShower|stargazingScore|brightness|rocketLaunch` — see
-    /// `ForecastPageView`'s doc comment and `Explainers.forLaunchArgKey(_:)`.
+    /// `-showExplainer issPass|aurora|meteorShower|stargazingScore|brightness|rocketLaunch|bortle`
+    /// — see `ForecastPageView`'s doc comment and `Explainers.forLaunchArgKey(_:)`.
     private static func forcedExplainerKeyFromLaunchArgs() -> String? {
         let args = CommandLine.arguments
         guard let flagIndex = args.firstIndex(of: "-showExplainer"), flagIndex + 1 < args.count else { return nil }

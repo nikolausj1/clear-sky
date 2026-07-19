@@ -53,6 +53,10 @@ struct SpaceView: View {
                             launchScheduleCard
                             sunCard.id(Self.sunCardId)
                             skyCalendarCard.id(Self.calendarCardId)
+                            moonCalendarCard
+                            if let spaceHistoryText {
+                                spaceHistoryRow(spaceHistoryText)
+                            }
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 16)
@@ -349,6 +353,10 @@ struct SpaceView: View {
     private var skyCalendarCard: some View {
         SpacePanelCard(title: "SKY CALENDAR") {
             VStack(alignment: .leading, spacing: 0) {
+                if let eclipseCountdownText {
+                    eclipseCountdownRow(eclipseCountdownText)
+                    SpaceHairlineDivider().padding(.vertical, 8)
+                }
                 let rows = Array(Self.dedupedCalendarEvents(viewModel.calendarEvents).prefix(12))
                 if rows.isEmpty {
                     quietLine("Nothing notable in the sky the next 30 days.")
@@ -362,6 +370,66 @@ struct SpaceView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Eclipse countdown (top of the Sky Calendar card)
+
+    /// "Next eclipse visible from your location: Total lunar — Mar 3 · in 228 days." — or, when
+    /// the next CHRONOLOGICAL eclipse isn't visible from here, an honest two-part line naming
+    /// that eclipse plainly as not-visible and then the next one that actually is (per work
+    /// order: "don't silently skip ahead"). `nil` (hiding the row) when there's no location to
+    /// evaluate visibility from, or the bundled table has nothing upcoming at all.
+    private var eclipseCountdownText: String? {
+        guard let location else { return nil }
+        let now = viewModel.referenceDateForDisplay
+        guard let next = Eclipses.nextEclipse(visibleFrom: location.latitude, longitude: location.longitude, after: now) else {
+            return nil
+        }
+        if next.isVisibleFromLocation {
+            return "Next eclipse visible from your location: \(Self.shortEclipseLabel(next.eclipse.type)) — \(Self.eclipseDateText(next.eclipse.peakUTC)) \u{00B7} in \(next.daysUntil) days."
+        }
+        guard let nextVisible = Self.nextVisibleEclipse(after: now, latitude: location.latitude, longitude: location.longitude) else {
+            return "Next eclipse: \(Self.shortEclipseLabel(next.eclipse.type)) — \(Self.eclipseDateText(next.eclipse.peakUTC)) \u{00B7} in \(next.daysUntil) days. Not visible from your location."
+        }
+        let visibleDaysUntil = max(0, Int(nextVisible.peakUTC.timeIntervalSince(now) / 86400))
+        return "Next eclipse (\(Self.shortEclipseLabel(next.eclipse.type)), \(Self.eclipseDateText(next.eclipse.peakUTC))) isn't visible from your location. Next one that is: \(Self.shortEclipseLabel(nextVisible.type)) — \(Self.eclipseDateText(nextVisible.peakUTC)) \u{00B7} in \(visibleDaysUntil) days."
+    }
+
+    private static func nextVisibleEclipse(
+        after date: Date, latitude: Double, longitude: Double, in eclipses: [Eclipses.Eclipse] = Eclipses.all
+    ) -> Eclipses.Eclipse? {
+        eclipses
+            .filter { $0.peakUTC > date && Eclipses.isVisible($0, latitude: latitude, longitude: longitude) }
+            .min { $0.peakUTC < $1.peakUTC }
+    }
+
+    private static func shortEclipseLabel(_ type: Eclipses.EclipseType) -> String {
+        switch type {
+        case .totalSolar: return "Total solar"
+        case .partialSolar: return "Partial solar"
+        case .annularSolar: return "Annular solar"
+        case .hybridSolar: return "Hybrid solar"
+        case .totalLunar: return "Total lunar"
+        case .partialLunar: return "Partial lunar"
+        case .penumbralLunar: return "Penumbral lunar"
+        }
+    }
+
+    private static func eclipseDateText(_ date: Date) -> String {
+        date.formatted(.dateTime.month(.abbreviated).day())
+    }
+
+    private func eclipseCountdownRow(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "circle.lefthalf.filled")
+                .font(.subheadline)
+                .foregroundStyle(Color.clearSkyAccentOnDark)
+                .padding(.top, 2)
+            Text(text)
+                .font(.footnote)
+                .foregroundStyle(Color.white.opacity(0.85))
+        }
+        .padding(.vertical, 4)
     }
 
     /// Same-day dedup: when a meteor-peak row already exists for a calendar day, that day's
@@ -392,7 +460,17 @@ struct SpaceView: View {
         case pairing
         case solstice
         case equinox
+        case eclipse
+        case comet
         case other
+    }
+
+    /// Comet event titles are just `Comet.name` (e.g. "10P/Tempel 2") with no shared suffix/prefix
+    /// to string-match on, unlike every other event kind here -- so this checks membership in the
+    /// small bundled comet table directly (2 entries as of this writing; cheap even as a linear
+    /// scan per row).
+    private static func isCometTitle(_ title: String) -> Bool {
+        Comets.all.contains { $0.name == title }
     }
 
     private static func kind(for event: SkyCalendar.Event) -> CalendarEventKind {
@@ -402,6 +480,8 @@ struct SpaceView: View {
         if event.note.hasSuffix("\u{00B0} apart") { return .pairing }
         if event.title.contains("Solstice") { return .solstice }
         if event.title.contains("Equinox") { return .equinox }
+        if event.title.hasSuffix("Eclipse") { return .eclipse }
+        if isCometTitle(event.title) { return .comet }
         return .other
     }
 
@@ -448,9 +528,51 @@ struct SpaceView: View {
             Image(systemName: "sun.min")
                 .font(.system(size: 15))
                 .foregroundStyle(Color.white.opacity(0.65))
+        case .eclipse:
+            // A partially-shadowed disc reads distinctly from the full/new moon glyphs above
+            // (which sit at the two illumination extremes) without a bespoke shape.
+            MoonPhaseDisc(illumination: 0.3, waxing: false, diameter: 18, style: .dark, showsRim: true)
+        case .comet:
+            CometGlyph()
         case .other:
             Color.clear
         }
+    }
+
+    // MARK: - Card 4: Moon Calendar
+
+    /// Current-month moon-phase grid (engine-integration work package) -- see
+    /// `MoonCalendarGrid`'s own doc comment for the day-cell math. v1: current month only, no
+    /// prev/next navigation, per work order.
+    private var moonCalendarCard: some View {
+        SpacePanelCard(title: "MOON CALENDAR") {
+            MoonCalendarGrid(referenceDate: viewModel.referenceDateForDisplay, timeZone: .current)
+        }
+    }
+
+    // MARK: - Space History (bottom of the tab)
+
+    /// "SPACE HISTORY" mini-header + today's `OnThisDay` line -- deliberately NOT wrapped in a
+    /// `SpacePanelCard` (spec: "mini-header + line", the same lightweight treatment
+    /// `TonightSkyCard.factRow` gives its own "SPACE FACT" line, not a full boxed card). `nil`
+    /// (hiding the row) only if the 366-entry bundled table is somehow missing today's month/day
+    /// -- shouldn't happen for a correctly-populated table, but this stays honest rather than
+    /// showing an empty line.
+    private var spaceHistoryText: String? {
+        OnThisDay.entry(for: viewModel.referenceDateForDisplay)?.text
+    }
+
+    private func spaceHistoryRow(_ text: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("SPACE HISTORY")
+                .font(.footnote.weight(.semibold))
+                .tracking(0.8)
+                .foregroundStyle(Color.white.opacity(0.55))
+            Text(text)
+                .font(.footnote)
+                .foregroundStyle(Color.white.opacity(0.75))
+        }
+        .padding(.horizontal, 4)
     }
 
     // MARK: - Shared row chrome
@@ -714,6 +836,23 @@ private struct MeteorStreakGlyph: View {
             Circle().fill(Color.white.opacity(0.55)).frame(width: 3, height: 3).position(x: 10, y: 10)
             Circle().fill(Color.white.opacity(0.35)).frame(width: 2.4, height: 2.4).position(x: 7.5, y: 7.5)
             Circle().fill(Color.white.opacity(0.2)).frame(width: 2, height: 2).position(x: 5.5, y: 5.5)
+        }
+        .frame(width: 22, height: 22)
+    }
+}
+
+/// Comet glyph: a small bright nucleus with a curved tail sweeping away from it -- distinct from
+/// `MeteorStreakGlyph`'s straight diagonal streak (a comet is a fixed point with a tail, not a
+/// fast-moving streak), same white-tint rationale as the rest of this section's glyphs.
+private struct CometGlyph: View {
+    var body: some View {
+        ZStack {
+            Path { path in
+                path.move(to: CGPoint(x: 15, y: 6))
+                path.addQuadCurve(to: CGPoint(x: 5, y: 16), control: CGPoint(x: 6, y: 9))
+            }
+            .stroke(Color.white.opacity(0.45), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+            Circle().fill(Color.white.opacity(0.9)).frame(width: 4, height: 4).position(x: 15, y: 6)
         }
         .frame(width: 22, height: 22)
     }

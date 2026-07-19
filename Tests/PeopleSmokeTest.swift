@@ -74,7 +74,9 @@ func makeAstronaut(
         nationality: nationality,
         firstFlight: firstFlight,
         lastFlight: lastFlight,
-        flightsCount: flightsCount
+        flightsCount: flightsCount,
+        profileImage: nil,
+        profileImageThumbnail: nil
     )
 }
 

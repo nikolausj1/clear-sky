@@ -41,6 +41,14 @@ final class SkyTonightService {
         var astronomy: SkyTonight.TonightSky
         var iss: SectionState<[ISSPass]>
         var aurora: SectionState<AuroraOutlook>
+        /// Multi-satellite visible passes tonight (ISS + Hubble + Tiangong + any discovered
+        /// Starlink launch "trains") — engine-integration work package's SATELLITES section.
+        /// Deliberately a SEPARATE fetch/field from `iss` above, not a replacement: `iss` stays
+        /// ISS-only and keeps feeding `BestMoment`'s headline exactly as before (untouched engine
+        /// logic), while `satellites` is purely additive, feeding only the SATELLITES section's
+        /// fuller multi-satellite row list. `.unavailable` by default so every existing call site
+        /// that builds a `State` without mentioning it keeps compiling unchanged.
+        var satellites: SectionState<[SatellitePass]> = .unavailable
         /// Active shower's outlook for tonight, if any — `nil` when no shower is active
         /// (`MeteorShowers.outlook` itself returned `nil`). Synchronous, defaults to `nil` here
         /// only because a few internal helpers construct a partial `State` before this field is
@@ -204,14 +212,14 @@ final class SkyTonightService {
         // still computed above and still feed the headline.
         if overrides?.unavailable == true {
             let moment = Self.bestMoment(astronomy: astro, iss: [], aurora: nil, meteor: meteor, pairings: pairings)
-            return State(astronomy: astro, iss: .unavailable, aurora: .unavailable, meteor: meteor, pairings: pairings, bestMoment: moment)
+            return State(astronomy: astro, iss: .unavailable, aurora: .unavailable, satellites: .unavailable, meteor: meteor, pairings: pairings, bestMoment: moment)
         }
 
         let real = await realState(locationId: locationId, latitude: latitude, longitude: longitude, date: date, timeZone: timeZone, astronomy: astro)
 
         guard let overrides, overrides.isActive else {
             let moment = Self.bestMoment(astronomy: astro, iss: Self.availableValue(real.iss) ?? [], aurora: Self.availableValue(real.aurora), meteor: meteor, pairings: pairings)
-            return State(astronomy: astro, iss: real.iss, aurora: real.aurora, meteor: meteor, pairings: pairings, bestMoment: moment)
+            return State(astronomy: astro, iss: real.iss, aurora: real.aurora, satellites: real.satellites, meteor: meteor, pairings: pairings, bestMoment: moment)
         }
 
         let iss: SectionState<[ISSPass]> = overrides.issPass
@@ -220,8 +228,11 @@ final class SkyTonightService {
         let aurora: SectionState<AuroraOutlook> = overrides.auroraBand
             .map { SectionState.available(Self.syntheticAuroraOutlook(band: $0, referenceDate: astro.sun.sunset ?? date)) } ?? real.aurora
 
+        // `satellites` is deliberately unaffected by the ISS/aurora sim-verify overrides above —
+        // e.g. `-forceISSPass` still shows the SATELLITES section's real Hubble/Tiangong/Starlink
+        // passes (only the separate headline-feeding `iss` value is synthesized).
         let moment = Self.bestMoment(astronomy: astro, iss: Self.availableValue(iss) ?? [], aurora: Self.availableValue(aurora), meteor: meteor, pairings: pairings)
-        return State(astronomy: astro, iss: iss, aurora: aurora, meteor: meteor, pairings: pairings, bestMoment: moment)
+        return State(astronomy: astro, iss: iss, aurora: aurora, satellites: real.satellites, meteor: meteor, pairings: pairings, bestMoment: moment)
     }
 
     /// The real (network/cache-backed) result for this location/evening, independent of any
@@ -237,16 +248,16 @@ final class SkyTonightService {
     ) async -> State {
         let key = cacheKey(locationId: locationId, date: date, timeZone: timeZone)
         if let cached = cache[key] {
-            return State(astronomy: astro, iss: cached.iss, aurora: cached.aurora)
+            return State(astronomy: astro, iss: cached.iss, aurora: cached.aurora, satellites: cached.satellites)
         }
         if let existingTask = inFlight[key] {
             let result = await existingTask.value
-            return State(astronomy: astro, iss: result.iss, aurora: result.aurora)
+            return State(astronomy: astro, iss: result.iss, aurora: result.aurora, satellites: result.satellites)
         }
 
         let task = Task<State, Never> { [weak self] in
             await self?.fetchFresh(latitude: latitude, longitude: longitude, astronomy: astro, date: date, timeZone: timeZone)
-                ?? State(astronomy: astro, iss: .unavailable, aurora: .unavailable)
+                ?? State(astronomy: astro, iss: .unavailable, aurora: .unavailable, satellites: .unavailable)
         }
         inFlight[key] = task
         let result = await task.value
@@ -285,8 +296,9 @@ final class SkyTonightService {
         let window = Self.tonightWindow(latitude: latitude, longitude: longitude, date: date, timeZone: timeZone)
         async let issResult = Self.fetchISS(latitude: latitude, longitude: longitude, window: window)
         async let auroraResult = Self.fetchAurora(latitude: latitude, longitude: longitude, window: window)
-        let (iss, aurora) = await (issResult, auroraResult)
-        return State(astronomy: astronomy, iss: iss, aurora: aurora)
+        async let satellitesResult = Self.fetchSatellites(latitude: latitude, longitude: longitude, window: window)
+        let (iss, aurora, satellites) = await (issResult, auroraResult, satellitesResult)
+        return State(astronomy: astronomy, iss: iss, aurora: aurora, satellites: satellites)
     }
 
     /// **Important gotcha this fixes:** `SkyTonight.TonightSky.sun` (the public Astronomy API)
@@ -335,6 +347,50 @@ final class SkyTonightService {
         } catch {
             return .unavailable
         }
+    }
+
+    /// SATELLITES section fetch: the fixed catalog (ISS, Hubble, Tiangong) plus any discovered
+    /// Starlink launch "trains" from Celestrak's last-30-days group, merged into one
+    /// soonest-first pass list via `SatellitesTonight.passes(satellites:...)` — same reused
+    /// pass-search math `fetchISS` already relies on, just generalized across more tracked
+    /// objects (see `Satellites.swift`'s own doc comment). Each fixed-catalog satellite's TLE
+    /// fetch degrades independently (a satellite whose fetch fails is simply left out, not
+    /// treated as a hard failure) and the Starlink group fetch is best-effort (`try?`) — this
+    /// whole section only reports `.unavailable` if EVERY tracked object failed to resolve a TLE
+    /// at all, mirroring `fetchISS`/`fetchAurora`'s "degrade quietly, don't block the rest of the
+    /// card" contract.
+    private nonisolated static func fetchSatellites(
+        latitude: Double,
+        longitude: Double,
+        window: (civilDuskTonight: Date?, civilDawnTomorrow: Date?, sunsetTonight: Date?, sunriseTomorrow: Date?)
+    ) async -> SectionState<[SatellitePass]> {
+        guard let windowStart = window.civilDuskTonight, let windowEnd = window.civilDawnTomorrow, windowEnd > windowStart else {
+            return .unavailable
+        }
+        let fetcher = SatelliteTLEFetcher(cacheDirectory: cacheDirectory)
+        let now = Date()
+
+        var tracked: [(satellite: TrackedSatellite, tle: TLE)] = []
+        for (satellite, result) in fetcher.fetchFixedCatalog(now: now) {
+            if case .success(let fetchResult) = result {
+                tracked.append((satellite, fetchResult.tle))
+            }
+        }
+        if let groupResult = try? fetcher.fetchLast30DaysGroup(now: now) {
+            tracked.append(contentsOf: SatelliteCatalog.starlinkTrains(fromLast30DaysGroup: groupResult.entries))
+        }
+        guard !tracked.isEmpty else { return .unavailable }
+
+        guard let passes = try? SatellitesTonight.passes(
+            satellites: tracked,
+            windowStart: windowStart,
+            windowEnd: windowEnd,
+            latitudeDeg: latitude,
+            longitudeDeg: longitude
+        ) else {
+            return .unavailable
+        }
+        return .available(passes)
     }
 
     /// Aurora's own "tonight" window is sunset -> next sunrise (its dark-hours convention, per

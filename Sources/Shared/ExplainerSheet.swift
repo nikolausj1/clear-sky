@@ -81,9 +81,23 @@ enum Explainers {
                 "Each hour's score, 0 to 10, combines three factors: how dark the sky actually is at that hour (daylight and twilight both count against it), how much cloud is in the way, and how much the Moon is washing things out.",
                 "All three factors have to line up for a high score — a perfectly clear, moonless hour still scores 0 in broad daylight, and a dark, moonless hour still scores low under heavy cloud.",
                 "Daytime hours scoring 0 is expected and correct — the score only rates how good stargazing conditions are, not the weather in general.",
+                "The \"best night this week\" row uses this same clear-sky-and-moonless idea, but looks a full week ahead using the daily forecast instead of the hourly one. That's a coarser signal — it can't tell \"clear all night\" from \"clear at dusk, clouding up by 2 AM\" — so treat it as a rough guide to which night to prioritize, not a precise hour-by-hour forecast.",
             ]
         )
     }
+
+    /// Bortle-estimate work item: what the Bortle scale means, plus an explicit "coarse estimate,
+    /// not a measurement" caveat — see `LightPollution.swift`'s own doc comment for the honesty
+    /// this mirrors.
+    static let bortle = ExplainerContent(
+        id: "bortle",
+        title: "What do Bortle classes mean?",
+        paragraphs: [
+            "The Bortle scale ranks night-sky darkness from 1 (a pristine, moonless wilderness sky) to 9 (a brightly lit inner-city sky where only the Moon, planets, and the brightest stars cut through the glow).",
+            "This app's Bortle number is an estimate, not a measurement — it's built from how much population is nearby and how far away it is, not from an actual sky-brightness reading. Expect it to be off by a class or two in places a population model handles poorly, like sprawling low-density metro areas or unlit industrial sites.",
+            "A darker class (1-4) means fainter stars, the Milky Way, and dim objects like nebulae become visible to the eye; a brighter class (7-9) washes out all but the brightest stars and planets.",
+        ]
+    )
 
     static let brightness = ExplainerContent(
         id: "brightness",
@@ -117,7 +131,7 @@ enum Explainers {
     }()
 
     /// Sim-verify only: `-showExplainer issPass|aurora|meteorShower|stargazingScore|brightness|
-    /// rocketLaunch` (see `NavigationShell`) — `simctl` can't tap through to an icon to open its
+    /// rocketLaunch|bortle` (see `NavigationShell`) — `simctl` can't tap through to an icon to open its
     /// sheet for a screenshot, mirroring every other `-show*`/`-force*` hook in this codebase.
     /// `rocketLaunch` uses a small synthetic launch (this hook has no real launch to inject).
     static func forLaunchArgKey(_ key: String) -> ExplainerContent? {
@@ -127,6 +141,7 @@ enum Explainers {
         case "meteorShower": return meteorShower
         case "stargazingScore": return stargazingScore()
         case "brightness": return brightness
+        case "bortle": return bortle
         case "rocketLaunch":
             return rocketLaunch(UpcomingLaunch(
                 id: "sim-verify-launch",

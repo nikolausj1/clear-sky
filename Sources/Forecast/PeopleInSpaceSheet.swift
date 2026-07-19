@@ -10,9 +10,10 @@ import SwiftUI
 /// sheet) since it's presenting the same "space" domain content the Space tab's own sheets do, and
 /// the app is dark-only end to end regardless (see `ClearSkyApp`).
 ///
-/// **Text-only v1, deliberately:** no astronaut photos. LL2 does provide
-/// `profile_image`/`profile_image_thumbnail` on the wire model, but per the work order's policy
-/// decision this sheet doesn't fetch or render them.
+/// **Astronaut photos (engine-integration work package):** LL2's `profile_image_thumbnail` (CDN
+/// now sanctioned per the PRD) renders as a 36pt circular `AsyncImage`, falling back to an
+/// initials circle while loading, on a failed/missing URL, or on a failed load — no other
+/// network changes accompany this.
 ///
 /// Register check (Observatory Guide: clear, warm, factual, no jokes/exclamations) — every static
 /// string here was written fresh for this sheet and re-read against that bar before shipping.
@@ -65,6 +66,7 @@ struct PeopleInSpaceSheet: View {
 
     private func personRow(_ person: SpacePerson) -> some View {
         HStack(alignment: .top, spacing: 10) {
+            avatarView(person)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     if let flag = Self.leadingFlag(person.nationality) {
@@ -93,6 +95,40 @@ struct PeopleInSpaceSheet: View {
             }
         }
         .padding(.vertical, 6)
+    }
+
+    /// 36pt circular photo (spec size) — `AsyncImage`'s `.empty`/`.failure` phases both fall back
+    /// to the initials circle below, so a still-loading avatar and a permanently-missing/failed
+    /// one look the same (a calm placeholder, not a broken-image glyph) until the real photo
+    /// swaps in.
+    @ViewBuilder
+    private func avatarView(_ person: SpacePerson) -> some View {
+        AsyncImage(url: person.profileImageThumbnailURL) { phase in
+            if case .success(let image) = phase {
+                image.resizable().scaledToFill()
+            } else {
+                initialsCircle(person)
+            }
+        }
+        .frame(width: 36, height: 36)
+        .clipShape(Circle())
+    }
+
+    private func initialsCircle(_ person: SpacePerson) -> some View {
+        Circle()
+            .fill(Color.white.opacity(0.15))
+            .overlay {
+                Text(Self.initials(person.name))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.white)
+            }
+    }
+
+    /// "Jessica Meir" -> "JM" — first letter of up to the first two space-separated name parts,
+    /// uppercased. "?" for the (unobserved-live, but defensive) case of an empty name.
+    private static func initials(_ name: String) -> String {
+        let letters = name.split(separator: " ").compactMap(\.first).prefix(2).map(String.init).joined()
+        return letters.isEmpty ? "?" : letters.uppercased()
     }
 
     private static func countSubtitle(_ count: Int) -> String {

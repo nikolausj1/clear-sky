@@ -124,6 +124,24 @@ struct LL2Astronaut: Codable {
     /// for "current mission start" (see `PeopleInSpace.swift`). Parse via `lastFlightDate`.
     let lastFlight: String?
     let flightsCount: Int?
+    /// Full-resolution profile photo. Present in the live sample (see file-header excerpt) but
+    /// not surfaced on `SpacePerson` — the sheet uses `profileImageThumbnail` (below) for its
+    /// small circular avatar; this is parsed only as a fallback for the (unobserved-live, but not
+    /// impossible) case an astronaut has a full image with no thumbnail.
+    ///
+    /// **Deliberately NO default value here** (`Tests/PeopleSmokeTest.swift`'s
+    /// `makeAstronaut(...)` helper instead passes `nil` explicitly at its one `LL2Astronaut(...)`
+    /// call site) — a `let` property with a default value skips Swift's synthesized
+    /// `Decodable.init(from:)` decoding for that property entirely (it silently stays `nil` even
+    /// when the JSON key IS present), a real gotcha confirmed empirically while integrating this
+    /// field: giving it `= nil` made every live astronaut photo silently fail to decode despite
+    /// LL2 actually returning a valid URL. Keeping this a plain `Optional` with no default is what
+    /// makes real photos decode at all.
+    let profileImage: String?
+    /// Small profile photo — the CDN is sanctioned per the PRD for the People-in-Space sheet's
+    /// 36pt circular avatar (see `PeopleInSpaceSheet.avatarView`). Same "no default value" note as
+    /// `profileImage` above.
+    let profileImageThumbnail: String?
 
     enum CodingKeys: String, CodingKey {
         case id, name, status, type
@@ -134,6 +152,8 @@ struct LL2Astronaut: Codable {
         case firstFlight = "first_flight"
         case lastFlight = "last_flight"
         case flightsCount = "flights_count"
+        case profileImage = "profile_image"
+        case profileImageThumbnail = "profile_image_thumbnail"
     }
 
     var firstFlightDate: Date? {
@@ -142,6 +162,13 @@ struct LL2Astronaut: Codable {
 
     var lastFlightDate: Date? {
         lastFlight.flatMap { ISO8601DateFormatter().date(from: $0) }
+    }
+
+    /// The best-available photo URL for a small avatar: the thumbnail when LL2 provides one,
+    /// falling back to the full-resolution image, `nil` when neither parses as a URL (missing
+    /// field, or a malformed string — defensive, not observed live).
+    var avatarImageURL: URL? {
+        (profileImageThumbnail ?? profileImage).flatMap { URL(string: $0) }
     }
 }
 

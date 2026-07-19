@@ -390,6 +390,7 @@ struct ForecastPageView: View {
                             TonightSkyCard(
                                 location: location,
                                 date: displayNow,
+                                dailyForecast: payload.daily,
                                 forcedOverrides: viewModel.skyForcedOverrides,
                                 initialExpandedPlanet: viewModel.initialExpandedSkyPlanet,
                                 initialShowPeopleSheet: showPeopleSheetAtLaunch,

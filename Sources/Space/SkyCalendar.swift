@@ -72,8 +72,53 @@ enum SkyCalendar {
 
         events.append(contentsOf: moonPhaseEvents(start: start, days: days, calendar: calendar))
         events.append(contentsOf: solsticeEquinoxEvents(start: start, windowEnd: windowEnd, calendar: calendar))
+        events.append(contentsOf: eclipseEvents(
+            start: start, windowEnd: windowEnd, calendar: calendar, latitude: latitude, longitude: longitude
+        ))
+        events.append(contentsOf: cometEvents(start: start, windowEnd: windowEnd))
 
         return events.sorted { $0.date < $1.date }
+    }
+
+    // MARK: - Eclipses
+
+    /// Every eclipse (solar or lunar) whose peak instant falls on a calendar day inside the
+    /// window, from the bundled `Eclipses.all` table -- calendar-only, like moon phases and
+    /// solstices/equinoxes, so it still appears with no location known. When a location IS
+    /// available the note upgrades from the table's generic `visibilitySummary` to a
+    /// location-specific verdict via `Eclipses.isVisible`, same honesty split the ECLIPSE
+    /// COUNTDOWN row (`SpaceView`) uses.
+    private static func eclipseEvents(
+        start: Date, windowEnd: Date, calendar: Calendar, latitude: Double?, longitude: Double?
+    ) -> [Event] {
+        Eclipses.all.compactMap { eclipse -> Event? in
+            let day = calendar.startOfDay(for: eclipse.peakUTC)
+            guard day >= start, day < windowEnd else { return nil }
+            let note: String
+            if let latitude, let longitude {
+                note = Eclipses.isVisible(eclipse, latitude: latitude, longitude: longitude)
+                    ? "Visible from your location"
+                    : "Not visible from your location"
+            } else {
+                note = eclipse.visibilitySummary
+            }
+            return Event(date: day, title: eclipse.type.displayName, note: note)
+        }
+    }
+
+    // MARK: - Comets
+
+    /// Comet rows for a comet whose apparition intersects the 30-day window. `Comets.Comet` only
+    /// exposes a structured `perihelionDate` -- `visibilityWindow` is deliberately free text (see
+    /// that type's own doc comment on why comet-brightness/visibility forecasts resist a
+    /// structured date range) -- so "intersects the 30 days" is evaluated against the one
+    /// structured signal available: the comet's perihelion date falling inside the window. The
+    /// event's note still surfaces the full free-text `visibilityWindow` description.
+    private static func cometEvents(start: Date, windowEnd: Date) -> [Event] {
+        Comets.upcoming(after: start).compactMap { comet -> Event? in
+            guard let perihelion = comet.perihelionUTCDate, perihelion < windowEnd else { return nil }
+            return Event(date: perihelion, title: comet.name, note: comet.visibilityWindow)
+        }
     }
 
     // MARK: - Meteor-shower peak nights

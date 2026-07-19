@@ -431,6 +431,19 @@ struct HourlyForecastSection: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(Self.bestWindowLine(Array(stargazingScores.values)))
                         .font(.subheadline.weight(.medium))
+                    // Bortle-estimate work item: sits right under "Best window", ahead of the
+                    // "Stargazing Score" info row below it. `nil` (hidden) with no location to
+                    // estimate from — the Sky chip's other rows already gate the same way.
+                    if let bortleText = Self.bortleText(location: skyContext.location) {
+                        Button {
+                            skyContext.onExplain(Explainers.bortle)
+                        } label: {
+                            Text(bortleText)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
                     HStack(spacing: 4) {
                         Text("Stargazing Score")
                             .font(.caption.weight(.medium))
@@ -543,6 +556,16 @@ struct HourlyForecastSection: View {
         formatter.dateFormat = "h a"
         return formatter
     }()
+
+    /// "Your sky: roughly Bortle 6 — estimated from nearby city sizes" — Bortle-estimate work
+    /// item. The "estimated" qualifier is a lead condition (work order) — it appears immediately
+    /// after naming the class, not buried at the end, so a reader can't mistake this for a
+    /// measurement. `nil` with no location to run `LightPollution.classify` against.
+    static func bortleText(location: SavedLocation?) -> String? {
+        guard let location else { return nil }
+        let estimate = LightPollution.classify(latitude: location.latitude, longitude: location.longitude)
+        return "Your sky: roughly Bortle \(estimate.bortleClass) — estimated from nearby city sizes"
+    }
 
     /// Sim-verify only: `-scrollToHour N` used to index straight into the (1-hour-resolution)
     /// `hours` array. Now that the list only renders every `stepHours`-th entry, `N` is

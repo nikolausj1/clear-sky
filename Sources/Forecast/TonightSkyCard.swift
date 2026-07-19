@@ -23,6 +23,11 @@ import SwiftUI
 struct TonightSkyCard: View {
     let location: SavedLocation
     let date: Date
+    /// Engine-integration work package: the location's 7(ish)-day daily forecast, fed straight
+    /// through to `BestNight.outlook(dailyForecast:...)` for the "BEST NIGHT THIS WEEK" row.
+    /// Defaulted to empty so every existing call site/preview keeps compiling unchanged — an
+    /// empty array simply hides that row (see `bestNightOutlook`'s doc comment).
+    var dailyForecast: [DailyEntry] = []
     var forcedOverrides: SkyTonightService.ForcedOverrides? = nil
     /// Forecast-surface overhaul, work item 4: tap-to-explain wiring for the ISS section's
     /// `info.circle` button. Defaulted so every existing call site/preview keeps compiling
@@ -47,6 +52,10 @@ struct TonightSkyCard: View {
     @State private var astronomy: SkyTonight.TonightSky?
     @State private var issState: SkyTonightService.SectionState<[ISSPass]> = .loading
     @State private var auroraState: SkyTonightService.SectionState<AuroraOutlook> = .loading
+    /// SATELLITES section (engine-integration work package): ISS + Hubble + Tiangong + any
+    /// discovered Starlink trains, merged and sorted soonest-first. Separate from `issState`
+    /// above, which stays ISS-only and keeps feeding the headline exactly as before.
+    @State private var satellitesState: SkyTonightService.SectionState<[SatellitePass]> = .loading
     @State private var meteorOutlook: MeteorShowers.MeteorOutlook?
     @State private var pairings: [Conjunctions.Pairing] = []
     @State private var bestMoment: BestMoment.SkyMoment?
@@ -78,6 +87,7 @@ struct TonightSkyCard: View {
     init(
         location: SavedLocation,
         date: Date,
+        dailyForecast: [DailyEntry] = [],
         forcedOverrides: SkyTonightService.ForcedOverrides? = nil,
         initialExpandedPlanet: Planets.Body? = nil,
         initialShowPeopleSheet: Bool = false,
@@ -86,6 +96,7 @@ struct TonightSkyCard: View {
     ) {
         self.location = location
         self.date = date
+        self.dailyForecast = dailyForecast
         self.forcedOverrides = forcedOverrides
         self._expandedPlanet = State(initialValue: initialExpandedPlanet)
         self._isPresentingPeopleSheet = State(initialValue: initialShowPeopleSheet)
@@ -115,6 +126,14 @@ struct TonightSkyCard: View {
                             .padding(.vertical, 8)
                         nightDivider
                     }
+                    // Engine-integration work package: BEST NIGHT THIS WEEK, right after the
+                    // timeline section — hidden entirely when there's no daily forecast to build
+                    // it from (`dailyForecast` defaults to empty for existing call sites).
+                    if let bestNightOutlook {
+                        sectionHeader("BEST NIGHT THIS WEEK")
+                        bestNightRow(bestNightOutlook)
+                        nightDivider
+                    }
                     // Night panel UX pass: PLANETS moved directly under the timeline strip (was
                     // below the Moon row) so the strip's planet bars sit adjacent to their rows.
                     sectionHeader("PLANETS")
@@ -131,8 +150,8 @@ struct TonightSkyCard: View {
                         meteorRow
                         nightDivider
                     }
-                    sectionHeader("SPACE STATION")
-                    issRow
+                    sectionHeaderWithInfo("SATELLITES") { onExplain(Explainers.issPass) }
+                    satellitesSection
                     peopleInSpaceRow
                     if let pairing = pairings.first {
                         nightDivider
@@ -205,6 +224,7 @@ struct TonightSkyCard: View {
         astronomy = astro
         issState = .loading
         auroraState = .loading
+        satellitesState = .loading
         duskDawnWindow = SkyTonightService.duskDawnWindow(
             latitude: location.latitude, longitude: location.longitude, date: date, timeZone: timeZone
         )
@@ -230,6 +250,7 @@ struct TonightSkyCard: View {
         )
         issState = result.iss
         auroraState = result.aurora
+        satellitesState = result.satellites
         bestMoment = result.bestMoment
 
         // Sim-verify forced overrides (`-forceISSPass`, `-forceAuroraBand`, etc.) synthesize
@@ -286,6 +307,27 @@ struct TonightSkyCard: View {
             .tracking(0.8)
             .foregroundStyle(Color.white.opacity(0.55))
             .padding(.bottom, 4)
+    }
+
+    /// Same mini-header styling as `sectionHeader`, plus a trailing ⓘ button — SATELLITES work
+    /// item 2: the tap-to-explain affordance moves off the individual pass rows (which are now
+    /// tappable to open `PeopleInSpaceSheet` for station passes) and onto this single
+    /// section-level icon instead.
+    private func sectionHeaderWithInfo(_ title: String, onInfoTap: @escaping () -> Void) -> some View {
+        HStack {
+            Text(title)
+                .font(.footnote.weight(.semibold))
+                .tracking(0.8)
+                .foregroundStyle(Color.white.opacity(0.55))
+            Spacer()
+            Button(action: onInfoTap) {
+                Image(systemName: "info.circle")
+                    .font(.footnote)
+                    .foregroundStyle(Color.white.opacity(0.5))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.bottom, 4)
     }
 
     // MARK: - Headline
@@ -357,6 +399,82 @@ struct TonightSkyCard: View {
         case .severe: return "bright moon washing it out"
         }
     }
+
+    // MARK: - Best night this week
+
+    /// Which of the next 7 nights (starting tonight) rates best, built from `dailyForecast` via
+    /// `BestNight.outlook`/`BestNight.bestNight(among:)`. `nil` — hiding the row entirely — when
+    /// there's no daily forecast to build it from (the default empty `dailyForecast` every
+    /// existing call site/preview still compiles with). Cheap, synchronous, pure math (same as
+    /// `BestNight`'s own doc comment on why it's fine to recompute per render), so this is a
+    /// computed property rather than `@State` set from `load()` — it stays correct even if a
+    /// parent re-renders this card with fresh `dailyForecast` data without the location/date
+    /// (and therefore `taskKey`) changing.
+    private var bestNightOutlook: BestNight.NightOutlook? {
+        guard !dailyForecast.isEmpty else { return nil }
+        let inputs = dailyForecast.map {
+            BestNight.NightlyForecastInput(date: $0.date, conditionCode: $0.conditionCode, precipChance: $0.precipChance)
+        }
+        let nights = BestNight.outlook(
+            dailyForecast: inputs,
+            latitude: location.latitude,
+            longitude: location.longitude,
+            timeZone: timeZone,
+            now: date
+        )
+        return BestNight.bestNight(among: nights)
+    }
+
+    /// "Thursday looks best — clear and moonless, 9/10." / "Tonight is the best night this week —
+    /// 8/10." — tapping opens the Stargazing Score explainer, extended with a paragraph
+    /// explaining this row specifically (see `Explainers.stargazingScore`).
+    private func bestNightRow(_ outlook: BestNight.NightOutlook) -> some View {
+        Button {
+            onExplain(Explainers.stargazingScore())
+        } label: {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "star.fill")
+                    .font(.footnote)
+                    .foregroundStyle(Color.clearSkyAccentOnDark)
+                    .padding(.top, 3)
+                Text(Self.bestNightText(outlook, now: date, timeZone: timeZone))
+                    .font(.subheadline)
+                    .foregroundStyle(.white)
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundStyle(Color.white.opacity(0.4))
+            }
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressableRowStyle())
+    }
+
+    private static func bestNightText(_ outlook: BestNight.NightOutlook, now: Date, timeZone: TimeZone) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        if calendar.isDate(outlook.date, inSameDayAs: now) {
+            return "Tonight is the best night this week — \(outlook.rating)/10."
+        }
+        let weekday = Self.weekdayFormatter.string(from: outlook.date)
+        let descriptor = Self.limitingFactorDescriptor(outlook.limitingFactor)
+        return "\(weekday) looks best — \(descriptor), \(outlook.rating)/10."
+    }
+
+    private static func limitingFactorDescriptor(_ factor: BestNight.LimitingFactor) -> String {
+        switch factor {
+        case .none: return "clear and moonless"
+        case .clouds: return "some cloud in the way"
+        case .moon: return "bright moon washing things out"
+        }
+    }
+
+    private static let weekdayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE"
+        return formatter
+    }()
 
     // MARK: - Dusk-to-dawn timeline strip
 
@@ -662,17 +780,48 @@ struct TonightSkyCard: View {
                         .font(.subheadline)
                         .foregroundStyle(.white)
                 }
-                Text(PhraseBank.skyMeteor(
-                    interference: meteorOutlook.moonInterference,
-                    date: date,
-                    locationId: location.id,
-                    tokens: ["shower": meteorOutlook.shower.name]
-                ))
+                Text(Self.meteorSecondaryLine(meteorOutlook, date: date, location: location, timeZone: timeZone))
                 .font(.footnote)
                 .foregroundStyle(Color.white.opacity(0.65))
             }
         }
         .padding(.vertical, 8)
+    }
+
+    /// The shower row's secondary line, PhraseBank's own moon-washout sentence with the radiant
+    /// direction appended — "…Look northeast after 1 AM." (meteor-radiant work item). The
+    /// direction is evaluated at 1 AM local time on tonight's date (the work order's own
+    /// suggested moment, per `MeteorShowers.radiantDirectionOnPeakNight`'s doc comment on why
+    /// that's when a radiant's altitude is typically climbing toward its best) rather than that
+    /// shower's fixed textbook peak calendar day, since this row renders on every active night,
+    /// not just the peak.
+    private static func meteorSecondaryLine(_ outlook: MeteorShowers.MeteorOutlook, date: Date, location: SavedLocation, timeZone: TimeZone) -> String {
+        let base = PhraseBank.skyMeteor(
+            interference: outlook.moonInterference,
+            date: date,
+            locationId: location.id,
+            tokens: ["shower": outlook.shower.name]
+        )
+        guard let radiant = Self.radiantDirectionTonight(
+            shower: outlook.shower, date: date, latitude: location.latitude, longitude: location.longitude, timeZone: timeZone
+        ) else {
+            return base
+        }
+        return "\(base) Look \(TonightHeadline.compassWord(radiant.compass)) after 1 AM."
+    }
+
+    /// The shower's radiant compass/altitude at 1 AM local on tonight's calendar night (evening
+    /// of `date` -> the following morning) — see `MeteorShowers.radiantDirection`'s doc comment
+    /// for the underlying transform.
+    private static func radiantDirectionTonight(
+        shower: MeteorShowers.MeteorShower, date: Date, latitude: Double, longitude: Double, timeZone: TimeZone
+    ) -> (compass: String, altitudeQualitative: String)? {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let dayStart = calendar.startOfDay(for: date)
+        guard let nextDay = calendar.date(byAdding: .day, value: 1, to: dayStart),
+              let oneAM = calendar.date(byAdding: .hour, value: 1, to: nextDay) else { return nil }
+        return MeteorShowers.radiantDirection(shower: shower, date: oneAM, lat: latitude, lon: longitude)
     }
 
     /// "100/hr on paper; the moon says closer to 15 — bright moon washing out the faint ones." —
@@ -716,82 +865,102 @@ struct TonightSkyCard: View {
         return formatter
     }()
 
-    // MARK: - ISS
+    // MARK: - Satellites
+
+    /// SATELLITES section body (engine-integration work package): up to 4 pass rows, soonest
+    /// first (`SatellitesTonight.passes(satellites:...)` already returns them sorted that way), a
+    /// quiet "+N more tonight" line if there are more, and the explainer moved off the individual
+    /// rows onto the section header's ⓘ (see `sectionHeaderWithInfo`).
+    private static let maxSatelliteRows = 4
 
     @ViewBuilder
-    private var issRow: some View {
-        switch issState {
+    private var satellitesSection: some View {
+        switch satellitesState {
         case .loading:
             skeletonLine
         case .unavailable:
-            unavailableRow(label: "ISS", note: "ISS pass data unavailable right now.")
+            unavailableRow(label: "Satellites", note: "Satellite pass data unavailable right now.")
         case .available(let passes):
             if passes.isEmpty {
-                Text(PhraseBank.skyNoISS(date: date, locationId: location.id))
+                Text("No satellite passes visible tonight.")
                     .font(.footnote)
                     .foregroundStyle(Color.white.opacity(0.65))
                     .padding(.vertical, 8)
             } else {
-                // Night panel UX pass: the bare pass-time-text rows are replaced with a
-                // plain-language block — arc glyph, then a sentence built from the pass data
-                // ("Appears ... low in the ..., climbs ..., fades ... at ...") plus a brightness
-                // simile in place of the raw class word.
-                HStack(alignment: .top, spacing: 10) {
-                    ISSGlyph()
-                        .foregroundStyle(.white.opacity(0.85))
-                        .padding(.top, 5)
-                    VStack(alignment: .leading, spacing: 4) {
-                        if let firstPass = passes.first {
-                            Text(Self.issPlainLanguage(firstPass, timeZone: timeZone))
-                                .font(.subheadline)
-                                .foregroundStyle(.white)
+                let shown = Array(passes.prefix(Self.maxSatelliteRows))
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(shown.enumerated()), id: \.offset) { index, pass in
+                        satelliteRow(pass)
+                        if index < shown.count - 1 {
+                            nightDivider
                         }
-                        // A second pass tonight, if any, still gets the compact factual line —
-                        // the plain-language treatment above is reserved for the headline pass.
-                        ForEach(Array(passes.dropFirst().prefix(1).enumerated()), id: \.offset) { _, pass in
-                            Text(Self.issPassText(pass))
-                                .font(.footnote)
-                                .monospacedDigit()
-                                .foregroundStyle(Color.white.opacity(0.65))
-                        }
-                        Text(PhraseBank.skyISSPass(date: date, locationId: location.id))
-                            .font(.footnote)
-                            .foregroundStyle(Color.white.opacity(0.65))
                     }
-                    Spacer(minLength: 8)
-                    Button {
-                        onExplain(Explainers.issPass)
-                    } label: {
-                        Image(systemName: "info.circle")
+                    if passes.count > shown.count {
+                        Text("+\(passes.count - shown.count) more tonight")
                             .font(.footnote)
                             .foregroundStyle(Color.white.opacity(0.5))
+                            .padding(.top, 4)
                     }
-                    .buttonStyle(.plain)
                 }
-                .padding(.vertical, 8)
             }
         }
     }
 
-    /// "Appears 9:42 low in the WNW, climbs a third of the way up the sky, fades ESE at 9:46.
-    /// As bright as the brightest star in the sky." — the plain-language ISS block (night panel
-    /// UX pass), replacing the previous bare "9:42 PM · WNW→ESE · 4 min · bright" row.
-    private static func issPlainLanguage(_ pass: ISSPass, timeZone: TimeZone) -> String {
-        let start = TonightHeadline.shortTime(pass.startTime, timeZone: timeZone)
-        let end = TonightHeadline.shortTime(pass.endTime, timeZone: timeZone)
-        let startDirection = TonightHeadline.compassWord(pass.startAzimuthCompass)
-        let endDirection = TonightHeadline.compassWord(pass.endAzimuthCompass)
-        let arc = Self.qualitativeAltitude(pass.peakAltitudeDeg)
-        let brightness = Self.brightnessSimile(pass.brightness)
-        return "Appears \(start) low in the \(startDirection), climbs \(arc), fades \(endDirection) at \(end). \(brightness)"
+    /// One tracked-satellite pass row: glyph, name + start time, direction + brightness note.
+    /// ISS↔crew link (work item 2): a station pass (ISS or Tiangong) is a `Button` that opens
+    /// `PeopleInSpaceSheet` — Hubble and Starlink-train rows aren't crew-linked, so they stay
+    /// plain (non-tappable) content rows.
+    private func satelliteRow(_ satellitePass: SatellitePass) -> some View {
+        let isStation = satellitePass.satellite.kind == .iss || satellitePass.satellite.kind == .tiangong
+        let content = HStack(alignment: .top, spacing: 10) {
+            satelliteGlyph(for: satellitePass.satellite)
+                .foregroundStyle(.white.opacity(0.85))
+                .padding(.top, 5)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(satellitePass.satellite.name)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                    Spacer(minLength: 8)
+                    Text(Self.timeFormatter.string(from: satellitePass.pass.startTime))
+                        .font(.footnote)
+                        .monospacedDigit()
+                        .foregroundStyle(Color.white.opacity(0.65))
+                }
+                Text("\(satellitePass.pass.startAzimuthCompass) → \(satellitePass.pass.endAzimuthCompass) · \(Self.brightnessSimile(satellitePass.pass.brightness))")
+                    .font(.footnote)
+                    .foregroundStyle(Color.white.opacity(0.65))
+            }
+        }
+        .padding(.vertical, 8)
+        .contentShape(Rectangle())
+
+        return Group {
+            if isStation {
+                Button {
+                    isPresentingPeopleSheet = true
+                } label: {
+                    content
+                }
+                .buttonStyle(PressableRowStyle())
+            } else {
+                content
+            }
+        }
     }
 
-    /// Qualitative peak-altitude phrase (spec: "a third of the way"/"halfway"/"high overhead").
-    private static func qualitativeAltitude(_ peakAltitudeDegrees: Double) -> String {
-        switch peakAltitudeDegrees {
-        case ..<30: return "a third of the way up the sky"
-        case 30..<70: return "halfway up the sky"
-        default: return "high overhead"
+    /// "Reuse ISSGlyph for stations, a simple dot-line glyph for trains" (spec) — Hubble (a lone
+    /// satellite, not a train) gets the same dot-line glyph with a single dot.
+    @ViewBuilder
+    private func satelliteGlyph(for satellite: TrackedSatellite) -> some View {
+        switch satellite.kind {
+        case .iss, .tiangong:
+            ISSGlyph()
+        case .hubble:
+            SatelliteDotGlyph(dotCount: 1)
+        case .starlinkTrain:
+            SatelliteDotGlyph(dotCount: min(max(satellite.memberCount, 3), 5))
         }
     }
 
@@ -806,19 +975,12 @@ struct TonightSkyCard: View {
         }
     }
 
-    /// "9:42 PM · WNW→ESE · 4 min · bright" — compact factual format, still used for a second
-    /// same-night pass beneath the headline pass's plain-language block above.
-    private static func issPassText(_ pass: ISSPass) -> String {
-        let durationMinutes = max(1, Int((pass.endTime.timeIntervalSince(pass.startTime) / 60.0).rounded()))
-        return "\(timeFormatter.string(from: pass.startTime)) · \(pass.startAzimuthCompass)→\(pass.endAzimuthCompass) · \(durationMinutes) min · \(pass.brightness.rawValue)"
-    }
-
     // MARK: - People in space
 
-    /// "N people in space right now" (Tonight's Sky card work package), directly after the ISS
-    /// section — live count from the app-wide `PeopleInSpaceStore`, chevron to
+    /// "N people in space right now" (Tonight's Sky card work package), directly after the
+    /// SATELLITES section — live count from the app-wide `PeopleInSpaceStore`, chevron to
     /// `PeopleInSpaceSheet`. Deliberately quieter than the network rows above it: `.loading` shows
-    /// a skeleton (same as `issRow`/`auroraRow`), but `.unavailable` renders nothing at all — no
+    /// a skeleton (same as `satellitesSection`/`auroraRow`), but `.unavailable` renders nothing at all — no
     /// "—" row, no divider — per work order ("it's supplementary; document"). This is
     /// supplementary trivia layered on top of the night panel's core sky-observing content, not a
     /// core row users depend on the way ISS/aurora are, so a quiet omission on failure is more
@@ -971,6 +1133,35 @@ struct TonightSkyCard: View {
         formatter.dateFormat = "h:mm a"
         return formatter
     }()
+}
+
+/// SATELLITES section glyph for non-station tracked objects (spec: "a simple dot-line glyph for
+/// trains"): several small dots on a faint connecting line for a Starlink train, or a single
+/// centered dot (no line) for a lone satellite like Hubble. Sized to `ISSGlyph.nominalSize` so
+/// every satellite row's leading glyph column lines up regardless of which glyph it renders.
+private struct SatelliteDotGlyph: View {
+    var dotCount: Int = 1
+
+    var body: some View {
+        ZStack {
+            if dotCount > 1 {
+                Rectangle()
+                    .fill(Color.white.opacity(0.3))
+                    .frame(height: 1)
+            }
+            HStack(spacing: 0) {
+                ForEach(0..<max(dotCount, 1), id: \.self) { index in
+                    Circle()
+                        .fill(Color.white.opacity(0.85))
+                        .frame(width: 4, height: 4)
+                    if index < dotCount - 1 {
+                        Spacer(minLength: 0)
+                    }
+                }
+            }
+        }
+        .frame(width: ISSGlyph.nominalSize.width, height: ISSGlyph.nominalSize.height)
+    }
 }
 
 /// The night panel's signature deep-indigo gradient plus a fixed set of tiny static star specks —
