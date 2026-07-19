@@ -48,6 +48,10 @@ struct TonightSkyCard: View {
     /// "which location is the notification location." Defaulted to a no-op so every existing call
     /// site/preview keeps compiling unchanged.
     var onSkyStateResolved: (SavedLocation) -> Void = { _ in }
+    /// Sky Finder work package: fired by every "Find" ghost-button (planet/moon/satellite rows)
+    /// and the header's `scope` free-explore button (`nil` kind). Defaulted to a no-op so every
+    /// existing call site/preview keeps compiling unchanged.
+    var onOpenFinder: (SkyFinderTarget.Kind?) -> Void = { _ in }
 
     @State private var astronomy: SkyTonight.TonightSky?
     @State private var issState: SkyTonightService.SectionState<[ISSPass]> = .loading
@@ -69,6 +73,9 @@ struct TonightSkyCard: View {
     /// `@Observable` singleton rather than a per-card fetch.
     private let peopleStore = PeopleInSpaceStore.shared
     @State private var isPresentingPeopleSheet = false
+    /// Sky Finder work package: the JOURNAL row at the night panel's bottom.
+    @State private var isPresentingJournal = false
+    private let journalStore = SkyJournalStore.shared
 
     @Environment(\.colorScheme) private var colorScheme
 
@@ -91,8 +98,10 @@ struct TonightSkyCard: View {
         forcedOverrides: SkyTonightService.ForcedOverrides? = nil,
         initialExpandedPlanet: Planets.Body? = nil,
         initialShowPeopleSheet: Bool = false,
+        initialShowJournal: Bool = false,
         onExplain: @escaping (ExplainerContent) -> Void = { _ in },
-        onSkyStateResolved: @escaping (SavedLocation) -> Void = { _ in }
+        onSkyStateResolved: @escaping (SavedLocation) -> Void = { _ in },
+        onOpenFinder: @escaping (SkyFinderTarget.Kind?) -> Void = { _ in }
     ) {
         self.location = location
         self.date = date
@@ -100,8 +109,10 @@ struct TonightSkyCard: View {
         self.forcedOverrides = forcedOverrides
         self._expandedPlanet = State(initialValue: initialExpandedPlanet)
         self._isPresentingPeopleSheet = State(initialValue: initialShowPeopleSheet)
+        self._isPresentingJournal = State(initialValue: initialShowJournal)
         self.onExplain = onExplain
         self.onSkyStateResolved = onSkyStateResolved
+        self.onOpenFinder = onOpenFinder
     }
 
     var body: some View {
@@ -112,6 +123,7 @@ struct TonightSkyCard: View {
                     .tracking(0.8)
                     .foregroundStyle(Color.white.opacity(0.55))
                 Spacer()
+                findItButton
                 nightVisionQuickToggle
             }
             nightDivider
@@ -159,6 +171,8 @@ struct TonightSkyCard: View {
                     }
                     nightDivider
                     factRow
+                    nightDivider
+                    journalRow
                 } else {
                     skeletonRows
                 }
@@ -182,6 +196,9 @@ struct TonightSkyCard: View {
                 PeopleInSpaceSheet(summary: summary)
                     .nightVisionAware()
             }
+        }
+        .sheet(isPresented: $isPresentingJournal) {
+            SkyJournalView(store: journalStore)
         }
     }
 
@@ -269,6 +286,38 @@ struct TonightSkyCard: View {
     /// SKY" header row's trailing side (this card's own top-right corner), not the "TONIGHT'S
     /// TIMELINE" sub-header, since the card-level header is visible immediately without scrolling
     /// past the headline row.
+    // MARK: - Sky Finder ingress
+
+    /// Free-explore ingress: the "TONIGHT'S SKY" header's `scope` button opens Sky Finder with no
+    /// fixed target — mirrors `nightVisionQuickToggle`'s own placement/sizing conventions exactly
+    /// so the two read as one small icon-button group.
+    private var findItButton: some View {
+        Button {
+            onOpenFinder(nil)
+        } label: {
+            Image(systemName: "scope")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.white.opacity(0.55))
+                .frame(width: 28, height: 28)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Open Sky Finder")
+    }
+
+    /// A small "Find" ghost-button, trailing on planet/moon/satellite rows — same visual weight
+    /// as those rows' own chevron/info icons (`.footnote`, `Color.white.opacity(0.5)`), just a
+    /// distinct glyph (`binoculars`) so it doesn't read as another disclosure chevron.
+    private func findRowButton(muted: Bool = false, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: "binoculars.fill")
+                .font(.footnote)
+                .foregroundStyle(Color.white.opacity(muted ? 0.3 : 0.6))
+                .frame(width: 28, height: 28)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Find with Sky Finder")
+    }
+
     private var nightVisionQuickToggle: some View {
         Button {
             NightVisionMode.shared.enabled.toggle()
@@ -547,6 +596,8 @@ struct TonightSkyCard: View {
                     .font(.subheadline)
                     .monospacedDigit()
                     .foregroundStyle(Color.white.opacity(0.65))
+
+                findRowButton { onOpenFinder(.moon()) }
             }
 
             Text(PhraseBank.skyMoon(quarter: quarter, date: date, locationId: location.id))
@@ -613,49 +664,57 @@ struct TonightSkyCard: View {
         let isExpanded = expandedPlanet == planet.body
         let color = TrueSkyLayer.dotColor(for: planet.body)
         return VStack(spacing: 0) {
-            Button {
-                // Same spring + inline-fade mechanism as `DailyForecastRow.onTap`.
-                withAnimation(.spring(duration: 0.35)) {
-                    expandedPlanet = (expandedPlanet == planet.body) ? nil : planet.body
-                }
-            } label: {
-                HStack(spacing: 10) {
-                    // Leading colored dot + glow (spec item 3) — the same `TrueSkyLayer` color
-                    // this planet renders as in the true-sky doodle, so the two surfaces agree.
-                    Circle()
-                        .fill(color)
-                        .frame(width: 10, height: 10)
-                        .shadow(color: color.opacity(0.9), radius: 4)
-
-                    Text(planet.body.displayName)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 62, alignment: .leading)
-
-                    Text(planet.directionDescription ?? "")
-                        .font(.footnote)
-                        .foregroundStyle(Color.white.opacity(0.65))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-
-                    Spacer(minLength: 8)
-
-                    if let start = planet.bestViewingStart, let end = planet.bestViewingEnd {
-                        Text(Self.windowText(start: start, end: end))
-                            .font(.footnote)
-                            .monospacedDigit()
-                            .foregroundStyle(Color.white.opacity(0.65))
+            HStack(spacing: 2) {
+                Button {
+                    // Same spring + inline-fade mechanism as `DailyForecastRow.onTap`.
+                    withAnimation(.spring(duration: 0.35)) {
+                        expandedPlanet = (expandedPlanet == planet.body) ? nil : planet.body
                     }
+                } label: {
+                    HStack(spacing: 10) {
+                        // Leading colored dot + glow (spec item 3) — the same `TrueSkyLayer` color
+                        // this planet renders as in the true-sky doodle, so the two surfaces agree.
+                        Circle()
+                            .fill(color)
+                            .frame(width: 10, height: 10)
+                            .shadow(color: color.opacity(0.9), radius: 4)
 
-                    Image(systemName: "chevron.down")
-                        .font(.caption2)
-                        .foregroundStyle(Color.white.opacity(0.4))
-                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                        Text(planet.body.displayName)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 62, alignment: .leading)
+
+                        Text(planet.directionDescription ?? "")
+                            .font(.footnote)
+                            .foregroundStyle(Color.white.opacity(0.65))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+
+                        Spacer(minLength: 8)
+
+                        if let start = planet.bestViewingStart, let end = planet.bestViewingEnd {
+                            Text(Self.windowText(start: start, end: end))
+                                .font(.footnote)
+                                .monospacedDigit()
+                                .foregroundStyle(Color.white.opacity(0.65))
+                        }
+
+                        Image(systemName: "chevron.down")
+                            .font(.caption2)
+                            .foregroundStyle(Color.white.opacity(0.4))
+                            .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                    }
+                    .padding(.vertical, 8)
+                    .contentShape(Rectangle())
                 }
-                .padding(.vertical, 8)
-                .contentShape(Rectangle())
+                .buttonStyle(PressableRowStyle())
+
+                // Sky Finder work package: a SIBLING of the row's own expand `Button`, not
+                // nested inside it — two overlapping `Button`s fighting over the same tap is a
+                // known SwiftUI hit-testing footgun; keeping this outside the expand button's own
+                // label avoids it entirely while still reading as "trailing on the row."
+                findRowButton { onOpenFinder(.planet(planet.body)) }
             }
-            .buttonStyle(PressableRowStyle())
 
             if isExpanded {
                 planetExpandedDetail(planet)
@@ -936,17 +995,27 @@ struct TonightSkyCard: View {
         .padding(.vertical, 8)
         .contentShape(Rectangle())
 
-        return Group {
-            if isStation {
-                Button {
-                    isPresentingPeopleSheet = true
-                } label: {
+        return HStack(spacing: 2) {
+            Group {
+                if isStation {
+                    Button {
+                        isPresentingPeopleSheet = true
+                    } label: {
+                        content
+                    }
+                    .buttonStyle(PressableRowStyle())
+                } else {
                     content
                 }
-                .buttonStyle(PressableRowStyle())
-            } else {
-                content
             }
+
+            // Sky Finder work package: a SIBLING of the station rows' own `Button` (see the
+            // planet row's identical comment on why) — opens the finder targeting this pass
+            // regardless of whether it's soon/current; `SkyFinderView` itself is what tells the
+            // "actively tracking" story apart from the "not up yet — rises {time} in the {dir}"
+            // one (see `SkyFinderTarget.isSatellitePassActive`/`riseWaitingText`), so this button
+            // is never disabled — it always opens Sky Finder, just to a different initial state.
+            findRowButton { onOpenFinder(.satellite(satellitePass)) }
         }
     }
 
@@ -1084,6 +1153,35 @@ struct TonightSkyCard: View {
                 .foregroundStyle(Color.white.opacity(0.65))
         }
         .padding(.vertical, 8)
+    }
+
+    // MARK: - Sky Journal row
+
+    /// Sky Finder work package: the night panel's own JOURNAL row, at the very bottom — a book
+    /// icon + live tally, mirroring `peopleInSpaceRow`'s row shape/chevron convention.
+    private var journalRow: some View {
+        Button {
+            isPresentingJournal = true
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "book.closed.fill")
+                    .foregroundStyle(.white.opacity(0.85))
+                Text("JOURNAL")
+                    .font(.footnote.weight(.semibold))
+                    .tracking(0.8)
+                    .foregroundStyle(Color.white.opacity(0.55))
+                Spacer(minLength: 8)
+                Text("\(journalStore.planetsFoundCount) of 5 planets found")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.white.opacity(0.65))
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundStyle(Color.white.opacity(0.4))
+            }
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PressableRowStyle())
     }
 
     // MARK: - Shared row chrome

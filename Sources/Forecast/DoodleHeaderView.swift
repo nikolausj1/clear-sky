@@ -67,6 +67,11 @@ struct DoodleHeaderView: View {
     /// card — `ForecastPageView` wires this to its existing `ScrollViewProxy.scrollTo` mechanism
     /// (the same one `-scrollToSky` already drives).
     var onCaptionTap: (() -> Void)? = nil
+    /// Sky Finder work package: tapping a true-sky planet dot in the hero composite opens the
+    /// finder targeting that planet. `nil` (the default) keeps every existing call site — the
+    /// loading/error/empty previews, and any future one that doesn't care — compiling unchanged
+    /// with no tappable dots at all.
+    var onFindPlanetTap: ((Planets.Body) -> Void)? = nil
 
     /// Aurora/ISS/bestMoment/meteor are network-or-derived-state (`SkyTonightService.state`), so
     /// — unlike planets, which are synchronous math computed fresh in `scene` below — they're
@@ -501,6 +506,25 @@ struct DoodleHeaderView: View {
             ZStack(alignment: .bottom) {
                 DoodleSceneView(scene: resolvedScene)
 
+                // Sky Finder work package: an invisible, hit-testable overlay of ≥28pt tap
+                // targets over the true-sky planet dots. A SIBLING of `DoodleSceneView`, not a
+                // modification of it — `TrueSkyLayer` itself stays `.allowsHitTesting(false)`
+                // (untouched, zero regression risk to that perf/QC-sensitive layer), and this
+                // overlay independently reuses its exact same `planetDotFractions` math so a tap
+                // target always lines up with the dot it represents, without duplicating the
+                // azimuth/altitude -> fraction derivation.
+                if let onFindPlanetTap {
+                    ForEach(Self.planetHitTargets(scene: resolvedScene), id: \.body) { target in
+                        Circle()
+                            .fill(Color.white.opacity(0.001))
+                            .frame(width: 28, height: 28)
+                            .contentShape(Circle())
+                            .onTapGesture { onFindPlanetTap(target.body) }
+                            .position(x: proxy.size.width * target.xFraction, y: proxy.size.height * target.yFraction)
+                            .accessibilityLabel("Find \(target.body.displayName) with Sky Finder")
+                    }
+                }
+
                 // Space-first design batch, item 1 ("this is now a space weather app" — weather
                 // diminishes, space leads): the temp/condition/feels-like cluster moves from a
                 // centered mid-scene block to a compact top-LEFT group, at the same vertical
@@ -598,6 +622,14 @@ struct DoodleHeaderView: View {
             cachedScene = scene
             cachedSceneKey = newKey
         }
+    }
+
+    /// Sky Finder work package: the exact same set `TrueSkyLayer.resolvedDots` would draw this
+    /// frame, minus the rendering specifics this overlay doesn't need — see that type's
+    /// `planetDotFractions` doc comment for the shared-source-of-truth rationale (the true-sky
+    /// twinkle-star suppression already reuses it the same way).
+    private static func planetHitTargets(scene: DoodleComposer.Scene) -> [TrueSkyLayer.PlanetDotFraction] {
+        TrueSkyLayer.planetDotFractions(timeOfDay: scene.timeOfDay, condition: scene.condition, trueSky: scene.trueSky)
     }
 
     /// Re-runs whenever the location or calendar day changes — same `.task(id:)` rationale as

@@ -24,6 +24,13 @@ import SwiftUI
 ///   `AttributionFooter` for a sim-verify screenshot — `simctl` can't scroll.
 /// - `-showPeopleSheet` ("People in Space" work package) presents `PeopleInSpaceSheet` on the
 ///   active Forecast page at launch — `simctl` can't tap the Tonight's Sky card's people row.
+/// - `-showFinder explore|moon|mercury|venus|mars|jupiter|saturn|iss` (Sky Finder work package)
+///   presents `SkyFinderView` on the active Forecast page at launch, targeting the named object
+///   (`explore` = free-explore mode) — `simctl` can't tap a "Find" button. See
+///   `SkyFinderLaunchArgTarget`. `-finderDemo`/`-finderDemoStage <stage>`/`-finderCalibrationPoor`
+///   (read directly by `DeviceMotionAdapter`) drive the canned pointing sweep for every
+///   motion-dependent screenshot; `-seedJournal` (read directly by `SkyJournalStore`) seeds a
+///   populated Sky Journal.
 /// - `-forceNotifTest` (notifications work package) schedules one test ISS notification 15
 ///   seconds out via `SkyNotificationScheduler.scheduleTestNotification()` — sim-verify only, so
 ///   a foreground-delivered banner can be screenshotted without waiting for a real pass.
@@ -65,7 +72,9 @@ struct NavigationShell: View {
                             scrollToSky: Self.launchArgsContain("-scrollToSky"),
                             forcedExplainerKey: Self.forcedExplainerKeyFromLaunchArgs(),
                             showPeopleSheetAtLaunch: Self.launchArgsContain("-showPeopleSheet"),
+                            showJournalAtLaunch: Self.launchArgsContain("-showJournal"),
                             showAlertDetailAtLaunch: Self.launchArgsContain("-showAlertDetail"),
+                            showFinderTargetAtLaunch: Self.showFinderTargetFromLaunchArgs(),
                             onSkyStateResolved: handleSkyStateResolved,
                             onOpenSettings: { isPresentingSettings = true },
                             onOpenLocations: { isPresentingLocations = true }
@@ -453,6 +462,14 @@ struct NavigationShell: View {
         let args = CommandLine.arguments
         guard let flagIndex = args.firstIndex(of: "-expandSkyPlanet"), flagIndex + 1 < args.count else { return nil }
         return Planets.Body(rawValue: args[flagIndex + 1])
+    }
+
+    /// `-showFinder explore|moon|mercury|venus|mars|jupiter|saturn|iss` — see this file's own
+    /// doc comment and `SkyFinderLaunchArgTarget`.
+    private static func showFinderTargetFromLaunchArgs() -> SkyFinderLaunchArgTarget? {
+        let args = CommandLine.arguments
+        guard let flagIndex = args.firstIndex(of: "-showFinder"), flagIndex + 1 < args.count else { return nil }
+        return SkyFinderLaunchArgTarget(rawValue: args[flagIndex + 1])
     }
 
     // MARK: - Sky-intelligence hooks (work package WP-F: headline/meteor/conjunction rows)

@@ -20,9 +20,15 @@ struct ForecastView: View {
     /// Sim-verify only ("People in Space" work package): `-showPeopleSheet` — see
     /// `TonightSkyCard.init`'s doc comment.
     var showPeopleSheetAtLaunch: Bool = false
+    /// Sim-verify only (Sky Journal work package): `-showJournal` — see `TonightSkyCard.init`'s
+    /// doc comment.
+    var showJournalAtLaunch: Bool = false
     /// Sim-verify only (always-dark audit sweep): `-showAlertDetail` — see
     /// `ForecastPageView.showAlertDetailAtLaunch`'s doc comment.
     var showAlertDetailAtLaunch: Bool = false
+    /// Sim-verify only (Sky Finder work package): `-showFinder <target>` — see
+    /// `NavigationShell`'s doc comment and `ForecastPageView.showFinderTargetAtLaunch`.
+    var showFinderTargetAtLaunch: SkyFinderLaunchArgTarget? = nil
     /// Notifications work package: forwarded straight through to every page's `TonightSkyCard`
     /// — see that file's doc comment on `onSkyStateResolved`.
     var onSkyStateResolved: (SavedLocation) -> Void = { _ in }
@@ -173,7 +179,9 @@ struct ForecastView: View {
                         scrollToSky: index == viewModel.activeIndex && scrollToSky,
                         forcedExplainerKey: index == viewModel.activeIndex ? forcedExplainerKey : nil,
                         showPeopleSheetAtLaunch: index == viewModel.activeIndex && showPeopleSheetAtLaunch,
+                        showJournalAtLaunch: index == viewModel.activeIndex && showJournalAtLaunch,
                         showAlertDetailAtLaunch: index == viewModel.activeIndex && showAlertDetailAtLaunch,
+                        showFinderTargetAtLaunch: index == viewModel.activeIndex ? showFinderTargetAtLaunch : nil,
                         // Only the active page's scroll offset should drive the shared bar
                         // state — an inactive page's `ScrollView` can report stale/irrelevant
                         // offsets (e.g. from before a swipe) that would otherwise fight the

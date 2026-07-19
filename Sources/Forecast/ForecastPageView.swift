@@ -35,11 +35,17 @@ struct ForecastPageView: View {
     /// Sim-verify only ("People in Space" work package): `-showPeopleSheet` — see
     /// `TonightSkyCard.init`'s doc comment.
     var showPeopleSheetAtLaunch: Bool = false
+    /// Sim-verify only (Sky Journal work package): `-showJournal` — see `NavigationShell`'s doc
+    /// comment. Mirrors `showPeopleSheetAtLaunch`'s pattern.
+    var showJournalAtLaunch: Bool = false
     /// Sim-verify only (always-dark audit sweep): `-showAlertDetail` — presents
     /// `AlertDetailSheet` directly at launch (paired with `-forceState alert`, since `simctl`
     /// can't tap the `AdvisoryBanner` to open it), so the sheet's dark rendering can be
     /// screenshotted without a real tap.
     var showAlertDetailAtLaunch: Bool = false
+    /// Sim-verify only (Sky Finder work package): `-showFinder <target>` — see
+    /// `NavigationShell`'s doc comment.
+    var showFinderTargetAtLaunch: SkyFinderLaunchArgTarget? = nil
     /// UX redesign part 2 (lead QC defect: scroll-aware top bar): reports this page's scroll
     /// content offset (`0` at rest, growing as the user scrolls down) up to `ForecastView`,
     /// which only listens for the currently-active page (see `ForecastView.pagerView`) and uses
@@ -62,6 +68,11 @@ struct ForecastPageView: View {
     /// `HourlyForecastSection`/`TonightSkyCard`) so every explainer — hourly event icons, the Sky
     /// chip's score info button, `TonightSkyCard`'s ISS section — shares one sheet presentation.
     @State private var presentedExplainer: ExplainerContent?
+    /// Sky Finder work package: the currently-presented full-screen finder, if any — set either
+    /// by a "Find" ghost-button/scope-button callback (see `TonightSkyCard.onOpenFinder`/
+    /// `DoodleHeaderView.onFindPlanetTap`) or by the `-showFinder` sim-verify launch-arg hook
+    /// (`showFinderTargetAtLaunch`, applied once in `loadedView`'s `.onAppear`).
+    @State private var finderPresentation: SkyFinderPresentation?
     /// Forecast-surface overhaul, work item 3: the Sky/Events chips' per-hour intelligence,
     /// resolved once per (location, evening) via `loadSkyContext()` below and threaded into both
     /// `HourlyForecastSection` and `DailyForecastSection`. Starts as the all-defaults value (no
@@ -349,7 +360,8 @@ struct ForecastPageView: View {
                             forceConjunctionScene: viewModel.forceConjunctionScene,
                             forceLaunchContrail: viewModel.forceLaunchContrail,
                             hourly: payload.hourly,
-                            onCaptionTap: { scrollToSkyCard(proxy: proxy) }
+                            onCaptionTap: { scrollToSkyCard(proxy: proxy) },
+                            onFindPlanetTap: { body in finderPresentation = SkyFinderPresentation(initialKind: .planet(body)) }
                         )
                     }
 
@@ -394,8 +406,10 @@ struct ForecastPageView: View {
                                 forcedOverrides: viewModel.skyForcedOverrides,
                                 initialExpandedPlanet: viewModel.initialExpandedSkyPlanet,
                                 initialShowPeopleSheet: showPeopleSheetAtLaunch,
+                                initialShowJournal: showJournalAtLaunch,
                                 onExplain: { presentedExplainer = $0 },
-                                onSkyStateResolved: onSkyStateResolved
+                                onSkyStateResolved: onSkyStateResolved,
+                                onOpenFinder: { finderPresentation = SkyFinderPresentation(initialKind: $0) }
                             )
 
                             AttributionFooter(attribution: payload.attribution)
@@ -429,6 +443,17 @@ struct ForecastPageView: View {
                 ExplainerSheet(content: content)
                     .nightVisionAware()
             }
+            .fullScreenCover(item: $finderPresentation) { presentation in
+                // `viewModel.phraseBankDate` rather than `displayNow` (which is scoped to the
+                // `TimelineView` closure above, out of reach here) — same "today, or -forceDate's
+                // forced date" value `TonightSkyCard`/`DoodleHeaderView` anchor their own tonight
+                // computations to elsewhere on this page. `SkyFinderView` re-derives its own
+                // live "now" internally (see its `now` ticking timer) for actual pointing/
+                // guidance, so this is only ever used to resolve which calendar night's
+                // astronomy/passes to load.
+                SkyFinderView(location: location, date: viewModel.phraseBankDate, presentation: presentation)
+                    .nightVisionAware()
+            }
             .onAppear {
                 scrollToTargetIfNeeded(payload, proxy: proxy)
                 if showAlertDetailAtLaunch, !payload.activeAlerts.isEmpty {
@@ -436,6 +461,9 @@ struct ForecastPageView: View {
                 }
                 if let forcedExplainerKey, presentedExplainer == nil {
                     presentedExplainer = Explainers.forLaunchArgKey(forcedExplainerKey)
+                }
+                if let showFinderTargetAtLaunch, finderPresentation == nil {
+                    finderPresentation = showFinderTargetAtLaunch.presentation
                 }
             }
             .onChange(of: viewModel.selectedMetric) {
